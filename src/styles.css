@@ -1,0 +1,13 @@
+:root {
+  --bg: #1a1410;
+  --panel: #2a2018;
+  --gold: #d9a441;
+  --text: #e8ddc8;
+  --danger: #b5402f;
+  --good: #5a8a4a;
+  font-family: system-ui, sans-serif;
+}
+body { background: var(--bg); color: var(--text); margin: 0; }
+#app { max-width: 720px; margin: 0 auto; padding: 16px; }
+button { font: inherit; cursor: pointer; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
