@@ -15,3 +15,15 @@ export function resolveTiming(distance, windowWidth, config, critWindowMult = 1)
   if (distance <= windowWidth * r.graze) return TIMING.GRAZE;
   return TIMING.MISS;
 }
+
+export function computeDamage({
+  baseDamage, power, guard, timing,
+  pressMultiplier = 1, weaponBroken = false, config,
+}) {
+  const mult = config.combat.timingMult[timing];
+  if (mult === 0) return 0;
+  let dmg = (baseDamage + power) * mult * pressMultiplier;
+  if (weaponBroken) dmg *= config.weapon.brokenDamageMultiplier;
+  dmg -= guard;
+  return Math.max(0, Math.round(dmg));
+}

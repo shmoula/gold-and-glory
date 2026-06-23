@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
-import { TIMING, timingWindowWidth, resolveTiming } from '../src/combat.js';
+import { TIMING, timingWindowWidth, resolveTiming, computeDamage } from '../src/combat.js';
 
 describe('timingWindowWidth', () => {
   it('widens with speed', () => {
@@ -32,5 +32,43 @@ describe('resolveTiming', () => {
     // critWindowMult 1.5 pushes crit boundary 0.06 -> 0.09
     expect(resolveTiming(0.08, w, CONFIG, 1.5)).toBe(TIMING.CRIT);
     expect(resolveTiming(0.08, w, CONFIG, 1.0)).toBe(TIMING.HIT);
+  });
+});
+
+describe('computeDamage', () => {
+  const base = { baseDamage: 10, power: 5, guard: 2, config: CONFIG };
+
+  it('is zero on a miss', () => {
+    expect(computeDamage({ ...base, timing: TIMING.MISS })).toBe(0);
+  });
+
+  it('hit = (baseDamage + power) * 1.0 - guard', () => {
+    // (10 + 5) * 1.0 - 2 = 13
+    expect(computeDamage({ ...base, timing: TIMING.HIT })).toBe(13);
+  });
+
+  it('crit doubles before guard subtraction', () => {
+    // (10 + 5) * 2.0 - 2 = 28
+    expect(computeDamage({ ...base, timing: TIMING.CRIT })).toBe(28);
+  });
+
+  it('graze halves', () => {
+    // (10 + 5) * 0.5 - 2 = 5.5 -> 6 (round)
+    expect(computeDamage({ ...base, timing: TIMING.GRAZE })).toBe(6);
+  });
+
+  it('never goes below zero', () => {
+    expect(computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config: CONFIG }))
+      .toBe(0);
+  });
+
+  it('applies the press-attack bonus multiplier', () => {
+    // (10 + 5) * 1.0 * 1.6 - 2 = 22
+    expect(computeDamage({ ...base, timing: TIMING.HIT, pressMultiplier: 1.6 })).toBe(22);
+  });
+
+  it('halves damage when the weapon is broken', () => {
+    // ((10 + 5) * 1.0 * 0.5) - 2 = 5.5 -> 6
+    expect(computeDamage({ ...base, timing: TIMING.HIT, weaponBroken: true })).toBe(6);
   });
 });
