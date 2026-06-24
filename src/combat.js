@@ -110,3 +110,58 @@ function cloneCombat(combat) {
     log: [...combat.log],
   };
 }
+
+const TIER_ORDER = [TIMING.MISS, TIMING.GRAZE, TIMING.HIT, TIMING.CRIT];
+
+export function upgradeTier(tier) {
+  const i = TIER_ORDER.indexOf(tier);
+  return TIER_ORDER[Math.min(i + 1, TIER_ORDER.length - 1)];
+}
+
+export function applyPress(combat, timing, config) {
+  const next = cloneCombat(combat);
+  const dmg = computeDamage({
+    baseDamage: config.combat.actions.strike.baseDamage,
+    power: next.player.power, guard: next.enemy.guard, timing,
+    pressMultiplier: config.combat.pressAttack.bonusMultiplier,
+    weaponBroken: next.player.weaponBroken, config,
+  });
+  next.enemy.health -= dmg;
+  next.guardDropped = true;
+  next.log.push(`You PRESS the attack (${timing}) for ${dmg} — but drop your guard!`);
+  return next;
+}
+
+function rollEnemyTier(rng, config) {
+  const w = config.combat.enemyTierWeights;
+  const roll = rng();
+  let acc = 0;
+  for (const tier of TIER_ORDER) {
+    acc += w[tier];
+    if (roll < acc) return tier;
+  }
+  return TIMING.HIT;
+}
+
+export function enemyTurn(combat, rng, config) {
+  const next = cloneCombat(combat);
+  let tier = rollEnemyTier(rng, config);
+  if (next.guardDropped) tier = upgradeTier(tier);
+
+  let dmg = computeDamage({
+    baseDamage: config.combat.actions.strike.baseDamage,
+    power: next.enemy.power, guard: next.player.guard, timing: tier, config,
+  });
+
+  if (next.counterReady) {
+    dmg = Math.round(dmg * (1 - config.combat.actions.block.damageReduction));
+    next.counterReady = false;
+    next.log.push(`Counter! You absorb the blow, taking ${dmg}.`);
+  } else {
+    next.log.push(`${next.enemy.name} strikes (${tier}) for ${dmg}.`);
+  }
+
+  next.player.health -= dmg;
+  next.guardDropped = false;
+  return next;
+}

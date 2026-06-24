@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { TIMING, timingWindowWidth, resolveTiming, computeDamage, createCombat, applyPlayerAction, isFightOver, fightWinner } from '../src/combat.js';
+import { makeRng } from '../src/rng.js';
+import { applyPress, enemyTurn, upgradeTier } from '../src/combat.js';
 
 describe('timingWindowWidth', () => {
   it('widens with speed', () => {
@@ -147,5 +149,59 @@ describe('isFightOver / fightWinner', () => {
     const c = createCombat(playerStats, opponent, CONFIG);
     expect(isFightOver(c)).toBe(false);
     expect(fightWinner(c)).toBe(null);
+  });
+});
+
+describe('upgradeTier', () => {
+  it('bumps a tier up one step, capped at crit', () => {
+    expect(upgradeTier(TIMING.MISS)).toBe(TIMING.GRAZE);
+    expect(upgradeTier(TIMING.GRAZE)).toBe(TIMING.HIT);
+    expect(upgradeTier(TIMING.HIT)).toBe(TIMING.CRIT);
+    expect(upgradeTier(TIMING.CRIT)).toBe(TIMING.CRIT);
+  });
+});
+
+describe('applyPress', () => {
+  const playerStats = {
+    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
+    critWindowMult: 1, weaponBroken: false,
+  };
+  const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
+
+  it('deals extra damage and drops guard', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const afterHit = applyPlayerAction(c, 'strike', TIMING.HIT, CONFIG); // enemy 27
+    const pressed = applyPress(afterHit, TIMING.HIT, CONFIG);
+    expect(pressed.enemy.health).toBeLessThan(afterHit.enemy.health);
+    expect(pressed.guardDropped).toBe(true);
+  });
+});
+
+describe('enemyTurn', () => {
+  const playerStats = {
+    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
+    critWindowMult: 1, weaponBroken: false,
+  };
+  const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
+
+  it('damages the player and clears guardDropped after acting', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    c.guardDropped = true;
+    const rng = makeRng(1);
+    const next = enemyTurn(c, rng, CONFIG);
+    expect(next.player.health).toBeLessThanOrEqual(100);
+    expect(next.guardDropped).toBe(false);
+    expect(next.log.length).toBeGreaterThan(c.log.length);
+  });
+
+  it('reduces incoming damage when a counter is ready, then consumes it', () => {
+    const rng = makeRng(5);
+    const base = createCombat(playerStats, CONFIG.opponents[2], CONFIG); // Veteran hits harder
+    const guarded = { ...base, counterReady: true, player: { ...base.player } };
+    const unguarded = { ...base, counterReady: false, player: { ...base.player } };
+    const a = enemyTurn(guarded, makeRng(5), CONFIG);
+    const b = enemyTurn(unguarded, makeRng(5), CONFIG);
+    expect(100 - a.player.health).toBeLessThanOrEqual(100 - b.player.health);
+    expect(a.counterReady).toBe(false);
   });
 });
