@@ -2,7 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
-import { renderHud, renderHub, renderResult, renderGameOver } from '../src/ui/render.js';
+import { renderHud, renderHub, renderResult, renderGameOver, renderFight, meterDistance } from '../src/ui/render.js';
+import { startFight } from '../src/game.js';
 
 describe('renderHud', () => {
   it('shows gold, health, and durability', () => {
@@ -64,5 +65,32 @@ describe('renderGameOver', () => {
     const s = createGameState(1, CONFIG);
     s.ended = 'win-circuit';
     expect(renderGameOver(s, CONFIG)).toMatch(/champion|circuit/i);
+  });
+});
+
+describe('renderFight', () => {
+  it('shows both combatants and the four action buttons', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    const html = renderFight(s, CONFIG);
+    expect(html).toContain('The Brute');
+    expect(html).toContain('data-action="strike"');
+    expect(html).toContain('data-action="heavy"');
+    expect(html).toContain('data-action="block"');
+    expect(html).toContain('data-action="feint"');
+    expect(html).toContain('class="timing-meter"');
+  });
+
+  it('renders the combat log', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.log = ['You strike (hit) for 13 damage.'];
+    expect(renderFight(s, CONFIG)).toContain('You strike (hit) for 13 damage.');
+  });
+});
+
+describe('meterDistance', () => {
+  it('is 0 at the sweet-spot center and grows toward the edges', () => {
+    expect(meterDistance(0.5, 0.5)).toBeCloseTo(0);
+    expect(meterDistance(0.75, 0.5)).toBeCloseTo(0.25);
+    expect(meterDistance(0.0, 0.5)).toBeCloseTo(0.5);
   });
 });

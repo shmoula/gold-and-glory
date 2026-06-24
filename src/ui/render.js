@@ -99,3 +99,33 @@ export function renderGameOver(state, config) {
       <button data-action="restart">Fight again (new run)</button>
     </section>`;
 }
+
+export function meterDistance(clickPos, sweetSpot) {
+  return Math.abs(clickPos - sweetSpot);
+}
+
+export function renderFight(state, config) {
+  const c = state.combat;
+  const logHtml = c.log.slice(-6).map((l) => `<li>${escapeHtml(l)}</li>`).join('');
+  return `
+    ${renderHud(state, config)}
+    <section class="fight">
+      <div class="combatants">
+        <div class="you">YOU<br/>${Math.max(0, c.player.health)}/${c.player.maxHealth}</div>
+        <div class="them">${escapeHtml(c.enemy.name)}<br/>${Math.max(0, c.enemy.health)}/${c.enemy.maxHealth}</div>
+      </div>
+      <div class="timing-meter" data-meter="1">
+        <div class="meter-sweet"></div>
+        <div class="meter-cursor"></div>
+      </div>
+      <p class="meter-hint">Click the meter, then choose your action.</p>
+      <div class="actions">
+        <button data-action="strike">Strike</button>
+        <button data-action="heavy">Heavy</button>
+        <button data-action="block">Block</button>
+        <button data-action="feint">Feint</button>
+      </div>
+      ${c.canPress ? '<button data-action="press" class="press">PRESS THE ATTACK!</button>' : ''}
+      <ul class="log">${logHtml}</ul>
+    </section>`;
+}
