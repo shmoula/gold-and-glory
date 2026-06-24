@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { TIMING, timingWindowWidth, resolveTiming, computeDamage, createCombat, applyPlayerAction, isFightOver, fightWinner } from '../src/combat.js';
 import { makeRng } from '../src/rng.js';
-import { applyPress, enemyTurn, upgradeTier } from '../src/combat.js';
+import { applyPress, enemyTurn, upgradeTier, markPressable } from '../src/combat.js';
 
 describe('timingWindowWidth', () => {
   it('widens with speed', () => {
@@ -203,5 +203,32 @@ describe('enemyTurn', () => {
     const b = enemyTurn(unguarded, makeRng(5), CONFIG);
     expect(100 - a.player.health).toBeLessThanOrEqual(100 - b.player.health);
     expect(a.counterReady).toBe(false);
+  });
+});
+
+describe('markPressable', () => {
+  const playerStats = {
+    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
+    critWindowMult: 1, weaponBroken: false,
+  };
+  const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
+
+  it('offers a press after a damaging hit', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const afterHit = applyPlayerAction(c, 'strike', TIMING.HIT, CONFIG);
+    const flagged = markPressable(afterHit, 'strike', TIMING.HIT);
+    expect(flagged.canPress).toBe(true);
+  });
+
+  it('does not offer a press after a miss', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const afterMiss = applyPlayerAction(c, 'strike', TIMING.MISS, CONFIG);
+    expect(markPressable(afterMiss, 'strike', TIMING.MISS).canPress).toBe(false);
+  });
+
+  it('does not offer a press after a block', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const afterBlock = applyPlayerAction(c, 'block', TIMING.HIT, CONFIG);
+    expect(markPressable(afterBlock, 'block', TIMING.HIT).canPress).toBe(false);
   });
 });

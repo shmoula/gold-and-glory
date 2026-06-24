@@ -165,3 +165,9 @@ export function enemyTurn(combat, rng, config) {
   next.guardDropped = false;
   return next;
 }
+
+export function markPressable(combat, action, timing) {
+  const damaging = (action === 'strike' || action === 'heavy' || action === 'feint');
+  const landed = timing !== TIMING.MISS;
+  return { ...combat, canPress: damaging && landed && combat.enemy.health > 0 };
+}
