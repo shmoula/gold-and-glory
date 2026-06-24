@@ -1,0 +1,101 @@
+// src/ui/render.js
+import { trainingCost, repairCost, healCost, canAfford } from '../economy.js';
+import { effectiveStats } from '../game.js';
+
+export function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function btn(action, label, cost, gold, extra = '') {
+  const affordable = cost == null || canAfford(gold, cost);
+  const costLabel = cost == null ? '' : ` (${cost}g)`;
+  return `<button data-action="${action}"${extra}${affordable ? '' : ' disabled'}>${escapeHtml(label)}${costLabel}</button>`;
+}
+
+export function renderHud(state, config) {
+  return `
+    <div class="hud">
+      <span class="gold">🪙 ${state.gold}g</span>
+      <span>Health: ${Math.max(0, state.health)}/${state.maxHealth}</span>
+      <span>Durability: ${state.weaponDurability}/${config.weapon.maxDurability}</span>
+      <span>Injuries: ${state.injuries}</span>
+    </div>`;
+}
+
+export function renderHub(state, config) {
+  const eff = effectiveStats(state, config);
+  const missing = config.weapon.maxDurability - state.weaponDurability;
+  const opponent = config.opponents[state.currentOpponentIndex];
+
+  const trainButtons = ['power', 'guard', 'speed'].map((stat) => {
+    const cost = trainingCost(state.trainingLevels[stat], config);
+    return btn(`train-${stat}`, `Train ${stat} → ${eff[stat]}`, cost, state.gold);
+  }).join('');
+
+  const gearButtons = Object.values(config.gear).map((g) => {
+    if (state.gear.includes(g.id)) return `<button disabled>${escapeHtml(g.name)} ✓</button>`;
+    return btn(`buy-${g.id}`, g.name, g.cost, state.gold);
+  }).join('');
+
+  return `
+    ${renderHud(state, config)}
+    <section class="hub">
+      <h2>The Ludus — Wins: ${state.wins}</h2>
+      <div class="row">${trainButtons}</div>
+      <div class="row">
+        ${btn('repair', 'Repair weapon', repairCost(missing, config), state.gold, missing <= 0 ? ' data-noop="1"' : '')}
+        ${btn('heal', `Heal ${state.injuries} injuries`, healCost(state.injuries, config), state.gold)}
+        ${state.bribedThisFight
+          ? '<button disabled>Bribed ✓</button>'
+          : btn('bribe', 'Bribe official', config.arena.bribeCost, state.gold)}
+      </div>
+      <div class="row">${gearButtons}</div>
+      ${state.sponsorUnlocked ? `<p class="sponsor">Sponsor active: +${config.sponsor.stipendPerFight}g/fight. Objective: ${escapeHtml(config.sponsor.objective)}</p>` : ''}
+      <hr/>
+      <p>Next up: <strong>${escapeHtml(opponent.name)}</strong> (${opponent.tier}) — purse ${opponent.purse}g</p>
+      <button data-action="next-fight">⚔️ Next Fight</button>
+      <button data-action="retire">🏛️ Retire rich (${state.gold}g)</button>
+    </section>`;
+}
+
+export function renderResult(state, config) {
+  const r = state.lastResult;
+  const cls = r.won ? 'good' : 'danger';
+  return `
+    ${renderHud(state, config)}
+    <section class="result ${cls}">
+      <h2>${r.won ? 'VICTORY' : 'DEFEAT'} — ${escapeHtml(r.opponentName)}</h2>
+      <p>${escapeHtml(r.commentary)}</p>
+      ${r.won ? `<ul>
+        <li>Purse: ${r.purse}g (tax ${r.tax}g)</li>
+        ${r.sponsorIncome ? `<li>Sponsor: +${r.sponsorIncome}g</li>` : ''}
+        <li><strong>Net: +${r.netGold}g</strong></li>
+        <li>Weapon wear: -${r.durabilityLost} durability</li>
+      </ul>` : `<ul>
+        <li>Injuries gained: ${r.injuriesGained}</li>
+        <li>Weapon wear: -${r.durabilityLost} durability</li>
+      </ul>`}
+      <button data-action="to-hub">Back to the Ludus</button>
+    </section>`;
+}
+
+export function renderGameOver(state, config) {
+  let body;
+  if (state.ended === 'dead') {
+    body = `<h2>YOU DIED</h2>
+      <p class="cause">Cause of death: ${escapeHtml(state.lastResult.causeOfDeath)}</p>`;
+  } else if (state.ended === 'win-circuit') {
+    body = `<h2>CHAMPION OF THE CIRCUIT</h2>
+      <p>You bribed, bled, and clawed your way to the top. Final purse: ${state.gold}g.</p>`;
+  } else {
+    body = `<h2>RETIRED RICH</h2>
+      <p>You walked away with ${state.gold}g and all your limbs. Wise.</p>`;
+  }
+  return `
+    <section class="gameover">
+      ${body}
+      <button data-action="restart">Fight again (new run)</button>
+    </section>`;
+}
