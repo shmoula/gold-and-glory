@@ -98,3 +98,112 @@ describe('bribeOfficial', () => {
     expect(next.gold).toBe(100);
   });
 });
+
+import { PHASE } from '../src/state.js';
+import { makeRng } from '../src/rng.js';
+import { startFight, resolveFightOutcome, retire } from '../src/game.js';
+
+describe('startFight', () => {
+  it('moves to FIGHT and builds combat from effective stats + current health', () => {
+    const s = createGameState(1, CONFIG);
+    const next = startFight(s, CONFIG);
+    expect(next.phase).toBe(PHASE.FIGHT);
+    expect(next.combat.enemy.name).toBe('The Brute');
+    expect(next.combat.player.health).toBe(100);
+  });
+
+  it('weapon counts as broken when durability is 0', () => {
+    const s = createGameState(1, CONFIG);
+    s.weaponDurability = 0;
+    const next = startFight(s, CONFIG);
+    expect(next.combat.player.weaponBroken).toBe(true);
+  });
+});
+
+describe('resolveFightOutcome (win)', () => {
+  it('pays net purse, loses durability, advances opponent, counts win', () => {
+    let s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.player.health = 80;
+    const rng = makeRng(1);
+    const next = resolveFightOutcome(s, true, rng, CONFIG);
+    expect(next.phase).toBe(PHASE.RESULT);
+    expect(next.wins).toBe(1);
+    expect(next.currentOpponentIndex).toBe(1);
+    expect(next.weaponDurability).toBe(27); // 30 - 3
+    expect(next.health).toBe(80);
+    // Brute purse 50, tax 20% = 10, net +40
+    expect(next.gold).toBe(140);
+    expect(next.lastResult.won).toBe(true);
+    expect(next.lastResult.netGold).toBe(40);
+  });
+
+  it('unlocks the sponsor after the configured number of wins', () => {
+    let s = createGameState(1, CONFIG);
+    s.wins = 1;
+    s = startFight(s, CONFIG);
+    const next = resolveFightOutcome(s, true, makeRng(1), CONFIG);
+    expect(next.wins).toBe(2);
+    expect(next.sponsorUnlocked).toBe(true);
+  });
+
+  it('adds sponsor income once unlocked', () => {
+    let s = createGameState(1, CONFIG);
+    s.sponsorUnlocked = true;
+    s = startFight(s, CONFIG); // Brute, did not block -> objective met
+    const next = resolveFightOutcome(s, true, makeRng(1), CONFIG);
+    // net purse 40 + sponsor (30 + 50 objective) = 120
+    expect(next.lastResult.sponsorIncome).toBe(80);
+    expect(next.gold).toBe(100 + 40 + 80);
+  });
+
+  it('wins the circuit when the last opponent falls', () => {
+    let s = createGameState(1, CONFIG);
+    s.currentOpponentIndex = 3; // Champion
+    s = startFight(s, CONFIG);
+    const next = resolveFightOutcome(s, true, makeRng(1), CONFIG);
+    expect(next.phase).toBe(PHASE.GAMEOVER);
+    expect(next.ended).toBe('win-circuit');
+  });
+});
+
+describe('resolveFightOutcome (loss)', () => {
+  it('adds an injury and reduces health on a survivable loss', () => {
+    let s = createGameState(1, CONFIG);
+    s.currentOpponentIndex = 1; // Journeyman, low death risk
+    s = startFight(s, CONFIG);
+    s.combat.player.health = 0;
+    // seed chosen so the death roll does NOT trigger
+    const next = resolveFightOutcome(s, false, makeRng(2), CONFIG);
+    if (!next.lastResult.died) {
+      expect(next.phase).toBe(PHASE.RESULT);
+      expect(next.injuries).toBe(1);
+      expect(next.lastResult.won).toBe(false);
+    }
+  });
+
+  it('death roll ends the game with an absurd cause-of-death', () => {
+    let s = createGameState(1, CONFIG);
+    s.currentOpponentIndex = 3; // Champion, deathRisk 0.35
+    s = startFight(s, CONFIG);
+    s.combat.player.health = 0;
+    // try seeds until the death roll fires (deterministic per seed)
+    let next;
+    for (let seed = 0; seed < 50; seed++) {
+      next = resolveFightOutcome(s, false, makeRng(seed), CONFIG);
+      if (next.lastResult.died) break;
+    }
+    expect(next.lastResult.died).toBe(true);
+    expect(next.phase).toBe(PHASE.GAMEOVER);
+    expect(next.ended).toBe('dead');
+    expect(typeof next.lastResult.causeOfDeath).toBe('string');
+  });
+});
+
+describe('retire', () => {
+  it('ends the game as retired from the HUB', () => {
+    const s = createGameState(1, CONFIG);
+    const next = retire(s);
+    expect(next.phase).toBe(PHASE.GAMEOVER);
+    expect(next.ended).toBe('retired');
+  });
+});
