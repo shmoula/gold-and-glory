@@ -131,6 +131,31 @@ describe('applyPlayerAction: block', () => {
   });
 });
 
+describe('applyPlayerAction: feint', () => {
+  const playerStats = {
+    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
+    critWindowMult: 1, weaponBroken: false,
+  };
+  const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
+
+  it('deals reduced damage and sets a follow-up bonus', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const next = applyPlayerAction(c, 'feint', TIMING.HIT, CONFIG);
+    // feint HIT = (6 + 5)*1.0 - 2 = 9 -> enemy 40 - 9 = 31
+    expect(next.enemy.health).toBe(31);
+    expect(next.pendingBonus).toBe(CONFIG.combat.actions.feint.nextHitBonus);
+  });
+
+  it('applies the follow-up bonus to the next strike, then clears it', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const afterFeint = applyPlayerAction(c, 'feint', TIMING.HIT, CONFIG);
+    const afterStrike = applyPlayerAction(afterFeint, 'strike', TIMING.HIT, CONFIG);
+    // strike HIT with 1.5x feint bonus = (10 + 5)*1.0*1.5 - 2 = 20.5 -> 21
+    expect(afterFeint.enemy.health - afterStrike.enemy.health).toBe(21);
+    expect(afterStrike.pendingBonus).toBe(0);
+  });
+});
+
 describe('isFightOver / fightWinner', () => {
   const playerStats = {
     health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
@@ -174,6 +199,23 @@ describe('applyPress', () => {
     const pressed = applyPress(afterHit, TIMING.HIT, CONFIG);
     expect(pressed.enemy.health).toBeLessThan(afterHit.enemy.health);
     expect(pressed.guardDropped).toBe(true);
+  });
+
+  it('hits harder than a normal strike (1.6x bonus)', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    // press HIT = (10 + 5) * 1.6 - 2 = 22, vs strike HIT = 13
+    const pressed = applyPress(c, TIMING.HIT, CONFIG);
+    expect(40 - pressed.enemy.health).toBe(22);
+    const struck = applyPlayerAction(c, 'strike', TIMING.HIT, CONFIG);
+    expect(40 - pressed.enemy.health).toBeGreaterThan(40 - struck.enemy.health);
+  });
+
+  it('does not carry a feint follow-up bonus past the press', () => {
+    const c = createCombat(playerStats, opponent, CONFIG);
+    const afterFeint = applyPlayerAction(c, 'feint', TIMING.HIT, CONFIG);
+    expect(afterFeint.pendingBonus).toBe(CONFIG.combat.actions.feint.nextHitBonus);
+    const pressed = applyPress(afterFeint, TIMING.HIT, CONFIG);
+    expect(pressed.pendingBonus).toBe(0);
   });
 });
 

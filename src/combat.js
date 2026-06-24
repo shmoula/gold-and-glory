@@ -51,6 +51,7 @@ export function createCombat(playerStats, opponent, config) {
     guardDropped: false,
     counterReady: false,
     blockedThisFight: false,
+    canPress: false, // set by markPressable after a landed player hit
     pendingBonus: 0, // follow-up bonus from a feint, applied to next attack
     log: [],
   };
@@ -120,13 +121,15 @@ export function upgradeTier(tier) {
 
 export function applyPress(combat, timing, config) {
   const next = cloneCombat(combat);
+  // bonusMultiplier is extra damage on top of a normal hit: 0.6 -> 1.6x.
   const dmg = computeDamage({
     baseDamage: config.combat.actions.strike.baseDamage,
     power: next.player.power, guard: next.enemy.guard, timing,
-    pressMultiplier: config.combat.pressAttack.bonusMultiplier,
+    pressMultiplier: 1 + config.combat.pressAttack.bonusMultiplier,
     weaponBroken: next.player.weaponBroken, config,
   });
   next.enemy.health -= dmg;
+  next.pendingBonus = 0;
   next.guardDropped = true;
   next.log.push(`You PRESS the attack (${timing}) for ${dmg} — but drop your guard!`);
   return next;
