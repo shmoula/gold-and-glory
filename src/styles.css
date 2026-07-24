@@ -19,7 +19,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .combatants { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
 .timing-meter { position: relative; height: 28px; background: #120d09; border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
 .meter-sweet { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
-.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
+.meter-cursor { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: var(--gold); will-change: transform; }
 .actions { display: flex; gap: 8px; }
 .press { background: var(--danger); color: #fff; margin-top: 8px; }
 .log { font-size: 0.85rem; color: #b8a888; list-style: none; padding: 0; }

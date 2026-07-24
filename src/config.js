@@ -49,6 +49,7 @@ export const CONFIG = {
     speedTimingBonus: 0.01, // added per point of effective speed
     timingTierRatios: { crit: 0.3, hit: 1.0, graze: 1.6 }, // multiples of window width
     timingMult: { miss: 0, graze: 0.5, hit: 1.0, crit: 2.0 },
+    meterPeriodMs: { base: 1400, perTier: -60, min: 900 }, // one-way sweep duration in ms
     pressAttack: { bonusMultiplier: 0.6 }, // extra damage on press, as a fraction
     actions: {
       strike: { baseDamage: 10 },

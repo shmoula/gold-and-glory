@@ -10,14 +10,14 @@ import {
   resolveTiming, timingWindowWidth, applyPlayerAction, applyPress,
   enemyTurn, isFightOver, fightWinner, markPressable,
 } from './combat.js';
-import { meterDistance } from './ui/render.js';
+import { meterDistance, meterPosition, meterPeriod } from './ui/render.js';
 import { mount, wire } from './ui/screens.js';
 
 const app = document.getElementById('app');
 
 let state;
 let rng;
-let meter = { running: false, pos: 0, dir: 1, sweet: 0.5, captured: null, raf: 0 };
+let meter = { running: false, pos: 0, t0: 0, period: 0, sweet: 0.5, captured: null, raf: 0 };
 
 function newRun() {
   const seed = Math.floor(Math.random() * 1e9);
@@ -37,20 +37,18 @@ function startMeter() {
   if (!bar) return;
   meter.running = true;
   meter.pos = 0;
-  meter.dir = 1;
+  meter.t0 = performance.now();
+  meter.period = meterPeriod(state.currentOpponentIndex, CONFIG);
   meter.sweet = 0.5;
   meter.captured = null;
   bar.querySelector('.meter-sweet').style.left = `${meter.sweet * 100}%`;
   bar.addEventListener('click', captureMeter, { once: false });
 
   const cursor = bar.querySelector('.meter-cursor');
-  const speed = 0.018; // fraction of bar per frame
   function step() {
     if (!meter.running) return;
-    meter.pos += meter.dir * speed;
-    if (meter.pos >= 1) { meter.pos = 1; meter.dir = -1; }
-    if (meter.pos <= 0) { meter.pos = 0; meter.dir = 1; }
-    cursor.style.left = `${meter.pos * 100}%`;
+    meter.pos = meterPosition(performance.now() - meter.t0, meter.period);
+    cursor.style.transform = `translateX(${meter.pos * bar.clientWidth}px)`;
     meter.raf = requestAnimationFrame(step);
   }
   meter.raf = requestAnimationFrame(step);

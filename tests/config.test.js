@@ -45,4 +45,8 @@ describe('CONFIG', () => {
     expect(CONFIG.combat.timingMult.miss).toBe(0);
     expect(CONFIG.combat.timingMult.crit).toBeGreaterThan(CONFIG.combat.timingMult.hit);
   });
+
+  it('has meter sweep durations per the design-system spec (§6.4)', () => {
+    expect(CONFIG.combat.meterPeriodMs).toEqual({ base: 1400, perTier: -60, min: 900 });
+  });
 });
