@@ -404,7 +404,7 @@ export function renderHud(state, config) {
     `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`).join('');
   return `
     <header class="hud">
-      <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-gold="${state.gold}">${formatGold(state.gold)}</span></span>
+      <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
       ${bar('Health', state.health, state.maxHealth, { urgent: state.health / state.maxHealth < 0.33 })}
       ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
       <span class="hud__stat"><span class="hud__label">Injuries</span>
@@ -1431,6 +1431,14 @@ pre-tallied, no chip travel, no pulses; the meter still sweeps.
 
 DevTools at 1280 / 900 / 640 / 375 wide: no horizontal scroll; at ≤640 the commit bar is
 sticky-bottom; posters stack; HUD wraps without clipping.
+
+- [ ] **Step 1b: Resolve the `bar__num` type-size contradiction**
+
+Spec §6.1's verbatim `.bar__num` rule sets `font-size: 11px`, which is below §8's own accessibility
+floor (`--text-xs` is 12.5px; mechanics text is meant to be `--text-sm` 14px). The spec contradicts
+itself, and §8 is ship-blocking, so §8 wins: promote `.bar__num` to `var(--text-xs)` and note the
+deviation from §6.1 in a comment. Re-check that the number still fits inside the track at the
+narrowest bar (the hub's 230px sinks column at the 900px breakpoint).
 
 - [ ] **Step 4b: Font attribution**
 
