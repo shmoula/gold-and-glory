@@ -12,7 +12,7 @@ then spec-compliance review, then code-quality review, then next task.
 |---|---|---|
 | 1 — Fonts, tokens, base CSS | **done, reviewed, fixed, re-verified** | `959ad35` + `eb1ea52` |
 | 2 — `formatGold` | **done, reviewed, fixed, re-verified** | `2f9a10f` + `7528dc4` |
-| 3 — HUD beam | **implemented + reviewed; 5 review fixes outstanding** | `b42f8b6` |
+| 3 — HUD beam | **done, both reviews passed** | `b42f8b6` + `f0e3fb7` + `3595343` |
 | 4 — Button system + snark | pending | — |
 | 5 — Hub screen | pending | — |
 | 6 — Timing meter | pending | — |
@@ -24,32 +24,21 @@ then spec-compliance review, then code-quality review, then next task.
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 3 review fixes (do these first)
+## RESUME HERE — Task 4 (Button system + snark tables in config)
 
-Task 3 (`b42f8b6`) is implemented and passed review as *Approved with minor issues*. Transcription
-fidelity was verified byte-exact against spec §6.1, including the NBSP escape. Suite is **101 tests
-green**, build clean. Five fixes were dispatched but the agent died before making any edits, so
-**none are applied**. All are in `src/ui/render.js` and `tests/render.test.js`:
+Task 3 is **fully closed**: `b42f8b6` (implementation) + `f0e3fb7` (the five review fixes) +
+`3595343` (two Important code-quality fixes). Both reviews passed. Suite is **107 tests green**,
+build clean. All fix assertions were mutation-verified twice — once by the implementer, once
+independently by the reviewer.
 
-1. **Two tests are vacuous — proven by mutation.** Hardcoding `urgent: true` left 17/17 passing, and
-   replacing `Math.max(5, state.injuries)` with a bare `5` also left 17/17 passing. Add: a healthy
-   state renders **no** `is-urgent`; the `< 0.33` boundary (at `maxHealth` 100, health 33 is not
-   urgent, 32 is); `injuries = 7` renders **7** pip slots (§6.1's `max(injuries, 5)` rule, currently
-   unverified); and that the **first** N pips carry `pip--filled`, since filling from the wrong end
-   currently passes. Then mutation-test each new assertion and confirm it fails before restoring.
-2. **`aria-label="1 injuries"`** — pluralisation bug in a screen-reader string. Singular for 1.
-3. **`data-gold` → `data-value`** on the `.ticker` span, per spec §6.1. Nothing reads it yet and
-   Task 8 wires the ticker, so settle it before then. The plan has already been amended to match.
-4. **Clamp `bar()`** — add `Math.min(100, …)` to `pct`, and clamp `aria-valuenow` so it can never
-   exceed `aria-valuemax` (out-of-range `role="meter"` is invalid ARIA, and `overflow: hidden` only
-   hides the visual half of that problem). `value > max` is currently unreachable, but `bar()` gets
-   reused for poster HP in Tasks 5/7 and training meters in Task 5.
-5. **`text-transform: uppercase` on `.hud__purse`** — spec §6.1 shows `GOLD:` but the uppercasing
-   only lands on `.hud__label`. No test depends on the case.
-
-Explicitly **not** to be fixed in Task 3: `.bar__num { font-size: 11px }` being below §8's floor
-(spec-internal contradiction, now Task 10 Step 1b), and the legacy `:where(.hud)` `margin-bottom`
-leak plus the now-dead `:where(.hud .gold)` (Task 8 trims `legacy.css`).
+Deferred out of Task 3 and carried forward (do NOT re-report these as new findings):
+- `.bar__num { font-size: 11px }` is below spec §8's floor — spec-internal contradiction,
+  now **Task 10 Step 1b**.
+- The legacy `:where(.hud)` `margin-bottom` leak and the now-dead `:where(.hud .gold)` —
+  **Task 8** trims `legacy.css`.
+- `components.css` urgency pulse uses `var(--ease-drop)` but spec §6.1 prose says `steps(2)`.
+  Inherited verbatim from the plan's Task 3 Step 5, so it is a plan/spec contradiction, not an
+  implementer error. Reconcile in **Task 10**.
 
 ## Dispatch pattern that actually works in this environment
 
