@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  btn, renderHud, renderHub, renderResult, renderGameOver, renderFight,
+  btn, poster, renderHud, renderHub, renderResult, renderGameOver, renderFight,
   meterDistance, meterPosition, meterPeriod,
 } from '../src/ui/render.js';
 import { startFight } from '../src/game.js';
@@ -235,6 +235,138 @@ describe('renderHub', () => {
     const html = renderHub(s, CONFIG);
     expect(html).toContain('is-owned');
     expect(html).not.toContain('data-action="buy-shield"');
+  });
+});
+
+describe('poster', () => {
+  it('renders a tilted named card with a portrait well', () => {
+    const html = poster({ name: 'The Brute', tilt: 2 });
+    expect(html).toContain('class="poster tape poster--tilt-2"');
+    expect(html).toContain('>The Brute<');
+    expect(html).toContain('poster__portrait');
+    // The portrait well is decorative until Task 10 drops in the art asset.
+    expect(html).toMatch(/poster__portrait[^>]*aria-hidden="true"/);
+  });
+
+  it('escapes the combatant name in both the heading and the bar label', () => {
+    const html = poster({ name: '<Brute> & "Co"', hp: { value: 10, max: 20 } });
+    expect(html).not.toContain('<Brute>');
+    expect(html).toContain('&lt;Brute&gt; &amp; &quot;Co&quot;');
+    expect(html).toContain('aria-label="&lt;Brute&gt; &amp; &quot;Co&quot; health"');
+  });
+
+  it('omits the HP plate when no hp is given', () => {
+    expect(poster({ name: 'The Brute' })).not.toContain('class="bar');
+  });
+
+  it('mounts exactly one HP bar, clamped and ARIA-valid (spec 6.5)', () => {
+    const html = poster({ name: 'Foe', hp: { value: 30, max: 40 } });
+    expect((html.match(/class="bar[" ]/g) || []).length).toBe(1);
+    expect(html).toContain('width:75%');
+    expect(html).toContain('aria-valuenow="30"');
+    expect(html).toContain('aria-valuemin="0"');
+    expect(html).toContain('aria-valuemax="40"');
+    expect(html).toContain('30/40');
+  });
+
+  it('clamps an overkilled or overhealed HP plate', () => {
+    const dead = poster({ name: 'Foe', hp: { value: -7, max: 40 } });
+    expect(dead).toContain('width:0%');
+    expect(dead).toContain('aria-valuenow="0"');
+    expect(dead).toContain('0/40');
+    expect(dead).not.toContain('-7');
+
+    const over = poster({ name: 'Foe', hp: { value: 55, max: 40 } });
+    expect(over).toContain('width:100%');
+    expect(over).toContain('aria-valuenow="40"');
+    expect(over).not.toContain('55');
+  });
+
+  it('takes sub as markup and parenthesizes the snark', () => {
+    const html = poster({ name: 'Foe', sub: 'Purse: <span class="amount">50</span>', snark: 'A big lad' });
+    expect(html).toContain('<p class="poster__sub">Purse: <span class="amount">50</span></p>');
+    expect(html).toContain('<span class="snark">(A big lad)</span>');
+  });
+});
+
+describe('renderHub layout', () => {
+  it('renders the screen grid with sinks, development, and fight areas', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('screen--hub');
+    expect(html).toContain('hub__sinks');
+    expect(html).toContain('hub__develop');
+    expect(html).toContain('hub__fight');
+    expect(html).toContain('hub__retire');
+    expect(html).toContain('commit-bar');
+  });
+
+  it('names the next opponent exactly once', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    expect((html.match(/The Brute/g) || []).length).toBe(1);
+  });
+
+  it('bills the next bout on a poster with tier and formatted purse', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('class="poster tape poster--tilt-2"');
+    expect(html).toContain('Tier: safe');
+    expect(html).toContain('<span class="amount">50\u00A0G</span>');
+  });
+
+  it('shows the sponsor card only when unlocked', () => {
+    const s = createGameState(1, CONFIG);
+    expect(renderHub(s, CONFIG)).not.toContain('sponsor-card');
+    s.sponsorUnlocked = true;
+    expect(renderHub(s, CONFIG)).toContain('sponsor-card');
+  });
+
+  it('states the sponsor reward as signed income through formatGold', () => {
+    const s = createGameState(1, CONFIG);
+    s.sponsorUnlocked = true;
+    const html = renderHub(s, CONFIG);
+    const total = CONFIG.sponsor.stipendPerFight + CONFIG.sponsor.objectiveBonus;
+    expect(html).toContain(`<span class="amount amount--pos">+${total}\u00A0G</span>`);
+    expect(html).toContain(CONFIG.sponsor.objective);
+  });
+
+  it('lays out one training row per stat, each with a meter and a priced button', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    expect((html.match(/class="train-row"/g) || []).length).toBe(3);
+    expect((html.match(/train-row__meter/g) || []).length).toBe(3);
+    for (const stat of ['power', 'guard', 'speed']) {
+      expect(html).toMatch(new RegExp(`data-action="train-${stat}"[^>]*class="btn`));
+    }
+    // Label carries the current effective stat, button carries the increment.
+    expect(html).toContain('Power 5');
+    expect(html).toContain(`Train +${CONFIG.training.statPerLevel}`);
+    // Meter fill is the stat against the display cap: 5 of 50.
+    expect((html.match(/width:10%/g) || []).length).toBe(3);
+  });
+
+  it('renders gear as shop cards in the available / unaffordable / owned triad', () => {
+    const s = createGameState(1, CONFIG);
+    s.gold = 250;          // shield 200 affordable, blade 350 not
+    s.gear = ['charm'];    // charm owned
+    const html = renderHub(s, CONFIG);
+    // Card roots only — `shop-item__name` and friends must not inflate the count.
+    expect((html.match(/class="shop-item[" ]/g) || []).length).toBe(3);
+
+    expect(html).toMatch(/data-action="buy-shield"[^>]*class="shop-item"/);
+    expect(html).not.toMatch(/data-action="buy-shield"[^>]*is-(unaffordable|owned)/);
+
+    expect(html).toContain('<span class="btn__price">350\u00A0G</span>');
+    expect(html).toMatch(/data-action="buy-blade"[^>]*is-unaffordable/);
+    expect(html).toMatch(/data-action="buy-blade"[^>]*data-missing="100\u00A0G"/);
+
+    expect(html).not.toContain('data-action="buy-charm"');
+    expect(html).toMatch(/class="shop-item is-owned"[^>]*aria-disabled="true"/);
+    // Spec 6.12: the owned card replaces the price row rather than dimming it.
+    const ownedCard = html.match(/<div class="shop-item is-owned"[\s\S]*?<\/div>/)[0];
+    expect(ownedCard).not.toContain('btn__price');
+    expect(ownedCard).toContain('Owned');
   });
 });
 

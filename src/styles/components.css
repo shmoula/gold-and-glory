@@ -60,3 +60,51 @@
 
 .btn.is-owned { opacity: 0.6; cursor: default; box-shadow: none; }
 .btn.is-owned:hover { background: var(--grad-wood); }
+
+/* ---- 6.5 Wanted poster ---- */
+.poster { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-1); padding: var(--space-4); box-shadow: var(--shadow-paper); }
+.poster--tilt-1 { transform: rotate(var(--tilt-1)); }
+.poster--tilt-2 { transform: rotate(var(--tilt-2)); }
+.poster--tilt-3 { transform: rotate(var(--tilt-3)); }
+.poster__name { font-size: var(--text-2xl); text-align: center; margin-bottom: var(--space-3); }
+.poster__portrait { position: relative; height: 104px; margin: 0 var(--space-1);
+  background: radial-gradient(circle at 50% 42%, var(--paper-4), #c9b384);
+  border: 2px solid var(--border-ink); border-radius: 10px 13px 11px 14px; overflow: hidden; }
+.poster__silhouette { position: absolute; left: 50%; top: 30px; width: 54px; height: 60px;
+  transform: translateX(-50%); background: #443019; border-radius: 46% 46% 40% 40%; }
+.poster__sub { font-size: var(--text-sm); font-weight: 700; text-align: center;
+  margin: var(--space-2) 0 0; }
+.poster .bar { width: 100%; margin-top: var(--space-2); }
+.poster .snark { display: block; text-align: center; }
+
+/* ---- 6.11 Training row ---- */
+.train-row { display: grid; grid-template-columns: 90px 1fr auto; align-items: center;
+  gap: var(--space-3); margin: var(--space-2) 0; }
+.train-row__label { font-weight: 700; font-size: var(--text-sm); }
+.train-row__meter { width: 100%; }
+
+/* ---- 6.12 Shop item card (state triad) ---- */
+.hub__shop { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.shop-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3); padding: var(--space-3); text-align: left;
+  box-shadow: var(--shadow-paper); font: inherit; min-height: 44px; }
+.shop-item:not(.is-owned):hover { transform: translateY(-2px); }
+.shop-item__name { font-weight: 700; }
+.shop-item.is-unaffordable .btn__price { color: var(--blood-hi); }
+/* The card is not a .btn, so §6.2's shortfall rule does not reach it; §6.12 still calls for
+   the shortfall snark on an unaffordable card. attr() resolves against the span itself. */
+.shop-item.is-unaffordable .btn__snark::after { content: " (need " attr(data-missing) " more)"; }
+.shop-item.is-owned { opacity: 0.6; filter: grayscale(0.6); box-shadow: none; }
+.shop-item__owned { font-weight: 700; color: var(--color-text-muted); }
+
+/* ---- 6.10 Sponsor notice ---- */
+.sponsor-card { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2); padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-paper); transform: rotate(var(--tilt-3)); margin-top: var(--space-4); }
+.sponsor-card__eyebrow { font-size: var(--text-xs); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+.sponsor-card__name { font-size: var(--text-xl); }
+.hub__next-label { font-family: var(--font-display); font-size: var(--text-lg);
+  letter-spacing: 0.05em; color: var(--bone); text-shadow: 0 1.5px 0 rgba(31,22,12,0.8); }

@@ -12,11 +12,31 @@ const URGENT_FRACTION = 0.33;
 // at durability < 50% so you are nagged to fix the weapon well before the durability *bar*
 // (§6.1, URGENT_FRACTION) starts flashing. Two different affordances, two thresholds.
 const REPAIR_URGENT_FRACTION = 0.5;
+// Training meters need *a* full mark to draw against, but stats are uncapped by design.
+// This is a display denominator only — it is never exposed to assistive tech as a real
+// maximum (the training meter is presentational; the row label carries the true number).
+const TRAIN_METER_CAP = 50;
 
 export function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// The shortfall attribute, spec §6.2/§6.12. Empty string when the purse covers the cost, so
+// callers can concatenate it unconditionally. Shared by `.btn` and the `.shop-item` card so
+// the two commerce surfaces can never disagree about what "unaffordable" means or how the
+// gap is spelled (formatGold is the only money formatter — spec §2).
+function shortfallAttr(cost, gold) {
+  return canAfford(gold, cost) ? '' : ` data-missing="${escapeHtml(formatGold(cost - gold))}"`;
+}
+
+// The optional snark aside. `missing` is a shortfallAttr() result: spec §6.2 renders the gap
+// via `.btn__snark::after { content: … attr(data-missing) … }`, and attr() resolves against
+// the pseudo-element's own originating element — so the span, not just the enclosing control,
+// has to carry it.
+function snarkAside(snark, missing = '') {
+  return snark ? `<span class="btn__snark snark"${missing}>(${escapeHtml(snark)})</span>` : '';
 }
 
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?].
@@ -40,37 +60,60 @@ export function btn(action, label, { cost = null, gold, variant = '', snark = ''
   if (urgent) classes.push('is-urgent');
   if (owned) classes.push('is-owned');
   let attrs = '';
-  let missingAttr = '';
-  if (cost != null && !canAfford(gold, cost)) {
+  // Written twice on purpose — see snarkAside(). The button's copy is where spec §6.2 puts the
+  // shortfall, reserved for Task 7's click-rejection message; no code consumes it yet, so do
+  // not infer a reader from its presence.
+  const missingAttr = cost != null ? shortfallAttr(cost, gold) : '';
+  if (missingAttr) {
     classes.push('is-unaffordable');
-    // Written twice on purpose. The snark span's copy is the one that renders: spec §6.2's
-    // `.btn__snark::after { content: … attr(data-missing) … }` resolves attr() against the
-    // pseudo-element's own originating element, not the enclosing button. The button's copy is
-    // where spec §6.2 puts the shortfall, reserved for Task 7's click-rejection message; no
-    // code consumes it yet, so do not infer a reader from its presence.
-    missingAttr = ` data-missing="${escapeHtml(formatGold(cost - gold))}"`;
     attrs += missingAttr;
   }
   if (owned) attrs += ' aria-disabled="true"';
   if (disabled) attrs += ' disabled';
   const actionAttr = action ? ` data-action="${action}"` : '';
   const price = cost != null ? `<span class="btn__price">${formatGold(cost)}</span>` : '';
-  const aside = snark ? `<span class="btn__snark snark"${missingAttr}>(${escapeHtml(snark)})</span>` : '';
   return `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${price}${aside}</button>`;
+    `${escapeHtml(label)}${price}${snarkAside(snark, missingAttr)}</button>`;
 }
 
-function bar(label, value, max, { fillClass = '', urgent = false } = {}) {
-  const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
+// Fill width as a whole percent, clamped to the track. Shared with the purely decorative
+// training meter, which has no role and therefore no aria values to keep in step.
+function fillPct(value, max) {
+  return Math.min(100, Math.max(0, Math.round((value / max) * 100)));
+}
+
+// One clamped, ARIA-correct meter. Mounted bare inside a poster's HP plate (spec §6.5) and
+// wrapped with a label by bar() for the HUD beam (spec §6.1) — a second hand-rolled copy is
+// how the two drift apart.
+function meter(label, value, max, { fillClass = '', urgent = false } = {}) {
   // role="meter" is invalid ARIA when valuenow falls outside [valuemin, valuemax], and the
   // visible numeral must match it or sighted and screen-reader users read different numbers.
   const now = Math.min(max, Math.max(0, value));
-  return `<span class="hud__stat"><span class="hud__label">${label}</span>
-    <span class="bar${urgent ? ' is-urgent' : ''}" role="meter" aria-label="${label}"
+  return `<span class="bar${urgent ? ' is-urgent' : ''}" role="meter" aria-label="${label}"
       aria-valuenow="${now}" aria-valuemin="0" aria-valuemax="${max}">
-      <span class="bar__fill${fillClass}" style="width:${pct}%"></span>
+      <span class="bar__fill${fillClass}" style="width:${fillPct(value, max)}%"></span>
       <span class="bar__num">${now}/${max}</span>
-    </span></span>`;
+    </span>`;
+}
+
+function bar(label, value, max, opts) {
+  return `<span class="hud__stat"><span class="hud__label">${label}</span>
+    ${meter(label, value, max, opts)}</span>`;
+}
+
+// Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.
+// `sub` is markup — call sites embed `.amount` spans in it — so it is deliberately not
+// escaped; everything else here is. hp: {value, max} | null. tilt: 1|2|3, and neighbouring
+// posters must never share a tilt token.
+export function poster({ name, sub = '', snark = '', hp = null, tilt = 1 }) {
+  const hpBar = hp ? meter(`${escapeHtml(name)} health`, hp.value, hp.max) : '';
+  return `<article class="poster tape poster--tilt-${tilt}">
+    <h3 class="poster__name">${escapeHtml(name)}</h3>
+    <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
+    ${hpBar}
+    ${sub ? `<p class="poster__sub">${sub}</p>` : ''}
+    ${snark ? `<span class="snark">(${escapeHtml(snark)})</span>` : ''}
+  </article>`;
 }
 
 export function renderHud(state, config) {
@@ -94,24 +137,46 @@ export function renderHub(state, config) {
   // One predicate for Heal: it is urgent exactly when it is not a no-op.
   const hurt = state.injuries > 0;
 
-  const trainButtons = ['power', 'guard', 'speed'].map((stat) => {
+  // Spec §6.11: one label format per row, the meter beside it, the priced button at the end.
+  const trainRows = ['power', 'guard', 'speed'].map((stat) => {
     const cost = trainingCost(state.trainingLevels[stat], config);
-    return btn(`train-${stat}`, `Train ${stat} → ${eff[stat]}`, { cost, gold: state.gold });
+    return `<div class="train-row">
+      <span class="train-row__label">${stat[0].toUpperCase() + stat.slice(1)} ${eff[stat]}</span>
+      <span class="bar train-row__meter"><span class="bar__fill bar__fill--dur"
+        style="width:${fillPct(eff[stat], TRAIN_METER_CAP)}%"></span></span>
+      ${btn(`train-${stat}`, `Train +${config.training.statPerLevel}`, { cost, gold: state.gold })}
+    </div>`;
   }).join('');
 
-  const gearButtons = Object.values(config.gear).map((g) => {
+  // Spec §6.12 state triad. Gear leaves the `.btn` plank behind here: an owned card is inert
+  // structure (no action, price row replaced), not a dimmed button.
+  const gearCards = Object.values(config.gear).map((g) => {
     if (state.gear.includes(g.id)) {
-      return btn(null, `✓ ${g.name} — OWNED`, { owned: true });
+      return `<div class="shop-item is-owned" aria-disabled="true">
+        <span class="shop-item__name">${escapeHtml(g.name)}</span>
+        <span class="shop-item__owned">✓ Owned</span></div>`;
     }
-    return btn(`buy-${g.id}`, g.name, { cost: g.cost, gold: state.gold, snark: config.snark[g.id] ?? '' });
+    const missingAttr = shortfallAttr(g.cost, state.gold);
+    return `<button data-action="buy-${g.id}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
+      <span class="shop-item__name">${escapeHtml(g.name)}</span>
+      <span class="btn__price">${formatGold(g.cost)}</span>
+      ${snarkAside(config.snark[g.id] ?? '', missingAttr)}</button>`;
   }).join('');
+
+  const sponsorCard = state.sponsorUnlocked ? `<aside class="sponsor-card tape">
+      <span class="sponsor-card__eyebrow">Sponsor</span>
+      <h3 class="sponsor-card__name">Lord Biggus</h3>
+      <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
+      <p>Reward: <span class="amount amount--pos">${formatGold(config.sponsor.stipendPerFight + config.sponsor.objectiveBonus, { signed: true })}</span>
+        <span class="snark">(${escapeHtml(config.snark.sponsorReward)})</span></p>
+    </aside>` : '';
 
   return `
     ${renderHud(state, config)}
-    <section class="hub">
-      <h2>The Ludus — Wins: ${state.wins}</h2>
-      <div class="row">${trainButtons}</div>
-      <div class="row">
+    <section class="screen screen--hub">
+      <div class="hub__sinks">
+        <h2>The Ludus</h2>
+        <p>Wins: ${state.wins}</p>
         ${btn('repair', 'Repair weapon', { cost: repairCost(missing, config), gold: state.gold,
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
@@ -123,12 +188,20 @@ export function renderHub(state, config) {
           : btn('bribe', `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
               { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe })}
       </div>
-      <div class="row">${gearButtons}</div>
-      ${state.sponsorUnlocked ? `<p class="sponsor">Sponsor active: +${config.sponsor.stipendPerFight}g/fight. Objective: ${escapeHtml(config.sponsor.objective)}</p>` : ''}
-      <hr/>
-      <p>Next up: <strong>${escapeHtml(opponent.name)}</strong> (${opponent.tier}) — purse ${formatGold(opponent.purse)}</p>
-      ${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}
-      ${btn('retire', 'Retire Rich', { variant: 'commit' })}
+      <div class="hub__develop">
+        <h2>Training</h2>
+        ${trainRows}
+        <h2>Gear shop</h2>
+        <div class="hub__shop">${gearCards}</div>
+        ${sponsorCard}
+      </div>
+      <div class="hub__fight">
+        <span class="hub__next-label">Next bout</span>
+        ${poster({ name: opponent.name, tilt: 2,
+          sub: `Tier: ${escapeHtml(opponent.tier)} · Purse: <span class="amount">${formatGold(opponent.purse)}</span>` })}
+      </div>
+      <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
+      <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
     </section>`;
 }
 

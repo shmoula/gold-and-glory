@@ -1,1 +1,37 @@
 /* screens.css — spec §7 grids */
+
+.screen { display: grid; gap: var(--space-4); max-width: 1180px;
+  margin: 0 auto; padding: var(--space-4); }
+
+/* HUB — spend left to right, commit bottom-right. Areas are spec §7 verbatim; the `hud` row
+   is reserved for the beam, which still renders above the section (Tasks 8/9 move it in). */
+.screen--hub {
+  grid-template-columns: 230px 1fr 300px;
+  grid-template-areas:
+    "hud     hud     hud"
+    "sinks   develop fight"
+    "retire  retire  commit";
+}
+/* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
+   fight: NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
+.hub__sinks { grid-area: sinks; display: flex; flex-direction: column;
+  align-items: stretch; gap: var(--space-2); }
+.hub__develop { grid-area: develop; }
+.hub__fight { grid-area: fight; }
+.hub__retire { grid-area: retire; }
+.hub__commit { grid-area: commit; justify-self: end; }
+
+@media (max-width: 900px) {
+  .screen--hub { grid-template-columns: 1fr 1fr;
+    grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
+}
+@media (max-width: 640px) {
+  .screen { grid-template-columns: 1fr !important; }
+  /* `grid-template-columns: 1fr` alone does not stack: a two-column grid-template-areas
+     keeps its second column as an *implicit* auto track. Dropping the areas is what spec §7
+     already does for result/gameover ("natural stacking order via source order"). */
+  .screen--hub { grid-template-areas: none; }
+  .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
+    padding: var(--space-2); background: var(--grad-wood);
+    border-top: var(--border-w) solid var(--border-ink); }
+}
