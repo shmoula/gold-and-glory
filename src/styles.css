@@ -1,29 +1,28 @@
-:root {
-  --bg: #1a1410;
-  --panel: #2a2018;
-  --gold: #d9a441;
-  --text: #e8ddc8;
-  --danger: #b5402f;
-  --good: #5a8a4a;
-  font-family: system-ui, sans-serif;
-}
-body { background: var(--bg); color: var(--text); margin: 0; }
+/* Entry point — index.html links this file. Order matters. */
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/components.css';
+@import './styles/screens.css';
+
+/* ============================================================
+   LEGACY RULES — keep the old markup styled until Tasks 3–8
+   replace each screen. DELETE this whole block in Task 8.
+   ============================================================ */
 #app { max-width: 720px; margin: 0 auto; padding: 16px; }
-button { font: inherit; cursor: pointer; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 .hud { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #463829; margin-bottom: 12px; }
 .hud .gold { color: var(--gold); font-weight: 700; }
 .hub .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-.hub button, .actions button, .result button, .gameover button { background: var(--panel); color: var(--text); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
-.sponsor { color: var(--gold); }
+.hub button, .actions button, .result button, .gameover button { background: var(--paper-3); color: var(--ink); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
+.sponsor { color: var(--gold-ink); }
 .combatants { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
-.timing-meter { position: relative; height: 28px; background: #120d09; border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
+.timing-meter { position: relative; height: 28px; background: var(--track); border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
 .meter-sweet { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
-.meter-cursor { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: var(--gold); will-change: transform; }
+.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
 .actions { display: flex; gap: 8px; }
-.press { background: var(--danger); color: #fff; margin-top: 8px; }
-.log { font-size: 0.85rem; color: #b8a888; list-style: none; padding: 0; }
-.result.good { border-left: 4px solid var(--good); padding-left: 12px; }
-.result.danger { border-left: 4px solid var(--danger); padding-left: 12px; }
-.result .cause, .gameover .cause { font-style: italic; color: var(--danger); }
+.press { background: var(--blood); color: #fff; margin-top: 8px; }
+.log { font-size: 0.85rem; color: var(--ink-soft); list-style: none; padding: 0; }
+.result.good { border-left: 4px solid var(--moss); padding-left: 12px; }
+.result.danger { border-left: 4px solid var(--blood); padding-left: 12px; }
+.result .cause, .gameover .cause { font-style: italic; color: var(--blood-ink); }
 .gameover { text-align: center; padding: 32px 0; }

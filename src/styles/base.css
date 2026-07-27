@@ -1,0 +1,39 @@
+/* base.css — reset, materials M1 + M4/M5 shared pieces, typography, a11y */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(140% 120% at 50% 100%, rgba(31, 22, 12, 0.38), transparent 60%),
+    var(--surface-page);
+  color: var(--color-text);
+  font: 400 var(--text-md)/var(--leading-body) var(--font-body);
+  min-height: 100vh;
+}
+#app { min-height: 100vh; }
+h1, h2, h3 { font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
+  letter-spacing: 0.03em; margin: 0; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+
+.snark { font-family: var(--font-snark); font-size: var(--text-sm);
+  font-weight: 400; color: var(--color-text-muted); }
+.amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.amount--pos { color: var(--color-income); }
+.amount--neg { color: var(--color-expense); }
+
+.tape { position: relative; }
+.tape::before, .tape::after { content: ""; position: absolute; width: 64px; height: 20px;
+  background: rgba(235, 224, 192, 0.9); border: 1px solid rgba(31, 22, 12, 0.25); top: -10px; }
+.tape::before { left: 12%; transform: rotate(-5deg); }
+.tape::after { right: 12%; transform: rotate(4deg); }
+
+.wordmark { font-family: var(--font-display); font-size: var(--text-sm);
+  letter-spacing: 0.12em; color: var(--color-text-muted); opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
