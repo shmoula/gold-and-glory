@@ -1418,6 +1418,15 @@ pre-tallied, no chip travel, no pulses; the meter still sweeps.
 DevTools at 1280 / 900 / 640 / 375 wide: no horizontal scroll; at ≤640 the commit bar is
 sticky-bottom; posters stack; HUD wraps without clipping.
 
+- [ ] **Step 4b: Font attribution**
+
+`src/assets/fonts/OFL.txt` (vendored in Task 1) is the canonical OFL 1.1 **template** — its copyright
+line still reads `Copyright (c) <dates>, <Copyright Holder>`. That satisfies "the license accompanies
+the software" but attributes nobody. Replace it with the three families' actual upstream OFL files
+(fetch from each family's directory in `github.com/google/fonts`, e.g. `ofl/bangers/OFL.txt`) as
+`OFL-Bangers.txt`, `OFL-Nunito.txt`, `OFL-PatrickHand.txt`, and extend `scripts/fetch-fonts.mjs` to
+pull them so it stays reproducible. Do not hand-write copyright lines from memory.
+
 - [ ] **Step 5: Laws audit (spec §0)**
 
 Visually check: gold hue appears only on money · every red/green amount has a sign · blue
