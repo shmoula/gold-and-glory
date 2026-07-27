@@ -7,13 +7,18 @@ body {
     var(--surface-page);
   color: var(--color-text);
   font: 400 var(--text-md)/var(--leading-body) var(--font-body);
-  min-height: 100vh;
+  min-height: 100dvh;
 }
-#app { min-height: 100vh; }
+#app { min-height: 100dvh; }
 h1, h2, h3 { font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
   letter-spacing: 0.03em; margin: 0; }
 button { font: inherit; cursor: pointer; }
-:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+
+/* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
+   wood (blue-on-stone is 1.12:1 — invisible). Spec §8 is ship-blocking, so the
+   halo is !important: a component's own box-shadow must never swallow it. */
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--bone-bright) !important; }
 
 .snark { font-family: var(--font-snark); font-size: var(--text-sm);
   font-weight: 400; color: var(--color-text-muted); }
@@ -36,4 +41,5 @@ button { font: inherit; cursor: pointer; }
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
+  .meter-cursor { transition: none !important; }
 }

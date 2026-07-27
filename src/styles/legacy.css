@@ -1,0 +1,25 @@
+/* ============================================================
+   legacy.css — holdover rules for screens not yet rewritten.
+   Every selector is :where()-wrapped so specificity is 0 and any
+   real rule in components.css / screens.css beats it.
+   Trimmed to .gameover/.cause in Task 8; DELETED in Task 9
+   (along with its @import in styles.css).
+   ============================================================ */
+:where(#app) { max-width: 1180px; margin: 0 auto; padding: var(--space-4); }
+:where(button:disabled) { opacity: 0.4; cursor: not-allowed; }
+:where(.hud) { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #463829; margin-bottom: 12px; }
+:where(.hud .gold) { color: var(--gold); font-weight: 700; }
+:where(.hub .row) { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+:where(.hub, .actions, .result, .gameover) :where(button) { background: var(--paper-3); color: var(--ink); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
+:where(.sponsor) { color: var(--gold-ink); }
+:where(.combatants) { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
+:where(.timing-meter) { position: relative; height: 28px; background: var(--track); border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
+:where(.meter-sweet) { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
+:where(.meter-cursor) { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
+:where(.actions) { display: flex; gap: 8px; }
+:where(.press) { background: var(--blood); color: #fff; margin-top: 8px; }
+:where(.log) { font-size: 0.85rem; color: var(--ink-soft); list-style: none; padding: 0; }
+:where(.result.good) { border-left: 4px solid var(--moss); padding-left: 12px; }
+:where(.result.danger) { border-left: 4px solid var(--blood); padding-left: 12px; }
+:where(.result .cause, .gameover .cause) { font-style: italic; color: var(--blood-ink); }
+:where(.gameover) { text-align: center; padding: 32px 0; }

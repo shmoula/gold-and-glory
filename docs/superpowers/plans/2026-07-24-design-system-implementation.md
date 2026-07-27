@@ -22,11 +22,13 @@
 |---|---|---|
 | `scripts/fetch-fonts.mjs` | create | One-shot vendoring of the 4 woff2 files |
 | `src/assets/fonts/*.woff2` | create (4) | Self-hosted Bangers/Nunito/Patrick Hand |
-| `src/styles.css` | rewrite | Entry: `@import` the four sheets; legacy rules until Task 8 |
+| `src/styles.css` | rewrite | Entry: `@import` the five sheets, nothing else |
 | `src/styles/tokens.css` | create | Spec §1 verbatim + `@font-face` (§2) |
 | `src/styles/base.css` | create | Reset, stone page, type defaults, `.snark`/`.tape`/`.amount`, focus, reduced-motion |
 | `src/styles/components.css` | create | Spec §6 catalog, appended to task-by-task |
 | `src/styles/screens.css` | create | Spec §7 grids + breakpoints |
+| `src/styles/legacy.css` | create → delete | Zero-specificity holdover rules for not-yet-rewritten screens; trimmed in Task 8, deleted in Task 9 |
+| `tests/styles.test.js` | create | Every `var(--x)` in the sheets resolves to a token |
 | `src/ui/format.js` | create | `formatGold` — the only money formatter |
 | `src/ui/effects.js` | create | Ticker, delta chips, purse shake, ledger theater |
 | `src/ui/render.js` | modify | All screen/component templates; `meterZones` |
@@ -65,20 +67,43 @@ const FAMILIES = [
   { spec: 'Patrick+Hand', out: { 400: 'PatrickHand-400.woff2' } },
 ];
 
+const get = async (url, init) => {
+  const res = await fetch(url, init);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`);
+  return res;
+};
+
 await mkdir('src/assets/fonts', { recursive: true });
+const written = [];
 for (const { spec, out } of FAMILIES) {
-  const css = await (await fetch(`https://fonts.googleapis.com/css2?family=${spec}&display=swap`, { headers: { 'User-Agent': UA } })).text();
+  const css = await (await get(`https://fonts.googleapis.com/css2?family=${spec}&display=swap`, { headers: { 'User-Agent': UA } })).text();
   for (const m of css.matchAll(/\/\* (\w[\w-]*) \*\/\s*@font-face\s*\{([^}]*)\}/g)) {
     if (m[1] !== 'latin') continue;
-    const weight = m[2].match(/font-weight:\s*(\d+)/)[1];
-    const url = m[2].match(/url\((https:\/\/[^)]+\.woff2)\)/)[1];
-    if (!out[weight]) continue;
-    const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
+    const weight = m[2].match(/font-weight:\s*(\d+)/)?.[1];
+    const url = m[2].match(/url\((https:\/\/[^)]+\.woff2)\)/)?.[1];
+    if (!weight || !url || !out[weight]) continue;
+    const buf = Buffer.from(await (await get(url)).arrayBuffer());
     await writeFile(`src/assets/fonts/${out[weight]}`, buf);
+    written.push(out[weight]);
     console.log(`fetched ${out[weight]} (${(buf.length / 1024) | 0} KB)`);
   }
 }
+
+// Every declared file must land — a silent miss means Google changed the css2 response
+// shape (e.g. collapsed 400+700 into one ranged block) and the regex needs updating.
+const expected = FAMILIES.flatMap(({ out }) => Object.values(out));
+const missing = expected.filter((f) => !written.includes(f));
+if (missing.length) throw new Error(`never written: ${missing.join(', ')}`);
+
+// The OFL requires the license travel with redistributed font software, and these
+// woff2 files are redistributed in both git and dist/.
+const ofl = await (await get('https://openfontlicense.org/documents/OFL.txt')).text();
+await writeFile('src/assets/fonts/OFL.txt', ofl);
+console.log(`fetched OFL.txt (${(ofl.length / 1024) | 0} KB)`);
 ```
+
+Add to `package.json` scripts so the script is discoverable and always runs from the repo root
+(it uses relative paths): `"fonts": "node scripts/fetch-fonts.mjs"`.
 
 - [ ] **Step 3: Run it**
 
@@ -109,13 +134,18 @@ body {
     var(--surface-page);
   color: var(--color-text);
   font: 400 var(--text-md)/var(--leading-body) var(--font-body);
-  min-height: 100vh;
+  min-height: 100dvh;
 }
-#app { min-height: 100vh; }
+#app { min-height: 100dvh; }
 h1, h2, h3 { font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
   letter-spacing: 0.03em; margin: 0; }
 button { font: inherit; cursor: pointer; }
-:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+
+/* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
+   wood (blue-on-stone is 1.12:1 — invisible). Spec §8 is ship-blocking, so the
+   halo is !important: a component's own box-shadow must never swallow it. */
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--bone-bright) !important; }
 
 .snark { font-family: var(--font-snark); font-size: var(--text-sm);
   font-weight: 400; color: var(--color-text-muted); }
@@ -138,12 +168,50 @@ button { font: inherit; cursor: pointer; }
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
+  .meter-cursor { transition: none !important; }
 }
 ```
 
-- [ ] **Step 7: Create empty catalog files and rewrite the entry**
+(`animation-iteration-count: 1` is deliberately stronger than spec §5's literal block: without it
+the infinite `bar-urgent` / `urgent-pulse` loops from §6.1/§6.2 would keep cycling at 1ms.)
+
+- [ ] **Step 7: Create empty catalog files, the legacy sheet, and rewrite the entry**
 
 `src/styles/components.css` and `src/styles/screens.css` each start as a one-line header comment (`/* components.css — spec §6 catalog */`, `/* screens.css — spec §7 grids */`).
+
+**Every legacy selector is wrapped in `:where(…)`, which zeroes its specificity.** This is load-bearing, not cosmetic: `.hub button` at `(0,1,1)` would otherwise outrank `.btn` at `(0,1,0)` no matter what order the sheets are imported in, and Tasks 3–9 would render plank buttons that still look like the old parchment ones. With `:where()` at `(0,0,0)`, every new component rule wins automatically and the legacy sheet only styles what nothing else claims yet.
+
+`src/styles/legacy.css`:
+
+```css
+/* ============================================================
+   legacy.css — holdover rules for screens not yet rewritten.
+   Every selector is :where()-wrapped so specificity is 0 and any
+   real rule in components.css / screens.css beats it.
+   Trimmed to .gameover/.cause in Task 8; DELETED in Task 9
+   (along with its @import in styles.css).
+   ============================================================ */
+:where(#app) { max-width: 1180px; margin: 0 auto; padding: var(--space-4); }
+:where(button:disabled) { opacity: 0.4; cursor: not-allowed; }
+:where(.hud) { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #463829; margin-bottom: 12px; }
+:where(.hud .gold) { color: var(--gold); font-weight: 700; }
+:where(.hub .row) { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+:where(.hub, .actions, .result, .gameover) :where(button) { background: var(--paper-3); color: var(--ink); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
+:where(.sponsor) { color: var(--gold-ink); }
+:where(.combatants) { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
+:where(.timing-meter) { position: relative; height: 28px; background: var(--track); border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
+:where(.meter-sweet) { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
+:where(.meter-cursor) { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
+:where(.actions) { display: flex; gap: 8px; }
+:where(.press) { background: var(--blood); color: #fff; margin-top: 8px; }
+:where(.log) { font-size: 0.85rem; color: var(--ink-soft); list-style: none; padding: 0; }
+:where(.result.good) { border-left: 4px solid var(--moss); padding-left: 12px; }
+:where(.result.danger) { border-left: 4px solid var(--blood); padding-left: 12px; }
+:where(.result .cause, .gameover .cause) { font-style: italic; color: var(--blood-ink); }
+:where(.gameover) { text-align: center; padding: 32px 0; }
+```
+
+Note the `#app` max-width: **1180px, not the old 720px.** Spec §7 builds `230px 1fr 300px` desktop grids inside `#app`; a 720px ancestor cap would squeeze every new screen in Tasks 5–7 while the `≤900px` breakpoint (viewport-based, not container-based) never fires to rescue it. 1180px matches `.screen`'s own max-width, so the two agree and the eventual deletion is a no-op.
 
 Replace `src/styles.css` with:
 
@@ -153,36 +221,38 @@ Replace `src/styles.css` with:
 @import './styles/base.css';
 @import './styles/components.css';
 @import './styles/screens.css';
-
-/* ============================================================
-   LEGACY RULES — keep the old markup styled until Tasks 3–8
-   replace each screen. DELETE this whole block in Task 8.
-   ============================================================ */
-#app { max-width: 720px; margin: 0 auto; padding: 16px; }
-button:disabled { opacity: 0.4; cursor: not-allowed; }
-.hud { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #463829; margin-bottom: 12px; }
-.hud .gold { color: var(--gold); font-weight: 700; }
-.hub .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-.hub button, .actions button, .result button, .gameover button { background: var(--paper-3); color: var(--ink); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
-.sponsor { color: var(--gold-ink); }
-.combatants { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
-.timing-meter { position: relative; height: 28px; background: var(--track); border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
-.meter-sweet { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
-.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
-.actions { display: flex; gap: 8px; }
-.press { background: var(--blood); color: #fff; margin-top: 8px; }
-.log { font-size: 0.85rem; color: var(--ink-soft); list-style: none; padding: 0; }
-.result.good { border-left: 4px solid var(--moss); padding-left: 12px; }
-.result.danger { border-left: 4px solid var(--blood); padding-left: 12px; }
-.result .cause, .gameover .cause { font-style: italic; color: var(--blood-ink); }
-.gameover { text-align: center; padding: 32px 0; }
+@import './styles/legacy.css';
 ```
 
 (Note: legacy rules already reference the new tokens — the old dark palette is gone from this commit onward.)
 
+- [ ] **Step 7b: Add `tests/styles.test.js` — the typo guard**
+
+Nine more tasks append token-heavy CSS to these sheets, and a misspelled custom property
+(`var(--color-expence)`) throws no error anywhere — it just silently resolves to nothing, which is
+exactly the failure class that survives both code review and visual smoke. One cheap test guards
+every remaining commit:
+
+```js
+// tests/styles.test.js — every var(--x) the sheets use must be a token they define.
+import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+
+const SHEETS = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)];
+const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
+
+describe('css custom properties', () => {
+  it('references only tokens that are defined', () => {
+    const defined = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
+    const used = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]));
+    expect([...used].filter((t) => !defined.has(t))).toEqual([]);
+  });
+});
+```
+
 - [ ] **Step 8: Verify suite and build still green**
 
-Run: `npx vitest run` → all existing tests PASS.
+Run: `npx vitest run` → all existing tests PASS (93 + the new styles test).
 Run: `npm run build` → build succeeds; output CSS bundle contains `Bangers` (grep `dist/assets/*.css`).
 
 - [ ] **Step 9: Visual smoke**
@@ -1191,9 +1261,10 @@ repair: () => {
 `screens.css` — `.screen--result` grid from spec §7 + area classes
 (`.result__recap { grid-area: recap; }` etc.).
 
-`src/styles.css` — **delete the entire LEGACY block** (every screen now uses new markup —
-GAMEOVER still uses old classes until Task 9; keep only `.gameover` and `.cause` lines from
-the legacy block until then, then delete in Task 9).
+`src/styles/legacy.css` — **trim it to the two rules GAMEOVER still needs**
+(`:where(.gameover)` and `:where(.result .cause, .gameover .cause)`), plus `:where(#app)` and
+`:where(button:disabled)` which still apply everywhere. Delete every other rule — hub, fight, and
+result all use new markup now. The file and its `@import` go away entirely in Task 9.
 
 - [ ] **Step 8: Run everything**
 
@@ -1301,7 +1372,12 @@ tests (`/champion|circuit/i`, cause-of-death string, `data-action="restart"`) mu
 ```
 
 `screens.css`: `.screen--gameover` grid from spec §7 + area classes.
-`src/styles.css`: delete the remaining legacy lines — the file is now imports only.
+
+Final legacy removal: **delete `src/styles/legacy.css` and its `@import` from `src/styles.css`.**
+`#app`'s width cap and `button:disabled` styling now have to live somewhere permanent — move both
+into `base.css` (`#app { min-height: 100dvh; }` already lives there; add `max-width: 1180px;
+margin: 0 auto; padding: var(--space-4);` and a real `.btn.is-disabled` per spec §6.2 if Task 4
+did not already add it). Then `src/styles.css` is imports only, four lines.
 
 - [ ] **Step 7: Commit**
 
@@ -1328,7 +1404,9 @@ this plan: `#c9b384` portrait gradient stop and `#443019` silhouette — promote
 - [ ] **Step 2: Keyboard-only run-through**
 
 Play one full loop (hub → fight → result → hub) using only Tab/Enter/Space/1–4. Every control
-reachable, focus ring visible on paper, wood, and blue surfaces.
+reachable, focus ring visible on **stone, paper, wood, and blue** surfaces (stone is the one that
+plain blue fails at 1.12:1 — the bone halo from `base.css` is what carries it; confirm no component
+`box-shadow` has swallowed the halo).
 
 - [ ] **Step 3: Reduced-motion pass**
 
