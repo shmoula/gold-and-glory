@@ -83,6 +83,20 @@ export const CONFIG = {
     },
   ],
 
+  // Snark asides (spec §6.8/§9): content, not markup. The parentheses are added by the
+  // renderer. Each is <= 40 chars, contains no numbers, and never contradicts the mechanics
+  // clause it sits beside. Gear keys must match the `gear` ids above.
+  snark: {
+    repair: 'It barely works',
+    heal: 'We have leeches!',
+    bribe: 'A donation, officially',
+    charm: 'A sock?',
+    blade: 'Slightly less blunt',
+    shield: 'A big plate. For hiding',
+    sponsorReward: 'He loves losers',
+    taunt: "Time your hit! (Or don't!)",
+  },
+
   deathRecaps: [
     'Bled out while a sponsor banner unfurled overhead.',
     'Tripped on a discarded turnip, impaled on own blade.',

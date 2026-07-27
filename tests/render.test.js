@@ -112,11 +112,74 @@ describe('renderHub', () => {
     expect(html).toContain('The Brute'); // next opponent named
   });
 
-  it('disables unaffordable buttons', () => {
+  it('marks unaffordable buttons instead of disabling them', () => {
     const s = createGameState(1, CONFIG);
     s.gold = 0;
     const html = renderHub(s, CONFIG);
-    expect(html).toContain('disabled');
+    expect(html).toContain('is-unaffordable');
+    expect(html).toContain('data-missing=');
+  });
+
+  it('puts prices in the price slot, not in parentheses', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('btn__price');
+    expect(html).not.toMatch(/\(\d+g\)/);
+  });
+
+  it('flags urgent sinks from state thresholds', () => {
+    const s = createGameState(1, CONFIG);
+    s.weaponDurability = 10; // < 50% of 30
+    s.injuries = 2;
+    const html = renderHub(s, CONFIG);
+    expect((html.match(/is-urgent/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('carries the formatted shortfall in data-missing', () => {
+    const s = createGameState(1, CONFIG);
+    s.gold = 25; // Lucky Charm costs 150 → 125 short
+    const html = renderHub(s, CONFIG);
+    // U+00A0 written as an escape (spec §2); pasting the literal hides regressions.
+    expect(html).toContain(`data-missing="125\u00A0G"`);
+    expect(html.match(/data-missing="125(.)G"/)[1].codePointAt(0)).toBe(0x00a0);
+    // Mirrored onto the snark span: spec §6.2 renders the shortfall via
+    // .btn__snark::after { content: … attr(data-missing) … }, and attr() resolves against
+    // the pseudo-element own originating element, not the enclosing button.
+    expect(html).toMatch(/class="btn__snark snark" data-missing="125\u00A0G"/);
+  });
+
+  it('keeps true no-ops disabled rather than unaffordable', () => {
+    const s = createGameState(1, CONFIG);
+    s.gold = 100000;
+    s.weaponDurability = CONFIG.weapon.maxDurability; // nothing to repair
+    s.injuries = 0;                                   // nothing to heal
+    const html = renderHub(s, CONFIG);
+    expect(html).toMatch(/data-action="repair"[^>]*disabled/);
+    expect(html).toMatch(/data-action="heal"[^>]*disabled/);
+    expect(html).not.toContain('is-unaffordable');
+  });
+
+  it('renders snark asides from the config table, parenthesized by the markup', () => {
+    const s = createGameState(1, CONFIG);
+    s.injuries = 1;
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('class="btn__snark snark"');
+    expect(html).toContain(`(${CONFIG.snark.heal})`);
+  });
+
+  it('gives irreversible choices the commit variant', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    expect(html).toMatch(/data-action="next-fight"[^>]*btn--commit/);
+    expect(html).toMatch(/data-action="retire"[^>]*btn--commit/);
+  });
+
+  it('renders owned gear as an owned plank with no buy action', () => {
+    const s = createGameState(1, CONFIG);
+    s.gear = ['shield'];
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('is-owned');
+    expect(html).not.toContain('data-action="buy-shield"');
   });
 });
 

@@ -41,6 +41,25 @@ describe('CONFIG', () => {
     ]);
   });
 
+  it('has a snark aside for every sink the hub renders', () => {
+    for (const key of ['repair', 'heal', 'bribe', 'shield', 'blade', 'charm']) {
+      expect(typeof CONFIG.snark[key]).toBe('string');
+      expect(CONFIG.snark[key].length).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps snark asides inside the §6.8 grammar', () => {
+    for (const [key, aside] of Object.entries(CONFIG.snark)) {
+      expect(aside.length, `${key} aside must be <= 40 chars`).toBeLessThanOrEqual(40);
+      expect(aside, `${key} aside must not contain numbers`).not.toMatch(/\d/);
+    }
+    // Button asides are wrapped in parentheses by the renderer, so the strings must not
+    // carry their own. (`taunt` is a standalone hint, not a button aside — exempt.)
+    for (const key of ['repair', 'heal', 'bribe', 'shield', 'blade', 'charm']) {
+      expect(CONFIG.snark[key], `${key} aside must not be parenthesized`).not.toMatch(/[()]/);
+    }
+  });
+
   it('has combat timing tiers and multipliers', () => {
     expect(CONFIG.combat.timingMult.miss).toBe(0);
     expect(CONFIG.combat.timingMult.crit).toBeGreaterThan(CONFIG.combat.timingMult.hit);

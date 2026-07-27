@@ -31,3 +31,32 @@
 .hud__purse .ticker { font-variant-numeric: tabular-nums; }
 .bar.is-urgent .bar__fill { animation: bar-urgent 900ms var(--ease-drop) infinite; }
 @keyframes bar-urgent { 50% { opacity: 0.55; } }
+
+/* ---- 6.2 Buttons ---- */
+.btn { display: inline-flex; align-items: baseline; gap: var(--space-3);
+  font: 700 var(--text-md)/1.2 var(--font-body); color: var(--color-text-inverse);
+  background: var(--grad-wood); border: var(--border-w) solid var(--border-ink);
+  border-radius: 9px 13px 8px 14px; padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-plank); min-height: 44px; }
+.btn:hover { background: var(--grad-wood-hover); }
+.btn:active { transform: translateY(2.5px); box-shadow: var(--shadow-plank-pressed); }
+.btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.btn__price { color: var(--color-money-on-dark); font-variant-numeric: tabular-nums; font-size: var(--text-lg); }
+.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: #cdb98e; }
+
+.btn--commit { font: 400 21px/1 var(--font-display); letter-spacing: 0.05em;
+  color: var(--bone-bright); background: var(--grad-commit); border-radius: var(--wobble-1);
+  padding: var(--space-2) var(--space-5); text-shadow: 0 1.5px 0 rgba(20,30,50,0.55); }
+.btn--commit:focus-visible { outline-color: var(--bone-bright); }
+
+.btn--danger { background: linear-gradient(var(--blood-hi), var(--blood)); }
+
+.btn.is-disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.btn.is-unaffordable { /* stays full-strength EXCEPT the price */ }
+.btn.is-unaffordable .btn__price { color: var(--blood-hi); }
+.btn.is-unaffordable .btn__snark::after { content: " (need " attr(data-missing) " more)"; }
+.btn.is-urgent { animation: urgent-pulse 1.2s var(--ease-drop) infinite; }
+@keyframes urgent-pulse { 50% { box-shadow: var(--shadow-plank), 0 0 0 3px var(--gold-deep); } }
+
+.btn.is-owned { opacity: 0.6; cursor: default; box-shadow: none; }
+.btn.is-owned:hover { background: var(--grad-wood); }
