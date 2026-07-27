@@ -16,6 +16,30 @@ describe('renderHud', () => {
     expect(html).toContain('Health');
     expect(html).toContain('Durability');
   });
+
+  it('renders bars with fill widths and injury pips', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = 65; s.injuries = 3; s.weaponDurability = 15;
+    const html = renderHud(s, CONFIG);
+    expect(html).toContain('class="hud"');
+    expect(html).toContain('width:65%');                       // health fill
+    expect(html).toContain('width:50%');                       // durability 15/30
+    expect((html.match(/pip pip--filled/g) || []).length).toBe(3);
+    expect((html.match(/class="pip[" ]/g) || []).length).toBe(5); // 5 slots at 3 injuries
+    expect(html).toContain('65/100');
+  });
+
+  it('marks the health bar urgent below a third', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = 30;
+    expect(renderHud(s, CONFIG)).toContain('is-urgent');
+  });
+
+  it('formats gold through formatGold', () => {
+    const s = createGameState(1, CONFIG);
+    s.gold = 2450;
+    expect(renderHud(s, CONFIG)).toContain('2,450\u00A0G');
+  });
 });
 
 describe('renderHub', () => {

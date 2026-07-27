@@ -1,1 +1,33 @@
 /* components.css — spec §6 catalog */
+
+/* ---- 6.1 HUD beam ---- */
+.hud {
+  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  background: linear-gradient(var(--wood-3), var(--wood-4));
+  border: var(--border-w) solid var(--border-ink); border-radius: 10px 14px 9px 15px;
+  padding: var(--space-2) var(--space-4);
+  box-shadow: var(--shadow-plank);
+  color: var(--color-text-inverse);
+  font-family: var(--font-body); font-weight: 700; font-size: var(--text-sm);
+}
+.hud__purse { color: var(--color-money-on-dark); display: inline-flex; align-items: center;
+  gap: var(--space-2); font-variant-numeric: tabular-nums; }
+.coin { width: 15px; height: 15px; border-radius: 50%; display: inline-block;
+  background: var(--grad-coin); border: 1.5px solid var(--border-ink); }
+.bar { position: relative; width: 108px; height: 16px; background: var(--track);
+  border: 2px solid var(--border-ink); border-radius: var(--wobble-bar); overflow: hidden; }
+.bar__fill { position: absolute; inset: 0 auto 0 0; background: var(--blood);
+  transition: width 150ms ease-out; }
+.bar__fill--dur { background: var(--gold-deep); }
+.bar__num { position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 11px; color: var(--bone); font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(31,22,12,0.9); }
+.pips { display: inline-flex; gap: 3px; }
+.pip { width: 11px; height: 14px; border: 1.5px solid var(--border-ink);
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: var(--track); }
+.pip--filled { background: var(--blood); }
+.hud__label { letter-spacing: 0.06em; text-transform: uppercase; }
+.hud__stat { display: inline-flex; align-items: center; gap: var(--space-2); }
+.hud__purse .ticker { font-variant-numeric: tabular-nums; }
+.bar.is-urgent .bar__fill { animation: bar-urgent 900ms var(--ease-drop) infinite; }
+@keyframes bar-urgent { 50% { opacity: 0.55; } }

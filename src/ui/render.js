@@ -1,6 +1,7 @@
 // src/ui/render.js
 import { trainingCost, repairCost, healCost, canAfford } from '../economy.js';
 import { effectiveStats } from '../game.js';
+import { formatGold } from './format.js';
 
 export function escapeHtml(s) {
   return String(s)
@@ -14,14 +15,28 @@ function btn(action, label, cost, gold, extra = '') {
   return `<button data-action="${action}"${extra}${affordable ? '' : ' disabled'}>${escapeHtml(label)}${costLabel}</button>`;
 }
 
+function bar(label, value, max, { fillClass = '', urgent = false } = {}) {
+  const pct = Math.max(0, Math.round((value / max) * 100));
+  return `<span class="hud__stat"><span class="hud__label">${label}</span>
+    <span class="bar${urgent ? ' is-urgent' : ''}" role="meter" aria-label="${label}"
+      aria-valuenow="${Math.max(0, value)}" aria-valuemin="0" aria-valuemax="${max}">
+      <span class="bar__fill${fillClass}" style="width:${pct}%"></span>
+      <span class="bar__num">${Math.max(0, value)}/${max}</span>
+    </span></span>`;
+}
+
 export function renderHud(state, config) {
+  const pipCount = Math.max(5, state.injuries);
+  const pips = Array.from({ length: pipCount }, (_, i) =>
+    `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`).join('');
   return `
-    <div class="hud">
-      <span class="gold">🪙 ${state.gold}g</span>
-      <span>Health: ${Math.max(0, state.health)}/${state.maxHealth}</span>
-      <span>Durability: ${state.weaponDurability}/${config.weapon.maxDurability}</span>
-      <span>Injuries: ${state.injuries}</span>
-    </div>`;
+    <header class="hud">
+      <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-gold="${state.gold}">${formatGold(state.gold)}</span></span>
+      ${bar('Health', state.health, state.maxHealth, { urgent: state.health / state.maxHealth < 0.33 })}
+      ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
+      <span class="hud__stat"><span class="hud__label">Injuries</span>
+        <span class="pips" role="img" aria-label="${state.injuries} injuries">${pips}</span></span>
+    </header>`;
 }
 
 export function renderHub(state, config) {
