@@ -3,6 +3,12 @@ import { trainingCost, repairCost, healCost, canAfford } from '../economy.js';
 import { effectiveStats } from '../game.js';
 import { formatGold } from './format.js';
 
+// Presentation constants (not game tuning — they belong to the HUD, not config.js).
+// The pip row always reserves this many slots so it does not resize as injuries accrue.
+const PIP_MIN_SLOTS = 5;
+// Below this fraction of max, a bar turns urgent. Shared so the fight HP bar reads the same.
+const URGENT_FRACTION = 0.33;
+
 export function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -17,24 +23,25 @@ function btn(action, label, cost, gold, extra = '') {
 
 function bar(label, value, max, { fillClass = '', urgent = false } = {}) {
   const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
-  // role="meter" is invalid ARIA when valuenow falls outside [valuemin, valuemax].
+  // role="meter" is invalid ARIA when valuenow falls outside [valuemin, valuemax], and the
+  // visible numeral must match it or sighted and screen-reader users read different numbers.
   const now = Math.min(max, Math.max(0, value));
   return `<span class="hud__stat"><span class="hud__label">${label}</span>
     <span class="bar${urgent ? ' is-urgent' : ''}" role="meter" aria-label="${label}"
       aria-valuenow="${now}" aria-valuemin="0" aria-valuemax="${max}">
       <span class="bar__fill${fillClass}" style="width:${pct}%"></span>
-      <span class="bar__num">${Math.max(0, value)}/${max}</span>
+      <span class="bar__num">${now}/${max}</span>
     </span></span>`;
 }
 
 export function renderHud(state, config) {
-  const pipCount = Math.max(5, state.injuries);
+  const pipCount = Math.max(PIP_MIN_SLOTS, state.injuries);
   const pips = Array.from({ length: pipCount }, (_, i) =>
     `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`).join('');
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
-      ${bar('Health', state.health, state.maxHealth, { urgent: state.health / state.maxHealth < 0.33 })}
+      ${bar('Health', state.health, state.maxHealth, { urgent: state.health / state.maxHealth < URGENT_FRACTION })}
       ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
       <span class="hud__stat"><span class="hud__label">Injuries</span>
         <span class="pips" role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}">${pips}</span></span>

@@ -47,9 +47,12 @@ describe('renderHud', () => {
 
   it('marks the health bar urgent strictly below a third, not at it', () => {
     const s = createGameState(1, CONFIG);
-    s.health = 32; // 0.32 of 100 \u2014 below the third
+    // Derived from maxHealth so the pair stays astride the threshold if that value changes:
+    // atThreshold is the smallest health with health/maxHealth >= 0.33.
+    const atThreshold = Math.ceil(s.maxHealth * 0.33);
+    s.health = atThreshold - 1;
     expect(renderHud(s, CONFIG)).toContain('is-urgent');
-    s.health = 33; // 0.33 is not < 0.33
+    s.health = atThreshold;
     expect(renderHud(s, CONFIG)).not.toContain('is-urgent');
   });
 
@@ -68,6 +71,15 @@ describe('renderHud', () => {
     expect(html).not.toMatch(/width:1[1-9]\d%/);
     expect(html).toContain(`aria-valuenow="${CONFIG.weapon.maxDurability}"`);
     expect(html).not.toContain('aria-valuenow="42"');
+  });
+
+  it('shows the clamped numeral, so the visible text matches aria-valuenow', () => {
+    const s = createGameState(1, CONFIG);
+    const max = CONFIG.weapon.maxDurability;
+    s.weaponDurability = max + 12;
+    const html = renderHud(s, CONFIG);
+    expect(html).toContain(`${max}/${max}`);
+    expect(html).not.toContain(`${max + 12}/${max}`);
   });
 
   it('uses a singular aria-label for exactly one injury', () => {
