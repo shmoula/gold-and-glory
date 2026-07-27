@@ -13,7 +13,7 @@ then spec-compliance review, then code-quality review, then next task.
 | 1 — Fonts, tokens, base CSS | **done, reviewed, fixed, re-verified** | `959ad35` + `eb1ea52` |
 | 2 — `formatGold` | **done, reviewed, fixed, re-verified** | `2f9a10f` + `7528dc4` |
 | 3 — HUD beam | **done, both reviews passed** | `b42f8b6` + `f0e3fb7` + `3595343` |
-| 4 — Button system + snark | pending | — |
+| 4 — Button system + snark | **done, both reviews passed** | `5e42184` + `9b0f859` |
 | 5 — Hub screen | pending | — |
 | 6 — Timing meter | pending | — |
 | 7 — Fight screen | pending | — |
@@ -24,21 +24,52 @@ then spec-compliance review, then code-quality review, then next task.
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 4 (Button system + snark tables in config)
+## RESUME HERE — Task 5 (Hub screen: posters, cards, layout grid)
 
-Task 3 is **fully closed**: `b42f8b6` (implementation) + `f0e3fb7` (the five review fixes) +
-`3595343` (two Important code-quality fixes). Both reviews passed. Suite is **107 tests green**,
-build clean. All fix assertions were mutation-verified twice — once by the implementer, once
-independently by the reviewer.
+Tasks 3 and 4 are **fully closed**, each with spec review + code-quality review + a fix round +
+an independent re-review. Suite is **122 tests green**, build clean. Every fix assertion was
+mutation-verified twice — once by the implementer, once independently by a reviewer.
 
-Deferred out of Task 3 and carried forward (do NOT re-report these as new findings):
-- `.bar__num { font-size: 11px }` is below spec §8's floor — spec-internal contradiction,
-  now **Task 10 Step 1b**.
-- The legacy `:where(.hud)` `margin-bottom` leak and the now-dead `:where(.hud .gold)` —
-  **Task 8** trims `legacy.css`.
-- `components.css` urgency pulse uses `var(--ease-drop)` but spec §6.1 prose says `steps(2)`.
-  Inherited verbatim from the plan's Task 3 Step 5, so it is a plan/spec contradiction, not an
-  implementer error. Reconcile in **Task 10**.
+- Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
+- Task 4: `5e42184` → `9b0f859` (9 quality fixes).
+
+Notable Task 4 outcomes a later task may need to know:
+- `btn()` in `src/ui/render.js` is now the single button factory: options object, optional
+  `action`, an inert `owned` state, and named `URGENT_FRACTION` / `REPAIR_URGENT_FRACTION`
+  constants. It **throws** if `cost` is passed without a finite `gold`, so Tasks 5/7/8 call sites
+  cannot silently render a full-price button as unaffordable. `btn` is exported for that guard's
+  test. Route every new commerce button through it rather than hand-rolling `<button class="btn">`.
+- `data-missing` is emitted on **both** the button and the `.btn__snark` span. This is deliberate:
+  spec §6.2's `::after` `attr()` resolves against the span, while the plan reserves the button copy
+  for Task 7's click-rejection message. Nothing reads the button copy yet.
+- `renderHub` markup was proven **byte-identical** across the Task 4 refactor over a 1176-state
+  matrix, so the spec sign-off on the old markup still holds.
+
+## Deferred backlog — do NOT re-report these as new findings
+
+Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task's remit.
+
+**Task 8** trims `src/styles/legacy.css`: the `:where(.hud)` `margin-bottom` leak and the now-dead
+`:where(.hud .gold)`. **Task 9** deletes the file and moves `#app` / `button:disabled` into
+`base.css`.
+
+**Task 10** must reconcile:
+1. `.bar__num { font-size: 11px }` is below spec §8's type floor (Step 1b, already in the plan).
+2. `components.css` urgency pulse uses `var(--ease-drop)`; spec §6.1 prose says `steps(2)`.
+   Inherited verbatim from the plan's Task 3 Step 5.
+3. Spec §6.2 hangs the unaffordable shortfall `::after` off the **optional** `.btn__snark` slot,
+   so the three Train buttons — which have no snark aside — render no shortfall at all.
+4. Spec §9 shows title-case button labels ("Repair Weapon"); the plan's call sites are
+   sentence-case ("Repair weapon"). The plan was followed.
+5. Buttons for no-op actions emit the native `disabled` attribute, so spec §6.2's
+   `.btn[aria-disabled="true"]` dim rule never fires; dimming currently comes from `legacy.css`
+   at opacity 0.4, not the spec's 0.45.
+6. Spec §6.2's CSS block in `components.css` is **byte-exact** to the spec and so still contains a
+   literal `#cdb98e` and a literal `21px` that bypass the token scale, plus an empty
+   `.btn.is-unaffordable {}` rule. Fixing these in an earlier task would break verified byte-exact
+   compliance — they are spec bugs, so reconcile spec and code together here.
+7. `src/ui/render.js` still hand-formats a few `${...}g` strings instead of using `formatGold`
+   (spec §2 says nothing formats money by hand).
 
 ## Dispatch pattern that actually works in this environment
 
