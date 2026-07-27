@@ -3,10 +3,49 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  renderHud, renderHub, renderResult, renderGameOver, renderFight,
+  btn, renderHud, renderHub, renderResult, renderGameOver, renderFight,
   meterDistance, meterPosition, meterPeriod,
 } from '../src/ui/render.js';
 import { startFight } from '../src/game.js';
+
+describe('btn', () => {
+  it('throws when a priced button is built without the purse', () => {
+    // Regression guard: with a `gold = 0` default this rendered a full-price button as
+    // unaffordable — wrong pixels, no error, green suite. Omission must be loud.
+    expect(() => btn('buy-thing', 'Thing', { cost: 150 })).toThrow(TypeError);
+    expect(() => btn('buy-thing', 'Thing', { cost: 150 })).toThrow(/gold/);
+    expect(() => btn('buy-thing', 'Thing', { cost: 150, gold: undefined })).toThrow(TypeError);
+    expect(() => btn('buy-thing', 'Thing', { cost: 150, gold: NaN })).toThrow(TypeError);
+  });
+
+  it('still renders priced buttons when the purse is supplied, including zero', () => {
+    expect(btn('buy-thing', 'Thing', { cost: 150, gold: 0 })).toContain('is-unaffordable');
+    expect(btn('buy-thing', 'Thing', { cost: 150, gold: 150 })).not.toContain('is-unaffordable');
+  });
+
+  it('needs no purse for an unpriced button', () => {
+    const html = btn('retire', 'Retire Rich', { variant: 'commit' });
+    expect(html).toContain('btn--commit');
+    expect(html).not.toContain('btn__price');
+    expect(html).not.toContain('is-unaffordable');
+  });
+
+  it('renders actionless inert planks with no data-action', () => {
+    const owned = btn(null, '✓ Shield — OWNED', { owned: true });
+    expect(owned).not.toContain('data-action');
+    expect(owned).toContain('is-owned');
+    expect(owned).toContain('aria-disabled="true"');
+
+    const spent = btn(null, 'Bribed ✓', { disabled: true });
+    expect(spent).not.toContain('data-action');
+    expect(spent).toMatch(/<button class="btn"[^>]*disabled/);
+  });
+
+  it('escapes the label of a hand-passed inert plank', () => {
+    expect(btn(null, '✓ <Blade> — OWNED', { owned: true }))
+      .toContain('&lt;Blade&gt;');
+  });
+});
 
 describe('renderHud', () => {
   it('shows gold, health, and durability', () => {
@@ -132,7 +171,19 @@ describe('renderHub', () => {
     s.weaponDurability = 10; // < 50% of 30
     s.injuries = 2;
     const html = renderHub(s, CONFIG);
-    expect((html.match(/is-urgent/g) || []).length).toBeGreaterThanOrEqual(2);
+    // Anchored to the buttons: a global is-urgent count also matches urgent HUD bars,
+    // so it could pass for entirely the wrong reason.
+    expect(html).toMatch(/data-action="repair"[^>]*is-urgent/);
+    expect(html).toMatch(/data-action="heal"[^>]*is-urgent/);
+  });
+
+  it('leaves non-urgent sinks unpulsed', () => {
+    const s = createGameState(1, CONFIG);
+    s.weaponDurability = CONFIG.weapon.maxDurability - 1; // ~97%, well above 50%
+    s.injuries = 0;
+    const html = renderHub(s, CONFIG);
+    expect(html).not.toMatch(/data-action="repair"[^>]*is-urgent/);
+    expect(html).not.toMatch(/data-action="heal"[^>]*is-urgent/);
   });
 
   it('carries the formatted shortfall in data-missing', () => {
@@ -145,7 +196,11 @@ describe('renderHub', () => {
     // Mirrored onto the snark span: spec §6.2 renders the shortfall via
     // .btn__snark::after { content: … attr(data-missing) … }, and attr() resolves against
     // the pseudo-element own originating element, not the enclosing button.
-    expect(html).toMatch(/class="btn__snark snark" data-missing="125\u00A0G"/);
+    // Assert the classes present, not the literal attribute text, so adding or reordering
+    // a class stays a harmless refactor.
+    const span = html.match(/<span class="([^"]*)"[^>]*\sdata-missing="125\u00A0G"/);
+    expect(span, 'no snark span carries the shortfall').not.toBeNull();
+    expect(span[1].split(/\s+/)).toEqual(expect.arrayContaining(['btn__snark', 'snark']));
   });
 
   it('keeps true no-ops disabled rather than unaffordable', () => {

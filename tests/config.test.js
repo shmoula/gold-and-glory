@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 
+// Derived, never hand-listed: a fourth gear item must fail these until it has snark,
+// because the hub renders `config.snark[g.id] ?? ''`, which swallows a missing entry.
+const GEAR_KEYS = Object.keys(CONFIG.gear);
+const BUTTON_SNARK_KEYS = ['repair', 'heal', 'bribe', ...GEAR_KEYS];
+
 describe('CONFIG', () => {
   it('has starting wallet and player vitals', () => {
     expect(CONFIG.startingGold).toBe(100);
@@ -42,9 +47,11 @@ describe('CONFIG', () => {
   });
 
   it('has a snark aside for every sink the hub renders', () => {
-    for (const key of ['repair', 'heal', 'bribe', 'shield', 'blade', 'charm']) {
-      expect(typeof CONFIG.snark[key]).toBe('string');
-      expect(CONFIG.snark[key].length).toBeGreaterThan(0);
+    expect(GEAR_KEYS.length).toBeGreaterThan(0); // guard against a vacuous loop
+    for (const key of BUTTON_SNARK_KEYS) {
+      expect(typeof CONFIG.snark[key], `${key} needs a snark aside`).toBe('string');
+      expect(CONFIG.snark[key]?.length ?? 0, `${key} snark must not be empty`)
+        .toBeGreaterThan(0);
     }
   });
 
@@ -55,7 +62,7 @@ describe('CONFIG', () => {
     }
     // Button asides are wrapped in parentheses by the renderer, so the strings must not
     // carry their own. (`taunt` is a standalone hint, not a button aside — exempt.)
-    for (const key of ['repair', 'heal', 'bribe', 'shield', 'blade', 'charm']) {
+    for (const key of BUTTON_SNARK_KEYS) {
       expect(CONFIG.snark[key], `${key} aside must not be parenthesized`).not.toMatch(/[()]/);
     }
   });

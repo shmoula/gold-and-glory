@@ -8,6 +8,10 @@ import { formatGold } from './format.js';
 const PIP_MIN_SLOTS = 5;
 // Below this fraction of max, a bar turns urgent. Shared so the fight HP bar reads the same.
 const URGENT_FRACTION = 0.33;
+// Deliberately NOT the same number as URGENT_FRACTION: spec §6.2 pulses the *Repair button*
+// at durability < 50% so you are nagged to fix the weapon well before the durability *bar*
+// (§6.1, URGENT_FRACTION) starts flashing. Two different affordances, two thresholds.
+const REPAIR_URGENT_FRACTION = 0.5;
 
 export function escapeHtml(s) {
   return String(s)
@@ -17,28 +21,42 @@ export function escapeHtml(s) {
 
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?].
 // variant: '' (plank) | 'commit' (irreversible) | 'danger'.
+// `action` is optional: buttons that are not clickable at all (owned gear, already bribed) still
+// need the .btn skin, so they come through here instead of being hand-rolled per screen.
 // Unaffordable is NOT disabled — the button stays clickable and the action layer rejects it,
-// so the game tells you you are broke instead of hiding the option. `disabled` is reserved
-// for true no-ops (nothing to repair, nothing to heal, already bribed).
-function btn(action, label, { cost = null, gold = 0, variant = '', snark = '',
-  urgent = false, disabled = false } = {}) {
+// so the game tells you you are broke instead of hiding the option. The two dead states are
+// `disabled` (native; a true no-op such as nothing to repair) and `owned` (inert plank for an
+// already-taken option — aria-disabled so it is announced, not focus-trapped out of the tab order).
+// Exported so the guard below can be exercised directly; screens use the render* wrappers.
+export function btn(action, label, { cost = null, gold, variant = '', snark = '',
+  urgent = false, disabled = false, owned = false } = {}) {
+  // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
+  // would render a full-price button as unaffordable — wrong pixels, no error, green suite.
+  if (cost != null && !Number.isFinite(gold)) {
+    throw new TypeError(`btn(${JSON.stringify(action)}): a priced button needs \`gold\`, got ${gold}`);
+  }
   const classes = ['btn'];
   if (variant) classes.push(`btn--${variant}`);
   if (urgent) classes.push('is-urgent');
+  if (owned) classes.push('is-owned');
   let attrs = '';
-  let missing = '';
+  let missingAttr = '';
   if (cost != null && !canAfford(gold, cost)) {
     classes.push('is-unaffordable');
-    // The shortfall lives on the button (the click handler reads it) and is mirrored onto
-    // the snark span, because spec §6.2's `.btn__snark::after { content: … attr(data-missing) … }`
-    // resolves attr() against the pseudo-element's own originating element, not the button.
-    missing = ` data-missing="${escapeHtml(formatGold(cost - gold))}"`;
-    attrs += missing;
+    // Written twice on purpose. The snark span's copy is the one that renders: spec §6.2's
+    // `.btn__snark::after { content: … attr(data-missing) … }` resolves attr() against the
+    // pseudo-element's own originating element, not the enclosing button. The button's copy is
+    // where spec §6.2 puts the shortfall, reserved for Task 7's click-rejection message; no
+    // code consumes it yet, so do not infer a reader from its presence.
+    missingAttr = ` data-missing="${escapeHtml(formatGold(cost - gold))}"`;
+    attrs += missingAttr;
   }
+  if (owned) attrs += ' aria-disabled="true"';
   if (disabled) attrs += ' disabled';
+  const actionAttr = action ? ` data-action="${action}"` : '';
   const price = cost != null ? `<span class="btn__price">${formatGold(cost)}</span>` : '';
-  const aside = snark ? `<span class="btn__snark snark"${missing}>(${escapeHtml(snark)})</span>` : '';
-  return `<button data-action="${action}" class="${classes.join(' ')}"${attrs}>` +
+  const aside = snark ? `<span class="btn__snark snark"${missingAttr}>(${escapeHtml(snark)})</span>` : '';
+  return `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
     `${escapeHtml(label)}${price}${aside}</button>`;
 }
 
@@ -73,6 +91,8 @@ export function renderHub(state, config) {
   const eff = effectiveStats(state, config);
   const missing = config.weapon.maxDurability - state.weaponDurability;
   const opponent = config.opponents[state.currentOpponentIndex];
+  // One predicate for Heal: it is urgent exactly when it is not a no-op.
+  const hurt = state.injuries > 0;
 
   const trainButtons = ['power', 'guard', 'speed'].map((stat) => {
     const cost = trainingCost(state.trainingLevels[stat], config);
@@ -81,7 +101,7 @@ export function renderHub(state, config) {
 
   const gearButtons = Object.values(config.gear).map((g) => {
     if (state.gear.includes(g.id)) {
-      return `<button class="btn is-owned" aria-disabled="true">✓ ${escapeHtml(g.name)} — OWNED</button>`;
+      return btn(null, `✓ ${g.name} — OWNED`, { owned: true });
     }
     return btn(`buy-${g.id}`, g.name, { cost: g.cost, gold: state.gold, snark: config.snark[g.id] ?? '' });
   }).join('');
@@ -93,13 +113,13 @@ export function renderHub(state, config) {
       <div class="row">${trainButtons}</div>
       <div class="row">
         ${btn('repair', 'Repair weapon', { cost: repairCost(missing, config), gold: state.gold,
-          snark: config.snark.repair, urgent: state.weaponDurability / config.weapon.maxDurability < 0.5,
+          snark: config.snark.repair,
+          urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
           disabled: missing <= 0 })}
         ${btn('heal', `Heal ${state.injuries} injuries`, { cost: healCost(state.injuries, config),
-          gold: state.gold, snark: config.snark.heal, urgent: state.injuries >= 1,
-          disabled: state.injuries === 0 })}
+          gold: state.gold, snark: config.snark.heal, urgent: hurt, disabled: !hurt })}
         ${state.bribedThisFight
-          ? '<button class="btn" disabled>Bribed ✓</button>'
+          ? btn(null, 'Bribed ✓', { disabled: true })
           : btn('bribe', `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
               { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe })}
       </div>
@@ -108,7 +128,7 @@ export function renderHub(state, config) {
       <hr/>
       <p>Next up: <strong>${escapeHtml(opponent.name)}</strong> (${opponent.tier}) — purse ${formatGold(opponent.purse)}</p>
       ${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}
-      ${btn('retire', 'Retire Rich', { cost: null, variant: 'commit' })}
+      ${btn('retire', 'Retire Rich', { variant: 'commit' })}
     </section>`;
 }
 
