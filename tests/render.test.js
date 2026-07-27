@@ -29,16 +29,62 @@ describe('renderHud', () => {
     expect(html).toContain('65/100');
   });
 
-  it('marks the health bar urgent below a third', () => {
+  it('renders max(injuries, 5) pip slots once injuries pass five', () => {
     const s = createGameState(1, CONFIG);
-    s.health = 30;
-    expect(renderHud(s, CONFIG)).toContain('is-urgent');
+    s.injuries = 7;
+    const html = renderHud(s, CONFIG);
+    expect((html.match(/class="pip[" ]/g) || []).length).toBe(7);
+    expect((html.match(/pip pip--filled/g) || []).length).toBe(7);
   });
 
-  it('formats gold through formatGold', () => {
+  it('fills the leading pips, not the trailing ones', () => {
+    const s = createGameState(1, CONFIG);
+    s.injuries = 2;
+    const pips = renderHud(s, CONFIG).match(/<i class="pip[^"]*"><\/i>/g);
+    expect(pips.map((p) => p.includes('pip--filled')))
+      .toEqual([true, true, false, false, false]);
+  });
+
+  it('marks the health bar urgent strictly below a third, not at it', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = 32; // 0.32 of 100 \u2014 below the third
+    expect(renderHud(s, CONFIG)).toContain('is-urgent');
+    s.health = 33; // 0.33 is not < 0.33
+    expect(renderHud(s, CONFIG)).not.toContain('is-urgent');
+  });
+
+  it('leaves a healthy bar unmarked', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = s.maxHealth;
+    expect(renderHud(s, CONFIG)).not.toContain('is-urgent');
+  });
+
+  it('clamps an over-max bar to 100% and to a valid aria-valuenow', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = 65;
+    s.weaponDurability = CONFIG.weapon.maxDurability + 12; // 42/30
+    const html = renderHud(s, CONFIG);
+    expect(html).toContain('width:100%');
+    expect(html).not.toMatch(/width:1[1-9]\d%/);
+    expect(html).toContain(`aria-valuenow="${CONFIG.weapon.maxDurability}"`);
+    expect(html).not.toContain('aria-valuenow="42"');
+  });
+
+  it('uses a singular aria-label for exactly one injury', () => {
+    const s = createGameState(1, CONFIG);
+    s.injuries = 1;
+    expect(renderHud(s, CONFIG)).toContain('aria-label="1 injury"');
+    s.injuries = 2;
+    expect(renderHud(s, CONFIG)).toContain('aria-label="2 injuries"');
+  });
+
+  it('formats gold through formatGold and exposes the raw value on the ticker', () => {
     const s = createGameState(1, CONFIG);
     s.gold = 2450;
-    expect(renderHud(s, CONFIG)).toContain('2,450\u00A0G');
+    const html = renderHud(s, CONFIG);
+    expect(html).toContain('2,450\u00A0G');
+    expect(html).toContain('data-value="2450"');
+    expect(html).not.toContain('data-gold');
   });
 });
 

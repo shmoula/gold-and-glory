@@ -11,7 +11,7 @@
   font-family: var(--font-body); font-weight: 700; font-size: var(--text-sm);
 }
 .hud__purse { color: var(--color-money-on-dark); display: inline-flex; align-items: center;
-  gap: var(--space-2); font-variant-numeric: tabular-nums; }
+  gap: var(--space-2); font-variant-numeric: tabular-nums; text-transform: uppercase; }
 .coin { width: 15px; height: 15px; border-radius: 50%; display: inline-block;
   background: var(--grad-coin); border: 1.5px solid var(--border-ink); }
 .bar { position: relative; width: 108px; height: 16px; background: var(--track);
