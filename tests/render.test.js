@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  btn, poster, renderHud, renderHub, renderResult, renderGameOver, renderFight,
+  btn, meter, poster, renderHud, renderHub, renderResult, renderGameOver, renderFight,
   meterDistance, meterPosition, meterPeriod,
 } from '../src/ui/render.js';
 import { startFight } from '../src/game.js';
@@ -238,6 +238,23 @@ describe('renderHub', () => {
   });
 });
 
+describe('meter', () => {
+  it('escapes a hostile label exactly once', () => {
+    // Escaping used to be the caller's job, which held only while every label was a literal.
+    // Task 7 feeds enemy names in, so meter() owns it now.
+    const html = meter('<img src=x onerror=alert(1)> & "Boss"', 5, 10);
+    expect(html).toContain('aria-label="&lt;img src=x onerror=alert(1)&gt; &amp; &quot;Boss&quot;"');
+    // No raw markup survives into the attribute...
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('"Boss"');
+    // ...and it is escaped exactly once: a second pass would spell these `&amp;lt;` etc.
+    expect(html).not.toContain('&amp;lt;');
+    expect(html).not.toContain('&amp;gt;');
+    expect(html).not.toContain('&amp;quot;');
+    expect(html).not.toContain('&amp;amp;');
+  });
+});
+
 describe('poster', () => {
   it('renders a tilted named card with a portrait well', () => {
     const html = poster({ name: 'The Brute', tilt: 2 });
@@ -253,6 +270,10 @@ describe('poster', () => {
     expect(html).not.toContain('<Brute>');
     expect(html).toContain('&lt;Brute&gt; &amp; &quot;Co&quot;');
     expect(html).toContain('aria-label="&lt;Brute&gt; &amp; &quot;Co&quot; health"');
+    // meter() escapes its own label, so poster must hand it the raw name: escaping on both
+    // sides would spell the label `&amp;lt;Brute&amp;gt;`.
+    expect(html).not.toContain('&amp;lt;');
+    expect(html).not.toContain('&amp;quot;');
   });
 
   it('omits the HP plate when no hp is given', () => {

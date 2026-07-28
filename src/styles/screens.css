@@ -26,11 +26,15 @@
     grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
 }
 @media (max-width: 640px) {
-  .screen { grid-template-columns: 1fr !important; }
-  /* `grid-template-columns: 1fr` alone does not stack: a two-column grid-template-areas
-     keeps its second column as an *implicit* auto track. Dropping the areas is what spec §7
-     already does for result/gameover ("natural stacking order via source order"). */
-  .screen--hub { grid-template-areas: none; }
+  /* One stack reset for every screen, present and future. Both halves are required:
+     `grid-template-columns: 1fr` alone does not stack, because a multi-column
+     grid-template-areas keeps its extra columns as *implicit* auto tracks. Dropping the areas
+     is what spec §7 already does for result/gameover ("natural stacking order via source
+     order"). No `!important`, and no per-screen `grid-template-areas: none` to remember:
+     at (0,1,0) this is the sheet's last declaration of both properties, so it already beats
+     `.screen--hub` on source order (line 9 base, line 25 at 900px), and a screen that wants a
+     different mobile grid can simply declare one after this block. */
+  .screen { grid-template-columns: 1fr; grid-template-areas: none; }
   .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
     padding: var(--space-2); background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink); }
