@@ -75,4 +75,12 @@ describe('CONFIG', () => {
   it('has meter sweep durations per the design-system spec (§6.4)', () => {
     expect(CONFIG.combat.meterPeriodMs).toEqual({ base: 1400, perTier: -60, min: 900 });
   });
+
+  it('has a per-turn sweet-spot band inside the track (§6.4)', () => {
+    expect(CONFIG.combat.sweetCenter).toEqual({ min: 0.35, max: 0.75 });
+    // A band that touched an edge would seed a sweet spot the cursor only crosses once
+    // per sweep instead of twice, halving the window on that turn.
+    expect(CONFIG.combat.sweetCenter.min).toBeGreaterThan(0);
+    expect(CONFIG.combat.sweetCenter.max).toBeLessThan(1);
+  });
 });

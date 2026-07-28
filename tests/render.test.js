@@ -4,10 +4,11 @@ import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
   btn, meter, poster, shopItem, renderHud, renderHub, renderResult, renderGameOver, renderFight,
-  meterDistance, meterPosition, meterPeriod,
+  meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter,
 } from '../src/ui/render.js';
 import { formatGold } from '../src/ui/format.js';
-import { startFight } from '../src/game.js';
+import { startFight, effectiveStats } from '../src/game.js';
+import { resolveTiming, timingWindowWidth } from '../src/combat.js';
 
 // Match classes as a set, never as a literal class string: adding or reordering a class is a
 // harmless refactor and must not turn a passing suite red.
@@ -528,13 +529,147 @@ describe('renderFight', () => {
     expect(html).toContain('data-action="heavy"');
     expect(html).toContain('data-action="block"');
     expect(html).toContain('data-action="feint"');
-    expect(html).toContain('class="timing-meter"');
+    // Task 6 renamed the track to `.meter` (spec §6.4/§6.0) and keeps the legacy class only
+    // until Task 7 Step 3 drops it. Matched as a set so that removal is a one-line change.
+    expect(classesOf(meterTag(html))).toEqual(expect.arrayContaining(['meter', 'timing-meter']));
   });
 
   it('renders the combat log', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
     s.combat.log = ['You strike (hit) for 13 damage.'];
     expect(renderFight(s, CONFIG)).toContain('You strike (hit) for 13 damage.');
+  });
+});
+
+// The opening `<div ...>` of the timing meter — the element carrying data-meter.
+const meterTag = (html) => html.match(/<div[^>]*data-meter="1"[^>]*>/)[0];
+// Inline geometry of one rendered zone, as the fractions meterZones() produced.
+const zoneGeometry = (html, name) => {
+  const tag = html.match(new RegExp(`<div class="meter__zone meter__zone--${name}"[^>]*>`))[0];
+  const style = tag.match(/style="([^"]*)"/)[1];
+  return {
+    start: Number(style.match(/left:([\d.]+)%/)[1]) / 100,
+    size: Number(style.match(/width:([\d.]+)%/)[1]) / 100,
+  };
+};
+
+describe('renderFight timing meter (spec §6.4)', () => {
+  const fightState = (over = {}) => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    return { ...s, ...over, combat: { ...s.combat, ...(over.combat || {}) } };
+  };
+
+  it('announces itself and draws the three nested zones plus a cursor', () => {
+    const html = renderFight(fightState(), CONFIG);
+    expect(meterTag(html)).toContain('role="application"');
+    const label = meterTag(html).match(/aria-label="([^"]*)"/)[1];
+    expect(label).toMatch(/^Timing meter .* press Space or click to strike$/);
+    // Pinned by codepoint, never by comparison against a pasted glyph: an em dash flattened
+    // to a hyphen in transit compares equal to itself on both sides of the assertion.
+    expect(label.codePointAt('Timing meter '.length)).toBe(0x2014);
+    for (const name of ['graze', 'hit', 'crit']) {
+      expect(html).toContain(`class="meter__zone meter__zone--${name}"`);
+    }
+    expect(html).toContain('class="meter-cursor"');
+    // Painted weakest-first: crit must be the last of the three, or the wide graze band
+    // covers the bright one it is supposed to nest around.
+    expect(html.indexOf('meter__zone--graze'))
+      .toBeLessThan(html.indexOf('meter__zone--hit'));
+    expect(html.indexOf('meter__zone--hit'))
+      .toBeLessThan(html.indexOf('meter__zone--crit'));
+  });
+
+  it('positions the zones from this turn’s sweet spot and the player’s own window', () => {
+    const s = fightState({ combat: { sweet: 0.42 } });
+    const width = timingWindowWidth(effectiveStats(s, CONFIG).speed, CONFIG);
+    const expected = meterZones(0.42, width, CONFIG);
+    const html = renderFight(s, CONFIG);
+    for (const name of ['graze', 'hit', 'crit']) {
+      expect(zoneGeometry(html, name).start).toBeCloseTo(expected[name].start, 4);
+      expect(zoneGeometry(html, name).size).toBeCloseTo(expected[name].size, 4);
+    }
+  });
+
+  it('widens every zone when the fighter is faster (readable risk, spec §6.4)', () => {
+    const slow = fightState({ combat: { sweet: 0.5 } });
+    const fast = { ...slow, trainingLevels: { ...slow.trainingLevels, speed: 6 } };
+    expect(effectiveStats(fast, CONFIG).speed).toBeGreaterThan(effectiveStats(slow, CONFIG).speed);
+    for (const name of ['graze', 'hit', 'crit']) {
+      expect(zoneGeometry(renderFight(fast, CONFIG), name).size)
+        .toBeGreaterThan(zoneGeometry(renderFight(slow, CONFIG), name).size);
+    }
+  });
+
+  it('centers on the mid-track only when no sweet spot has been seeded', () => {
+    const html = renderFight(fightState({ combat: { sweet: undefined } }), CONFIG);
+    const crit = zoneGeometry(html, 'crit');
+    expect(crit.start + crit.size / 2).toBeCloseTo(0.5, 4);
+  });
+
+  it('shows the first-fight taunt once and never again (tutorial decay)', () => {
+    expect(renderFight(fightState({ wins: 0 }), CONFIG)).toContain(CONFIG.snark.taunt);
+    expect(renderFight(fightState({ wins: 1 }), CONFIG)).not.toContain(CONFIG.snark.taunt);
+  });
+});
+
+describe('meterZones', () => {
+  const zones = meterZones(0.5, 0.18, CONFIG);
+
+  it('nests crit inside hit inside graze around the center', () => {
+    expect(zones.crit.start).toBeCloseTo(0.5 - 0.18 * 0.3);
+    expect(zones.crit.size).toBeCloseTo(2 * 0.18 * 0.3);
+    expect(zones.hit.start).toBeCloseTo(0.5 - 0.18 * 1.0);
+    expect(zones.graze.size).toBeCloseTo(2 * 0.18 * 1.6);
+  });
+
+  it('clamps zones to the track', () => {
+    const edge = meterZones(0.05, 0.18, CONFIG);
+    expect(edge.graze.start).toBe(0);
+    expect(edge.graze.start + edge.graze.size).toBeLessThanOrEqual(1);
+  });
+
+  it('clamps at the far edge too', () => {
+    const edge = meterZones(0.95, 0.18, CONFIG);
+    expect(edge.graze.start).toBeGreaterThanOrEqual(0);
+    expect(edge.graze.start + edge.graze.size).toBeCloseTo(1, 10);
+    // Clamping trims the band; it must never slide it back inside the track.
+    expect(edge.graze.start).toBeCloseTo(0.95 - 0.18 * 1.6, 10);
+  });
+
+  // The drawn edge and the resolver must be the same edge, or the bar shows gold where the
+  // fight logs a miss. Compared as half-widths, not as reconstructed pixel edges: adding and
+  // subtracting the same float twice moves the boundary by ~1e-17 and would decide the test.
+  it('draws each zone edge exactly where resolveTiming switches tier', () => {
+    const center = 0.5;
+    const width = 0.18;
+    const r = CONFIG.combat.timingTierRatios;
+    const z = meterZones(center, width, CONFIG);
+    const weaker = { crit: 'hit', hit: 'graze', graze: 'miss' };
+    for (const tier of ['crit', 'hit', 'graze']) {
+      const half = width * r[tier];
+      expect(z[tier].start).toBeCloseTo(center - half, 12);
+      expect(z[tier].start + z[tier].size).toBeCloseTo(center + half, 12);
+      // …and that half-width is the resolver's own switch point, boundary inclusive.
+      expect(resolveTiming(half, width, CONFIG)).toBe(tier);
+      expect(resolveTiming(half * (1 + 1e-9), width, CONFIG)).toBe(weaker[tier]);
+    }
+  });
+});
+
+describe('sweetCenter', () => {
+  it('maps a [0,1) roll across the configured band, endpoints included', () => {
+    const { min, max } = CONFIG.combat.sweetCenter;
+    expect(sweetCenter(0, CONFIG)).toBeCloseTo(min);
+    expect(sweetCenter(1, CONFIG)).toBeCloseTo(max);
+    expect(sweetCenter(0.5, CONFIG)).toBeCloseTo((min + max) / 2);
+  });
+
+  it('never seeds outside the band, so a zone is always reachable mid-sweep', () => {
+    const { min, max } = CONFIG.combat.sweetCenter;
+    for (const roll of [0, 0.01, 0.37, 0.5, 0.99, 0.999999]) {
+      expect(sweetCenter(roll, CONFIG)).toBeGreaterThanOrEqual(min);
+      expect(sweetCenter(roll, CONFIG)).toBeLessThanOrEqual(max);
+    }
   });
 });
 

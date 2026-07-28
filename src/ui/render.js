@@ -3,17 +3,19 @@
 // render tests) keep their single entry point.
 import { trainingCost, repairCost, healCost } from '../economy.js';
 import { effectiveStats } from '../game.js';
+import { timingWindowWidth } from '../combat.js';
 import { formatGold } from './format.js';
 import {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
   escapeHtml, btn, meter, bar, poster, shopItem,
 } from './components.js';
+import { meterZones } from './timing.js';
 
 export {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
   escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster, shopItem,
 } from './components.js';
-export { meterDistance, meterPosition, meterPeriod } from './timing.js';
+export { meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter } from './timing.js';
 
 // Presentation constants (not game tuning — they belong to the HUD, not config.js).
 // The pip row always reserves this many slots so it does not resize as injuries accrue.
@@ -143,6 +145,28 @@ export function renderGameOver(state, config) {
     </section>`;
 }
 
+// Spec §6.4: three nested bands drawn around this turn's sweet spot, weakest painted first so
+// the bright crit band sits on top. Widths come from the *player's* window, so training Speed
+// visibly widens the gold. The cursor is moved by main.js's rAF loop; nothing here animates.
+function renderMeter(state, config) {
+  const width = timingWindowWidth(effectiveStats(state, config).speed, config);
+  const zones = meterZones(state.combat.sweet ?? 0.5, width, config);
+  const pct = (x) => `${(x * 100).toFixed(2)}%`;
+  const zone = (name) =>
+    `<div class="meter__zone meter__zone--${name}" ` +
+    `style="left:${pct(zones[name].start)};width:${pct(zones[name].size)}"></div>`;
+  return `
+      <div class="meter timing-meter" data-meter="1" role="application"
+        aria-label="Timing meter \u2014 press Space or click to strike">
+        ${zone('graze')}
+        ${zone('hit')}
+        ${zone('crit')}
+        <div class="meter-cursor"></div>
+      </div>
+      <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>
+      ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}`;
+}
+
 export function renderFight(state, config) {
   const c = state.combat;
   const logHtml = c.log.slice(-6).map((l) => `<li>${escapeHtml(l)}</li>`).join('');
@@ -153,10 +177,7 @@ export function renderFight(state, config) {
         <div class="you">YOU<br/>${Math.max(0, c.player.health)}/${c.player.maxHealth}</div>
         <div class="them">${escapeHtml(c.enemy.name)}<br/>${Math.max(0, c.enemy.health)}/${c.enemy.maxHealth}</div>
       </div>
-      <div class="timing-meter" data-meter="1">
-        <div class="meter-sweet"></div>
-        <div class="meter-cursor"></div>
-      </div>
+      ${renderMeter(state, config)}
       <p class="meter-hint">Click the meter, then choose your action.</p>
       <div class="actions">
         <button data-action="strike">Strike</button>

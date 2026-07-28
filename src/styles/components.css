@@ -109,3 +109,29 @@
 .sponsor-card__eyebrow { font-size: var(--text-xs); font-weight: 700;
   letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
 .sponsor-card__name { font-size: var(--text-xl); }
+
+/* ---- 6.4 Timing meter (the core verb) ----
+   Track, zones and cursor are spec §6.4's block verbatim. The zone hierarchy is a
+   monochromatic gold ramp (brighter = closer to glory) plus ink notches on the crit band and
+   the label row below, so it survives grayscale and every CVD type — colour is never the only
+   channel. `.meter-chicken` is omitted: the asset does not exist yet and the ink cursor line
+   is the spec's own stated fallback. */
+.meter { position: relative; height: 48px; background: var(--track);
+  border: var(--border-w) solid var(--border-ink); border-radius: var(--wobble-bar);
+  cursor: crosshair; }
+.meter__zone { position: absolute; top: 0; bottom: 0; }
+.meter__zone--graze { background: #b98a3a; }
+.meter__zone--hit   { background: var(--gold); }
+.meter__zone--crit  { background: var(--gold-hi);
+  border-inline: 2px solid var(--border-ink);            /* notches: not color-only */
+  box-shadow: 0 0 12px rgba(244, 207, 122, 0.8); }       /* the one permitted glow */
+.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px;
+  background: var(--ink); will-change: transform; }
+/* The freeze is the feedback: the cursor stops where it was caught and turns blood-red. */
+.meter.is-captured .meter-cursor { background: var(--blood); width: 4px; }
+.meter__labels { display: flex; justify-content: space-between;
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--bone); text-shadow: 0 1px 0 rgba(31,22,12,0.8);
+  padding: 2px var(--space-1) 0; }
+.meter__taunt { text-align: center; font-size: var(--text-md); color: var(--bone);
+  text-shadow: 0 1px 0 rgba(31,22,12,0.8); }

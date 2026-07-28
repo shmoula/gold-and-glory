@@ -10,7 +10,7 @@ import {
   resolveTiming, timingWindowWidth, applyPlayerAction, applyPress,
   enemyTurn, isFightOver, fightWinner, markPressable,
 } from './combat.js';
-import { meterDistance, meterPosition, meterPeriod } from './ui/render.js';
+import { meterDistance, meterPosition, meterPeriod, sweetCenter } from './ui/timing.js';
 import { mount, wire } from './ui/screens.js';
 
 const app = document.getElementById('app');
@@ -39,9 +39,10 @@ function startMeter() {
   meter.pos = 0;
   meter.t0 = performance.now();
   meter.period = meterPeriod(state.currentOpponentIndex, CONFIG);
-  meter.sweet = 0.5;
+  // The zones are drawn from this same field (renderFight), so the bright band and the
+  // resolver can never disagree about where the sweet spot is this turn.
+  meter.sweet = state.combat.sweet ?? 0.5;
   meter.captured = null;
-  bar.querySelector('.meter-sweet').style.left = `${meter.sweet * 100}%`;
   bar.addEventListener('click', captureMeter, { once: false });
 
   const cursor = bar.querySelector('.meter-cursor');
@@ -55,10 +56,22 @@ function startMeter() {
 }
 
 function captureMeter() {
+  // The freeze: once the sweep stops, later time must not leak into the captured position.
   if (!meter.running) return;
   meter.running = false;
   cancelAnimationFrame(meter.raf);
-  meter.captured = meter.pos;
+  // Spec §6.4 step 1: derive p from the capture timestamp, never from the last painted
+  // frame. Reading back meter.pos throws away the click's sub-frame timing, and returns 0
+  // outright in any environment that paints no frames.
+  meter.captured = meterPosition(performance.now() - meter.t0, meter.period);
+  meter.pos = meter.captured;
+  const bar = app.querySelector('[data-meter]');
+  if (bar) bar.classList.add('is-captured'); // cursor stays put — the freeze IS the feedback
+}
+
+// The run's seeded generator drives the sweet spot, so a replayed seed replays the same fight.
+function seedSweet() {
+  return sweetCenter(rng(), CONFIG);
 }
 
 function currentTiming() {
@@ -93,7 +106,9 @@ function doPress() {
 
 function enemyResponds() {
   const combat = enemyTurn(state.combat, rng, CONFIG);
-  state = { ...state, combat };
+  // A fresh sweet spot for the turn we are handing back to the player, so timing has to be
+  // re-read every turn instead of memorised once. Seeded from the run's rng, so replays match.
+  state = { ...state, combat: { ...combat, sweet: seedSweet() } };
   if (isFightOver(state.combat)) return endFight();
   render();
 }
@@ -115,7 +130,11 @@ const handlers = {
   'buy-blade': () => { state = buyGear(state, 'blade', CONFIG); render(); },
   'buy-charm': () => { state = buyGear(state, 'charm', CONFIG); render(); },
   bribe: () => { state = bribeOfficial(state, CONFIG); render(); },
-  'next-fight': () => { state = startFight(state, CONFIG); render(); },
+  'next-fight': () => {
+    state = startFight(state, CONFIG);
+    state = { ...state, combat: { ...state.combat, sweet: seedSweet() } };
+    render();
+  },
   retire: () => { state = retire(state); render(); },
   strike: () => doPlayerAction('strike'),
   heavy: () => doPlayerAction('heavy'),
@@ -127,4 +146,17 @@ const handlers = {
 };
 
 wire(app, handlers);
+
+// Keyboard parity, spec §8: Space works the meter, 1-4 pick the action. Bound once, on the
+// document, because the fight markup is replaced wholesale on every render.
+const KEYS = { ' ': 'meter', 1: 'strike', 2: 'heavy', 3: 'block', 4: 'feint' };
+document.addEventListener('keydown', (e) => {
+  if (state.phase !== PHASE.FIGHT || e.repeat) return;
+  const k = KEYS[e.key];
+  if (!k) return;
+  e.preventDefault();
+  if (k === 'meter') captureMeter();
+  else handlers[k]?.();
+});
+
 newRun();
