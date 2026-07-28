@@ -14,7 +14,7 @@ then spec-compliance review, then code-quality review, then next task.
 | 2 — `formatGold` | **done, reviewed, fixed, re-verified** | `2f9a10f` + `7528dc4` |
 | 3 — HUD beam | **done, both reviews passed** | `b42f8b6` + `f0e3fb7` + `3595343` |
 | 4 — Button system + snark | **done, both reviews passed** | `5e42184` + `9b0f859` |
-| 5 — Hub screen | pending | — |
+| 5 — Hub screen | **done, both reviews passed** | `16ffa9c` + `8a3cde7` + `741afd0` + `c80fd17` |
 | 6 — Timing meter | pending | — |
 | 7 — Fight screen | pending | — |
 | 8 — Result screen + effects | pending | — |
@@ -24,26 +24,65 @@ then spec-compliance review, then code-quality review, then next task.
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 5 (Hub screen: posters, cards, layout grid)
+## RESUME HERE — Task 6 (Timing meter: zones, sweet spot, freeze, keyboard)
 
-Tasks 3 and 4 are **fully closed**, each with spec review + code-quality review + a fix round +
-an independent re-review. Suite is **122 tests green**, build clean. Every fix assertion was
-mutation-verified twice — once by the implementer, once independently by a reviewer.
+Tasks 3, 4 and 5 are **fully closed**, each with spec review + code-quality review + at least one
+fix round + an independent re-review. Suite is **146 tests green**, build clean. Every fix
+assertion was mutation-verified twice — once by the implementer, once independently by a reviewer.
 
 - Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
 - Task 4: `5e42184` → `9b0f859` (9 quality fixes).
+- Task 5: `16ffa9c` → `8a3cde7` (file split + 2 quality fixes) → `741afd0` (7 fixes + the player
+  poster) → `c80fd17` (mobile grid-area overlap fix).
 
-Notable Task 4 outcomes a later task may need to know:
-- `btn()` in `src/ui/render.js` is now the single button factory: options object, optional
-  `action`, an inert `owned` state, and named `URGENT_FRACTION` / `REPAIR_URGENT_FRACTION`
-  constants. It **throws** if `cost` is passed without a finite `gold`, so Tasks 5/7/8 call sites
-  cannot silently render a full-price button as unaffordable. `btn` is exported for that guard's
-  test. Route every new commerce button through it rather than hand-rolling `<button class="btn">`.
-- `data-missing` is emitted on **both** the button and the `.btn__snark` span. This is deliberate:
-  spec §6.2's `::after` `attr()` resolves against the span, while the plan reserves the button copy
-  for Task 7's click-rejection message. Nothing reads the button copy yet.
-- `renderHub` markup was proven **byte-identical** across the Task 4 refactor over a 1176-state
-  matrix, so the spec sign-off on the old markup still holds.
+### Architecture as it now stands — read before writing any UI code
+
+`src/ui/render.js` was **split** in `8a3cde7`, while the component layer was frozen and provably
+byte-identical. It is now three files:
+
+- **`src/ui/components.js`** — `escapeHtml`, `shortfallAttr`, `snarkAside`, `btn`, `fillPct`,
+  `meter`, `bar`, `poster`, `shopItem`, plus `URGENT_FRACTION` (0.33) and
+  `REPAIR_URGENT_FRACTION` (0.5).
+- **`src/ui/timing.js`** — `meterDistance`, `meterPosition`, `meterPeriod`. **Task 6 owns this file.**
+- **`src/ui/render.js`** — screens only. It re-exports every moved symbol, so existing test
+  imports still work. Do not re-add component helpers here.
+
+Rules that later tasks must follow:
+- **Route every commerce button through `btn()`** — never hand-roll `<button class="btn">`. It
+  **throws** if `cost` is passed without a finite `gold`, which is what stops a call site silently
+  rendering a full-price button as unaffordable.
+- **Route every bar through `meter()`.** It clamps, keeps `aria-valuenow` inside its range, keeps
+  the visible numeral in agreement with it, and **escapes its own label** — so a raw enemy name is
+  safe to pass. `meter(..., { decorative: true })` drops `role`/`aria-*`/`bar__num` for purely
+  ornamental bars.
+- **Reuse the named constants** rather than re-introducing 0.33 / 0.5 / 50 literals.
+- Every markup-generating refactor so far has been gated on proving **byte-identical output over a
+  wide state matrix** (18k–24k states). Keep doing that; it is what has made the refactors safe.
+
+### New guard rail: `tests/grid-areas.test.js`
+
+Added in `c80fd17`. It parses all sheets in `@import` order, evaluates `@media` width features,
+computes specificity plus source order, and asserts via jsdom that **no `.screen` child keeps a
+named `grid-area` at a width where its container defines no matching `grid-template-areas`**.
+
+This exists because the ≤640px block reset `grid-template-areas: none` while the five `.hub__*`
+children kept their names — and an unmatched `grid-area` custom-ident does not fall back to
+auto-placement, it collapses every named child into one implicit cell. The mobile hub was
+overlapping, not stacking. Fixed with `.screen > * { grid-area: auto; }` in the same block.
+
+**Tasks 7, 8 and 9 inherit that reset for free, but only if their `.screen--*` rules sit above the
+≤640px block.** If you add a screen and this test fails, that ordering is why.
+
+Other things a later task needs to know:
+- `data-missing` is emitted on **both** the button and the `.btn__snark` span. Deliberate: spec
+  §6.2's `::after` `attr()` resolves against the span, while the plan reserves the button copy for
+  Task 7's click-rejection message. Nothing reads the button copy yet.
+- `poster()` has **no `urgent` passthrough**, so a poster HP plate never flashes at low health the
+  way the HUD bar does. §6.5 does not require it, but **Task 7 will want one** for the fight-screen
+  posters — add it there.
+- Renaming `.hub` → `.screen--hub` killed three more `legacy.css` rules: `:where(.hub .row)`, the
+  `.hub` arm of the button-skin group, and `:where(.sponsor)` (jsdom: 0 matches each). **Task 8's
+  trim list is bigger than the two entries originally recorded below.**
 
 ## Deferred backlog — do NOT re-report these as new findings
 
@@ -70,6 +109,25 @@ Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task'
    compliance — they are spec bugs, so reconcile spec and code together here.
 7. `src/ui/render.js` still hand-formats a few `${...}g` strings instead of using `formatGold`
    (spec §2 says nothing formats money by hand).
+8. `.sponsor-card` has no dog-eared folded-triangle pseudo-element (spec §6.10).
+9. `.shop-item` has no icon well (spec §6.12).
+10. `.poster__portrait` is a fixed `height: 104px`, not spec §6.5's fixed 4:3 well.
+11. The §6.2 CSS block is **no longer byte-exact** to the spec fence: Task 5 merged the duplicated
+    price-colour and shortfall-`::after` rules into selector lists shared with `.shop-item`. The
+    **declarations are unchanged** — only two selectors gained a comma-mate. Verified by parsing
+    both blocks: zero declaration diffs.
+12. Spec §6.12's state table still lists `aria-disabled` for the Owned gear card, but the code
+    deliberately omits it — the card is a role-less `<div>`, where assistive tech ignores the
+    attribute, and the visible "✓ Owned" already conveys the state. (`btn()`'s inert `owned`
+    state on a real `<button>` does still use it, correctly.)
+13. **Spec §7's mobile recipe carries the grid-area overlap bug** described above — it resets
+    `grid-template-areas` without resetting the children's `grid-area`. Additionally its ≤900px
+    `.screen--result, .screen--gameover { grid-template-areas: none }` will overlap those screens'
+    children once Tasks 8/9 add them. `tests/grid-areas.test.js` will catch it; reconcile the spec
+    text with the working `.screen > * { grid-area: auto; }` fix.
+14. One CSS rule is unguarded: no test matches CSS selectors against markup, so dropping the
+    `.shop-item` arm of the merged shortfall selector survives mutation. Pre-existing, low value
+    to fix on its own, but worth knowing the stylesheet has no selector-coverage net.
 
 ## Dispatch pattern that actually works in this environment
 
