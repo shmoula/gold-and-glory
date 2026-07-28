@@ -6,12 +6,12 @@ import { effectiveStats } from '../game.js';
 import { formatGold } from './format.js';
 import {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
-  escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster,
+  escapeHtml, btn, meter, bar, poster, shopItem,
 } from './components.js';
 
 export {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
-  escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster,
+  escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster, shopItem,
 } from './components.js';
 export { meterDistance, meterPosition, meterPeriod } from './timing.js';
 
@@ -45,30 +45,20 @@ export function renderHub(state, config) {
   const hurt = state.injuries > 0;
 
   // Spec §6.11: one label format per row, the meter beside it, the priced button at the end.
+  // The meter is decorative: TRAIN_METER_CAP is a drawing denominator, not a real maximum.
   const trainRows = ['power', 'guard', 'speed'].map((stat) => {
     const cost = trainingCost(state.trainingLevels[stat], config);
     return `<div class="train-row">
       <span class="train-row__label">${stat[0].toUpperCase() + stat.slice(1)} ${eff[stat]}</span>
-      <span class="bar train-row__meter"><span class="bar__fill bar__fill--dur"
-        style="width:${fillPct(eff[stat], TRAIN_METER_CAP)}%"></span></span>
+      ${meter(`${stat} training`, eff[stat], TRAIN_METER_CAP,
+        { fillClass: ' bar__fill--dur', barClass: 'train-row__meter', decorative: true })}
       ${btn(`train-${stat}`, `Train +${config.training.statPerLevel}`, { cost, gold: state.gold })}
     </div>`;
   }).join('');
 
-  // Spec §6.12 state triad. Gear leaves the `.btn` plank behind here: an owned card is inert
-  // structure (no action, price row replaced), not a dimmed button.
-  const gearCards = Object.values(config.gear).map((g) => {
-    if (state.gear.includes(g.id)) {
-      return `<div class="shop-item is-owned" aria-disabled="true">
-        <span class="shop-item__name">${escapeHtml(g.name)}</span>
-        <span class="shop-item__owned">✓ Owned</span></div>`;
-    }
-    const missingAttr = shortfallAttr(g.cost, state.gold);
-    return `<button data-action="buy-${g.id}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
-      <span class="shop-item__name">${escapeHtml(g.name)}</span>
-      <span class="btn__price">${formatGold(g.cost)}</span>
-      ${snarkAside(config.snark[g.id] ?? '', missingAttr)}</button>`;
-  }).join('');
+  const gearCards = Object.values(config.gear).map((g) => shopItem(g, {
+    owned: state.gear.includes(g.id), gold: state.gold, snark: config.snark[g.id] ?? '',
+  })).join('');
 
   const sponsorCard = state.sponsorUnlocked ? `<aside class="sponsor-card tape">
       <span class="sponsor-card__eyebrow">Sponsor</span>
@@ -103,6 +93,7 @@ export function renderHub(state, config) {
         ${sponsorCard}
       </div>
       <div class="hub__fight">
+        ${poster({ name: 'You', tilt: 1, hp: { value: state.health, max: state.maxHealth } })}
         <span class="hub__next-label">Next bout</span>
         ${poster({ name: opponent.name, tilt: 2,
           sub: `Tier: ${escapeHtml(opponent.tier)} · Purse: <span class="amount">${formatGold(opponent.purse)}</span>` })}

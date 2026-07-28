@@ -3,10 +3,17 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  btn, meter, poster, renderHud, renderHub, renderResult, renderGameOver, renderFight,
+  btn, meter, poster, shopItem, renderHud, renderHub, renderResult, renderGameOver, renderFight,
   meterDistance, meterPosition, meterPeriod,
 } from '../src/ui/render.js';
+import { formatGold } from '../src/ui/format.js';
 import { startFight } from '../src/game.js';
+
+// Match classes as a set, never as a literal class string: adding or reordering a class is a
+// harmless refactor and must not turn a passing suite red.
+const classesOf = (tag) => tag.match(/class="([^"]*)"/)[1].trim().split(/\s+/);
+// Articles never nest, so each match is exactly one whole poster.
+const posterCards = (html) => html.match(/<article[\s\S]*?<\/article>/g) || [];
 
 describe('btn', () => {
   it('throws when a priced button is built without the purse', () => {
@@ -258,7 +265,7 @@ describe('meter', () => {
 describe('poster', () => {
   it('renders a tilted named card with a portrait well', () => {
     const html = poster({ name: 'The Brute', tilt: 2 });
-    expect(html).toContain('class="poster tape poster--tilt-2"');
+    expect(classesOf(html)).toEqual(expect.arrayContaining(['poster', 'tape', 'poster--tilt-2']));
     expect(html).toContain('>The Brute<');
     expect(html).toContain('poster__portrait');
     // The portrait well is decorative until Task 10 drops in the art asset.
@@ -330,10 +337,48 @@ describe('renderHub layout', () => {
 
   it('bills the next bout on a poster with tier and formatted purse', () => {
     const s = createGameState(1, CONFIG);
+    const foe = CONFIG.opponents[s.currentOpponentIndex];
     const html = renderHub(s, CONFIG);
-    expect(html).toContain('class="poster tape poster--tilt-2"');
-    expect(html).toContain('Tier: safe');
-    expect(html).toContain('<span class="amount">50\u00A0G</span>');
+    const card = posterCards(html).find((p) => classesOf(p).includes('poster--tilt-2'));
+    expect(card, 'no opponent poster').toBeDefined();
+    expect(classesOf(card)).toEqual(expect.arrayContaining(['poster', 'tape']));
+    expect(card).toContain(`Tier: ${foe.tier}`);
+    expect(card).toContain(`<span class="amount">${formatGold(foe.purse)}</span>`);
+  });
+
+  it('bills the player next to the bout, on the other tilt (spec 7 + 6.5)', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHub(s, CONFIG);
+    // Spec 7: the `fight` area is "YOU poster + NEXT BOUT poster (once!)".
+    const cards = posterCards(html);
+    expect(cards).toHaveLength(2);
+    // Spec 6.5: tilt-1 is the player, tilt-2 the opponent; neighbours never share a tilt.
+    // Source order is reading order (spec 7), so the player card comes first.
+    expect(classesOf(cards[0])).toContain('poster--tilt-1');
+    expect(classesOf(cards[1])).toContain('poster--tilt-2');
+    expect(cards[0]).toContain('<h3 class="poster__name">You</h3>');
+  });
+
+  it('gives the player poster an HP plate off the same field as the HUD (spec 6.5)', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = 65;
+    const you = posterCards(renderHub(s, CONFIG))
+      .find((p) => classesOf(p).includes('poster--tilt-1'));
+    expect(you).toContain('aria-label="You health"');
+    expect(you).toContain('aria-valuenow="65"');
+    expect(you).toContain(`aria-valuemax="${s.maxHealth}"`);
+    expect(you).toContain(`65/${s.maxHealth}`);
+    expect(you).toContain('width:65%');
+  });
+
+  it('clamps the player HP plate like every other meter', () => {
+    const s = createGameState(1, CONFIG);
+    s.health = s.maxHealth + 40;
+    const you = posterCards(renderHub(s, CONFIG))
+      .find((p) => classesOf(p).includes('poster--tilt-1'));
+    expect(you).toContain('width:100%');
+    expect(you).toContain(`aria-valuenow="${s.maxHealth}"`);
+    expect(you).not.toContain(String(s.maxHealth + 40));
   });
 
   it('shows the sponsor card only when unlocked', () => {
@@ -365,29 +410,79 @@ describe('renderHub layout', () => {
     expect(html).toContain(`Train +${CONFIG.training.statPerLevel}`);
     // Meter fill is the stat against the display cap: 5 of 50.
     expect((html.match(/width:10%/g) || []).length).toBe(3);
+    // ...and that cap is a drawing denominator, not a real maximum, so the bar is decorative:
+    // no role, no aria values, no numeral. Spec 6.11 puts the true number in the row label.
+    const rows = html.match(/<div class="train-row">[\s\S]*?<\/div>/g) || [];
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      expect(row).toContain('train-row__meter');
+      expect(row).not.toContain('role="meter"');
+      expect(row).not.toContain('aria-value');
+      expect(row).not.toContain('bar__num');
+    }
   });
 
   it('renders gear as shop cards in the available / unaffordable / owned triad', () => {
     const s = createGameState(1, CONFIG);
-    s.gold = 250;          // shield 200 affordable, blade 350 not
-    s.gear = ['charm'];    // charm owned
+    const { shield, blade, charm } = CONFIG.gear;
+    const shortfall = 100;
+    s.gold = blade.cost - shortfall; // blade out of reach by exactly `shortfall`
+    s.gear = [charm.id];             // charm owned
+    // A precondition, not an assumption: a config edit that put the shield out of reach too
+    // would otherwise silently delete the "available" third of the triad from this test.
+    expect(s.gold).toBeGreaterThanOrEqual(shield.cost);
     const html = renderHub(s, CONFIG);
     // Card roots only — `shop-item__name` and friends must not inflate the count.
-    expect((html.match(/class="shop-item[" ]/g) || []).length).toBe(3);
+    expect((html.match(/class="shop-item[" ]/g) || []).length)
+      .toBe(Object.keys(CONFIG.gear).length);
 
-    expect(html).toMatch(/data-action="buy-shield"[^>]*class="shop-item"/);
-    expect(html).not.toMatch(/data-action="buy-shield"[^>]*is-(unaffordable|owned)/);
+    expect(html).toMatch(new RegExp(`data-action="buy-${shield.id}"[^>]*class="shop-item"`));
+    expect(html).not.toMatch(
+      new RegExp(`data-action="buy-${shield.id}"[^>]*is-(unaffordable|owned)`));
 
-    expect(html).toContain('<span class="btn__price">350\u00A0G</span>');
-    expect(html).toMatch(/data-action="buy-blade"[^>]*is-unaffordable/);
-    expect(html).toMatch(/data-action="buy-blade"[^>]*data-missing="100\u00A0G"/);
+    expect(html).toContain(`<span class="btn__price">${formatGold(blade.cost)}</span>`);
+    expect(html).toMatch(new RegExp(`data-action="buy-${blade.id}"[^>]*is-unaffordable`));
+    expect(html).toMatch(
+      new RegExp(`data-action="buy-${blade.id}"[^>]*data-missing="${formatGold(shortfall)}"`));
 
-    expect(html).not.toContain('data-action="buy-charm"');
-    expect(html).toMatch(/class="shop-item is-owned"[^>]*aria-disabled="true"/);
-    // Spec 6.12: the owned card replaces the price row rather than dimming it.
-    const ownedCard = html.match(/<div class="shop-item is-owned"[\s\S]*?<\/div>/)[0];
-    expect(ownedCard).not.toContain('btn__price');
-    expect(ownedCard).toContain('Owned');
+    expect(html).not.toContain(`data-action="buy-${charm.id}"`);
+    // Exactly one card is in the owned state; its anatomy is pinned by the shopItem tests.
+    expect((html.match(/class="[^"]*\bis-owned\b/g) || []).length).toBe(1);
+  });
+});
+
+describe('shopItem', () => {
+  it('replaces the price row on an owned card instead of dimming it (spec 6.12)', () => {
+    const card = shopItem(CONFIG.gear.charm, { owned: true, gold: 0 });
+    expect(classesOf(card)).toEqual(expect.arrayContaining(['shop-item', 'is-owned']));
+    expect(card).toContain('Owned');
+    expect(card).not.toContain('btn__price');
+    expect(card).not.toContain('data-action');
+    // No aria-disabled: the card is a role-less <div>, where assistive tech ignores the
+    // attribute outright. The visible checkmark is what carries the state.
+    expect(card).not.toContain('aria-disabled');
+  });
+
+  it('prices a buyable card and flags the shortfall', () => {
+    const { blade } = CONFIG.gear;
+    const rich = shopItem(blade, { gold: blade.cost });
+    expect(rich).toContain(`data-action="buy-${blade.id}"`);
+    expect(rich).toContain(`<span class="btn__price">${formatGold(blade.cost)}</span>`);
+    expect(rich).not.toContain('is-unaffordable');
+
+    const broke = shopItem(blade, { gold: blade.cost - 25, snark: 'Blunt' });
+    expect(classesOf(broke)).toContain('is-unaffordable');
+    expect(broke).toContain(`data-missing="${formatGold(25)}"`);
+    expect(broke).toContain('(Blunt)');
+  });
+
+  it('throws when a buyable card is built without the purse', () => {
+    // Same guard as btn(): canAfford(undefined, cost) is false, so a forgotten purse would
+    // render a full-price card as unaffordable: wrong pixels, no error, green suite.
+    expect(() => shopItem(CONFIG.gear.blade, {})).toThrow(TypeError);
+    expect(() => shopItem(CONFIG.gear.blade, { gold: NaN })).toThrow(/gold/);
+    // An owned card carries no price, so it needs no purse.
+    expect(() => shopItem(CONFIG.gear.blade, { owned: true })).not.toThrow();
   });
 });
 

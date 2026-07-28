@@ -82,13 +82,23 @@ export function fillPct(value, max) {
 // Escaping used to be the caller's job and undocumented, which held only while every label was
 // a literal; Task 7's enemy-name HP bar makes an unescaped `&`/`<`/`"` a live markup-corruption
 // path. Do not escape before calling, or the aria-label double-encodes.
-export function meter(label, value, max, { fillClass = '', urgent = false } = {}) {
+// `barClass` adds a layout class to the track itself (e.g. `.train-row__meter`, which sets
+// the width the grid cell wants). `decorative` drops the role, every aria-* attribute and the
+// numeral: a meter drawn against a *display-only* denominator must not claim a real maximum,
+// and its call site (spec §6.11's training row) states the true number in its own label. The
+// bar chrome still comes from here, so the decorative spelling cannot drift from the real one.
+export function meter(label, value, max, {
+  fillClass = '', urgent = false, barClass = '', decorative = false } = {}) {
   // role="meter" is invalid ARIA when valuenow falls outside [valuemin, valuemax], and the
   // visible numeral must match it or sighted and screen-reader users read different numbers.
   const now = Math.min(max, Math.max(0, value));
-  return `<span class="bar${urgent ? ' is-urgent' : ''}" role="meter" aria-label="${escapeHtml(label)}"
+  const cls = `bar${urgent ? ' is-urgent' : ''}${barClass ? ` ${barClass}` : ''}`;
+  const fill = `<span class="bar__fill${fillClass}" style="width:${fillPct(value, max)}%"></span>`;
+  // `label` is deliberately unused here: nothing announces a decorative bar.
+  if (decorative) return `<span class="${cls}">${fill}</span>`;
+  return `<span class="${cls}" role="meter" aria-label="${escapeHtml(label)}"
       aria-valuenow="${now}" aria-valuemin="0" aria-valuemax="${max}">
-      <span class="bar__fill${fillClass}" style="width:${fillPct(value, max)}%"></span>
+      ${fill}
       <span class="bar__num">${now}/${max}</span>
     </span>`;
 }
@@ -96,6 +106,29 @@ export function meter(label, value, max, { fillClass = '', urgent = false } = {}
 export function bar(label, value, max, opts) {
   return `<span class="hud__stat"><span class="hud__label">${label}</span>
     ${meter(label, value, max, opts)}</span>`;
+}
+
+// Gear card, spec §6.12's state triad: available / unaffordable / owned. Owned is different
+// *structure*, not a dimmed button: no action, and the price row is replaced by the checkmark,
+// so it renders as an inert div. It carries no `aria-disabled`: on a role-less div assistive
+// tech ignores the attribute, and the visible "✓ Owned" already states the case.
+// `item` is a config.gear entry ({ id, name, cost }); `snark` is the raw aside text.
+export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
+  if (owned) {
+    return `<div class="shop-item is-owned">
+        <span class="shop-item__name">${escapeHtml(item.name)}</span>
+        <span class="shop-item__owned">✓ Owned</span></div>`;
+  }
+  // Same guard as btn(): a purchasable card with no purse would silently price itself as
+  // unaffordable (canAfford(undefined, cost) is false): wrong pixels, no error, green suite.
+  if (!Number.isFinite(gold)) {
+    throw new TypeError(`shopItem(${JSON.stringify(item.id)}): a buyable card needs \`gold\`, got ${gold}`);
+  }
+  const missingAttr = shortfallAttr(item.cost, gold);
+  return `<button data-action="buy-${item.id}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
+      <span class="shop-item__name">${escapeHtml(item.name)}</span>
+      <span class="btn__price">${formatGold(item.cost)}</span>
+      ${snarkAside(snark, missingAttr)}</button>`;
 }
 
 // Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.
