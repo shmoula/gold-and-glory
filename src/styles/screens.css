@@ -40,6 +40,18 @@
      `.screen--hub` on source order (line 9 base, line 25 at 900px), and a screen that wants a
      different mobile grid can simply declare one after this block. */
   .screen { grid-template-columns: 1fr; grid-template-areas: none; }
+  /* Third half of the reset, and the one spec §7 forgets: the children must give up their
+     named areas too. Per CSS Grid §8.3 an unmatched `<custom-ident>` in `grid-area` falls
+     back to `1 <ident>`, and with no line of that name every implicit line is assumed to
+     carry it - so all five `.hub__*` children resolve into the *same* implicit cell and
+     paint on top of each other instead of stacking. `grid-area: auto` hands them back to
+     auto-placement, which fills the single 1fr column one row per child, in source order.
+     `.screen > *` is (0,1,0), identical to `.hub__sinks` and friends, and this block is the
+     sheet's last such declaration, so it wins on source order alone - no `!important`.
+     Every future `.screen--*` (fight/result/gameover) inherits the reset for free.
+     tests/grid-areas.test.js fails if a child keeps a named area with no matching
+     `grid-template-areas` at any breakpoint, including one declared after this block. */
+  .screen > * { grid-area: auto; }
   .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
     padding: var(--space-2); background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink); }
