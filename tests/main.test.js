@@ -119,6 +119,21 @@ describe('sweet-spot seeding', () => {
     expect(renderedCenter()).toBeCloseTo(expected, 3);
   });
 
+  // The press offer short-circuits the enemy's turn, so it is the one re-render that can hand
+  // back an unchanged meter. Reusing the previous turn's sweet spot makes the timing free to
+  // memorise at exactly the moment the player is pressing their advantage.
+  it('re-seeds when the press is offered, so a press turn is not a memorised repeat', () => {
+    enterFight();
+    const first = renderedCenter();
+    captureAt(first);
+    act('1'); // a crit lands, the enemy survives → the press is offered, no enemy turn
+    expect(q('[data-action="press"]')).not.toBeNull();
+    const second = renderedCenter();
+    expect(second).not.toBeCloseTo(first, 4);
+    expect(second).toBeGreaterThanOrEqual(BAND.min);
+    expect(second).toBeLessThanOrEqual(BAND.max);
+  });
+
   it('re-seeds after the enemy answers, so the target moves every turn', () => {
     enterFight();
     const first = renderedCenter();
@@ -191,6 +206,55 @@ describe('capture and freeze', () => {
   });
 });
 
+// Everything above runs with zero painted frames. These two need real frames, so they swap in
+// a rAF stub that actually queues callbacks and hands them back on demand.
+function driveFrames() {
+  let nextId = 1;
+  const pending = new Map();
+  vi.stubGlobal('requestAnimationFrame', vi.fn((cb) => {
+    const id = nextId++;
+    pending.set(id, cb);
+    return id;
+  }));
+  vi.stubGlobal('cancelAnimationFrame', vi.fn((id) => { pending.delete(id); }));
+  return {
+    // Run exactly one frame: every callback queued right now, none of their continuations.
+    frame() {
+      const due = [...pending.values()];
+      pending.clear();
+      for (const cb of due) cb();
+      return due.length;
+    },
+    get queued() { return pending.size; },
+  };
+}
+
+describe('the sweep loop (one at a time)', () => {
+  // Every render during FIGHT calls startMeter. Without cancelling the outgoing loop each one
+  // adds a rAF chain, all of them sharing one mutable meter object and stomping meter.raf, so
+  // captureMeter's cancel reaches only the last writer and the rest run on forever.
+  it('does not accumulate a loop per turn', () => {
+    const frames = driveFrames();
+    enterFight();
+    expect(frames.queued).toBe(1);
+    for (let turn = 0; turn < 4; turn += 1) {
+      expect(frames.frame()).toBe(1); // one live loop stepped, and it rescheduled itself once
+      act('1'); // a miss, so the enemy answers and the fight re-renders
+      expect(frames.queued).toBe(1);
+    }
+  });
+
+  it('stops every loop on capture, leaving nothing scheduled', () => {
+    const frames = driveFrames();
+    enterFight();
+    for (let turn = 0; turn < 3; turn += 1) { frames.frame(); act('1'); }
+    frames.frame();
+    captureAt(renderedCenter());
+    expect(frames.queued).toBe(0);
+    expect(frames.frame()).toBe(0); // …and nothing revives on the next frame
+  });
+});
+
 describe('keyboard parity (spec §8)', () => {
   it('maps 1-4 to strike, heavy, block and feint', () => {
     enterFight();
@@ -234,6 +298,30 @@ describe('keyboard parity (spec §8)', () => {
     expect(errors).toEqual([]);
     expect(app().innerHTML).toBe(before);
     expect(q('[data-action="next-fight"]')).not.toBeNull();
+  });
+
+  // Space is a button's own activation key. Swallowing it during FIGHT leaves a keyboard user
+  // parked on Strike unable to strike; the meter eats the press instead. Spec §8 is a floor.
+  it('leaves Space to a focused action button', () => {
+    enterFight();
+    const strike = q('[data-action="strike"]');
+    strike.focus();
+    expect(document.activeElement).toBe(strike);
+    clock = t0 + renderedCenter() * PERIOD; // a press here would otherwise capture a crit
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    strike.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false); // the browser may still activate the button
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(false);
+  });
+
+  it('still takes Space when nothing interactive holds focus', () => {
+    enterFight();
+    const center = renderedCenter();
+    clock = t0 + center * PERIOD;
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
   });
 
   it('claims the browser default only for the keys it owns', () => {

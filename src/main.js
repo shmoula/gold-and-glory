@@ -33,6 +33,11 @@ function render() {
 
 // --- Timing meter animation ---
 function startMeter() {
+  // Kill the outgoing loop before starting a new one. Every render during FIGHT lands here, so
+  // without this each turn leaves another rAF chain alive; they all share this one mutable
+  // meter object and stomp meter.raf, leaving captureMeter's cancel able to reach only the
+  // last writer while the rest keep stepping.
+  cancelAnimationFrame(meter.raf);
   const bar = app.querySelector('[data-meter]');
   if (!bar) return;
   meter.running = true;
@@ -91,7 +96,14 @@ function doPlayerAction(action) {
   state = { ...state, combat };
 
   if (isFightOver(state.combat)) return endFight();
-  if (state.combat.canPress) { render(); return; } // offer press before enemy acts
+  if (state.combat.canPress) {
+    // Offer the press before the enemy acts, but re-seed first. This is the one re-render
+    // that skips enemyResponds, and without its own seed the press turn would reuse the
+    // previous turn's sweet spot: identical zones, memorised timing, free crit.
+    state = { ...state, combat: { ...state.combat, sweet: seedSweet() } };
+    render();
+    return;
+  }
   enemyResponds();
 }
 
@@ -150,10 +162,19 @@ wire(app, handlers);
 // Keyboard parity, spec §8: Space works the meter, 1-4 pick the action. Bound once, on the
 // document, because the fight markup is replaced wholesale on every render.
 const KEYS = { ' ': 'meter', 1: 'strike', 2: 'heavy', 3: 'block', 4: 'feint' };
+// Space is also a focused button's own activation key. Claiming it for the meter regardless of
+// focus leaves a keyboard user parked on Strike unable to strike, which fails spec §8's floor,
+// so when focus is on something that answers to Space, the meter stands down. The digits are
+// not contested by any control the fight screen renders, so they keep their binding.
+const INTERACTIVE = 'button, a[href], input, select, textarea, [contenteditable="true"]';
+const inInteractive = (target) =>
+  typeof target?.closest === 'function' && target.closest(INTERACTIVE) !== null;
+
 document.addEventListener('keydown', (e) => {
   if (state.phase !== PHASE.FIGHT || e.repeat) return;
   const k = KEYS[e.key];
   if (!k) return;
+  if (k === 'meter' && inInteractive(e.target)) return;
   e.preventDefault();
   if (k === 'meter') captureMeter();
   else handlers[k]?.();

@@ -600,6 +600,30 @@ describe('renderFight timing meter (spec §6.4)', () => {
     }
   });
 
+  // The 150g Lucky Charm buys a wider crit window. If renderMeter does not pass the player's
+  // critWindowMult down, the charm changes not one pixel of the meter while still paying 2.0x,
+  // so a slice of the track paints as plain HIT and resolves as a crit.
+  it('widens the drawn crit band with the Lucky Charm, and the resolver agrees', () => {
+    const plain = fightState({ combat: { sweet: 0.5 } });
+    const charmed = { ...plain, gear: ['charm'] };
+    const eff = effectiveStats(charmed, CONFIG);
+    expect(eff.critWindowMult).toBeGreaterThan(1);
+    const width = timingWindowWidth(eff.speed, CONFIG);
+    const drawnHalf = (s) => zoneGeometry(renderFight(s, CONFIG), 'crit').size / 2;
+
+    expect(drawnHalf(charmed)).toBeGreaterThan(drawnHalf(plain));
+    // The band the player sees is the band the fight pays out on. The 1e-4 nudge clears both
+    // the 2-decimal percent rounding in the markup and float wobble, and is far narrower than
+    // the gap to the hit edge, so only a genuinely misplaced edge can satisfy it.
+    const half = drawnHalf(charmed);
+    expect(resolveTiming(half * (1 - 1e-4), width, CONFIG, eff.critWindowMult)).toBe('crit');
+    expect(resolveTiming(half * (1 + 1e-4), width, CONFIG, eff.critWindowMult)).toBe('hit');
+    // …and the unequipped fighter's narrower band still matches their own resolver.
+    const plainHalf = drawnHalf(plain);
+    expect(resolveTiming(plainHalf * (1 - 1e-4), width, CONFIG, 1)).toBe('crit');
+    expect(resolveTiming(plainHalf * (1 + 1e-4), width, CONFIG, 1)).toBe('hit');
+  });
+
   it('centers on the mid-track only when no sweet spot has been seeded', () => {
     const html = renderFight(fightState({ combat: { sweet: undefined } }), CONFIG);
     const crit = zoneGeometry(html, 'crit');
@@ -637,22 +661,36 @@ describe('meterZones', () => {
   });
 
   // The drawn edge and the resolver must be the same edge, or the bar shows gold where the
-  // fight logs a miss. Compared as half-widths, not as reconstructed pixel edges: adding and
-  // subtracting the same float twice moves the boundary by ~1e-17 and would decide the test.
-  it('draws each zone edge exactly where resolveTiming switches tier', () => {
-    const center = 0.5;
-    const width = 0.18;
-    const r = CONFIG.combat.timingTierRatios;
-    const z = meterZones(center, width, CONFIG);
-    const weaker = { crit: 'hit', hit: 'graze', graze: 'miss' };
-    for (const tier of ['crit', 'hit', 'graze']) {
-      const half = width * r[tier];
-      expect(z[tier].start).toBeCloseTo(center - half, 12);
-      expect(z[tier].start + z[tier].size).toBeCloseTo(center + half, 12);
-      // …and that half-width is the resolver's own switch point, boundary inclusive.
-      expect(resolveTiming(half, width, CONFIG)).toBe(tier);
-      expect(resolveTiming(half * (1 + 1e-9), width, CONFIG)).toBe(weaker[tier]);
-    }
+  // fight logs a miss. Both sides are *derived*, never restated: the half-width is read back
+  // out of the band meterZones drew, and the tier comes from resolveTiming, which is the
+  // authority. Neither assertion names a ratio, so a wrong formula in either place surfaces as
+  // a disagreement instead of two matching mistakes. Run for a plain fighter and for one
+  // wearing the Lucky Charm, whose critWindowMult widens the resolver's crit test.
+  it.each([1, CONFIG.gear.charm.critWindowMult])(
+    'draws each zone edge exactly where resolveTiming switches tier (critWindowMult %s)',
+    (critWindowMult) => {
+      const center = 0.5;
+      const width = 0.18;
+      const z = meterZones(center, width, CONFIG, critWindowMult);
+      const weaker = { crit: 'hit', hit: 'graze', graze: 'miss' };
+      for (const tier of ['crit', 'hit', 'graze']) {
+        // Half-width read back out of the drawn band, and the band must be symmetric about
+        // the centre for that to mean anything.
+        const half = z[tier].size / 2;
+        expect(z[tier].start).toBeCloseTo(center - half, 12);
+        expect(z[tier].start + z[tier].size).toBeCloseTo(center + half, 12);
+        // Bracketed, not claimed inclusive: recovering the half-width by subtracting two
+        // floats moves it by ~1e-17, which would otherwise decide a boundary-exact test. The
+        // 1e-9 window is still ~8 orders of magnitude tighter than any tier gap here.
+        expect(resolveTiming(half * (1 - 1e-9), width, CONFIG, critWindowMult)).toBe(tier);
+        expect(resolveTiming(half * (1 + 1e-9), width, CONFIG, critWindowMult))
+          .toBe(weaker[tier]);
+      }
+    });
+
+  it('defaults to an unwidened crit band when no multiplier is supplied', () => {
+    const plain = meterZones(0.5, 0.18, CONFIG);
+    expect(plain.crit.size).toBeCloseTo(meterZones(0.5, 0.18, CONFIG, 1).crit.size, 12);
   });
 });
 

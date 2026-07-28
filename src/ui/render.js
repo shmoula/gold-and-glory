@@ -149,8 +149,9 @@ export function renderGameOver(state, config) {
 // the bright crit band sits on top. Widths come from the *player's* window, so training Speed
 // visibly widens the gold. The cursor is moved by main.js's rAF loop; nothing here animates.
 function renderMeter(state, config) {
-  const width = timingWindowWidth(effectiveStats(state, config).speed, config);
-  const zones = meterZones(state.combat.sweet ?? 0.5, width, config);
+  const eff = effectiveStats(state, config);
+  const width = timingWindowWidth(eff.speed, config);
+  const zones = meterZones(state.combat.sweet ?? 0.5, width, config, eff.critWindowMult);
   const pct = (x) => `${(x * 100).toFixed(2)}%`;
   const zone = (name) =>
     `<div class="meter__zone meter__zone--${name}" ` +
