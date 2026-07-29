@@ -639,6 +639,9 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     tone: [...row.querySelector('dd').classList],
   }));
   const rowFor = (html, label) => ledgerRows(html).find((r) => r.label === label);
+  // The same lookup, by label, but keeping the element — so nothing has to know a row's index.
+  const rowElFor = (html, label) => [...dom(html).querySelectorAll('.ledger__row')]
+    .find((row) => row.querySelector('dt').firstChild.textContent.trim() === label);
 
   it('renders a win recap card', () => {
     const html = resultOf(WIN);
@@ -648,11 +651,21 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(html).toContain('data-action="to-hub"');
   });
 
+  // §7 gives the screen three grid children, in this order, each holding the content it names.
+  // Asserted as regions-plus-contents rather than as a literal className string: adding a class
+  // to any of them is a harmless refactor, putting the ledger in the recap slot is not.
   it('lays the screen out as spec §7 recap / ledger / cta', () => {
     const section = dom(resultOf(WIN)).querySelector('section.screen');
     expect([...section.classList]).toContain('screen--result');
-    expect([...section.children].map((c) => c.className)).toEqual([
-      'result__recap', 'result__ledger', 'result__cta commit-bar']);
+    const regions = [...section.children];
+    expect(regions.map((r) => [...r.classList].find((c) => c.startsWith('result__'))))
+      .toEqual(['result__recap', 'result__ledger', 'result__cta']);
+    expect(regions[0].querySelector('.banner-stamp')).not.toBeNull();
+    expect(regions[0].querySelector('.poster')).not.toBeNull();
+    expect(regions[1].querySelector('.ledger')).not.toBeNull();
+    expect(regions[2].querySelector('[data-action="to-hub"]')).not.toBeNull();
+    // §7 puts the one forward action in a commit bar, wherever the grid ends up placing it.
+    expect([...regions[2].classList]).toContain('commit-bar');
   });
 
   it('stamps the title, announced as a status (§6.13/§8)', () => {
@@ -665,11 +678,32 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect([...loss.classList]).toContain('banner-stamp--defeat');
   });
 
-  it('announces the ledger politely and signs the brand (§6.6/§8)', () => {
-    const card = dom(resultOf(WIN)).querySelector('.ledger');
-    expect(card.getAttribute('aria-live')).toBe('polite');
+  // §8 wants the ledger announced politely, but §6.6's theater rewrites every money cell about
+  // six times as it counts — inside a live region that is one utterance per write, roughly
+  // thirty of them over 2.5s, and the screen reader reads the counting instead of the ledger.
+  // So the announcement is a single sr-only line written once by the renderer, and the visible
+  // card carries no live region at all: it is plain, complete markup from the first paint.
+  it('announces the ledger once, out of the theater’s way (§6.6/§8)', () => {
+    const html = resultOf(WIN, { gold: 100 });
+    const card = dom(html).querySelector('.ledger');
     expect([...card.classList]).toContain('tape');
     expect(card.querySelector('.wordmark').textContent).toBe('GOLD & GLORY');
+
+    const summary = dom(html).querySelector('.ledger__summary');
+    expect(summary.getAttribute('role')).toBe('status'); // implies polite + atomic
+    expect([...summary.classList]).toContain('sr-only');
+    // One utterance stating every line the visible ledger states, in the same order and in the
+    // same words — derived from the rendered rows, so the two can never drift apart.
+    expect(summary.textContent).toBe(
+      ledgerRows(html).map((r) => `${r.label}: ${r.amount}`).join('. ') + '.');
+  });
+
+  // The flood guard: nothing the theater rewrites may sit inside a live region.
+  it('puts no counting cell inside a live region (§8)', () => {
+    const announced = [...dom(resultOf(WIN))
+      .querySelectorAll('[aria-live], [role="status"], [role="alert"]')];
+    expect(announced.length).toBeGreaterThan(0); // the banner and the summary still speak
+    expect(announced.filter((el) => el.querySelector('.amount[data-unit]'))).toEqual([]);
   });
 
   it('starts every row hidden, so the theater has something to reveal', () => {
@@ -727,17 +761,27 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   // If the two ever disagree with the rendered text, the count ends on a different string than
   // the one the server sent — the number would change after the animation for no reason.
   it('agrees with the counters it hands the theater', () => {
-    const cells = [...dom(resultOf(WIN, { gold: 1234 })).querySelectorAll('.amount[data-unit]')];
-    expect(cells.length).toBe(4); // purse, tax, net, balance
+    const html = resultOf(WIN, { gold: 1234 });
+    const cells = [...dom(html).querySelectorAll('.amount[data-unit]')];
+    // Which lines are money is the behaviour — naming them beats counting them, because a count
+    // is satisfied by any four rows and says nothing about *which* four the theater will tally.
+    expect([...dom(html).querySelectorAll('.ledger__row')]
+      .filter((row) => row.querySelector('.amount[data-unit]'))
+      .map((row) => row.querySelector('dt').firstChild.textContent.trim()))
+      .toEqual(['Purse', 'Arena tax', 'Net gold', 'New balance']);
     for (const dd of cells) {
       const value = Number(dd.getAttribute('data-value'));
       const unit = dd.getAttribute('data-unit');
       expect(Number.isFinite(value)).toBe(true);
       expect(dd.textContent).toBe(formatGold(value, { signed: unit === 'gold-signed' }));
     }
-    // Lines that are not money carry no counter at all.
-    const wear = dom(resultOf(WIN)).querySelectorAll('.ledger__row')[4];
-    expect(wear.querySelector('.amount').hasAttribute('data-unit')).toBe(false);
+    // Lines that are not money carry no counter at all — found by label, because a row index
+    // silently points at a different line the moment the sponsor row appears or a line moves.
+    for (const label of ['Injuries gained', 'Weapon wear']) {
+      const row = rowElFor(html, label);
+      expect(row, label).not.toBeUndefined();
+      expect(row.querySelector('.amount').hasAttribute('data-unit'), label).toBe(false);
+    }
   });
 
   it('formats every gold figure through formatGold (spec §2)', () => {

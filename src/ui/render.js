@@ -4,7 +4,7 @@
 import { trainingCost, repairCost, healCost } from '../economy.js';
 import { effectiveStats, playerHealth } from '../game.js';
 import { timingWindowWidth } from '../combat.js';
-import { formatGold } from './format.js';
+import { formatGold, MINUS } from './format.js';
 import {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
   escapeHtml, btn, meter, bar, poster, shopItem, logEntry,
@@ -124,16 +124,13 @@ export function renderHub(state, config) {
 }
 
 // ---- The ledger (spec §6.6) ----
-// U+2212 MINUS SIGN, written as an escape. Spec §2 mandates it over the ASCII hyphen, and the
-// two are indistinguishable in review — the same reason MIDDOT above is not pasted either.
-const MINUS = '\u2212';
-
-// One row builder for every line, so no line can state its amount a different way. The `dd`
-// carries `data-value` + `data-unit` for the money lines: ui/effects.js counts those from zero
-// as the row lands (§6.6's "money rows count from 0 to value over the beat"), and the unit
-// names the formatter, so the counter's last write is by construction the same string the
-// server already rendered. A line with no unit is not money and does not count.
-function ledgerRow(label, { text, value = null, unit = null, tone = '', cls = '', snark = '' }) {
+// Every line is described as data first and rendered twice — once as the visible row, once into
+// the sr-only summary below — so the announcement and the page can never state different
+// numbers. The `dd` carries `data-value` + `data-unit` for the money lines: ui/effects.js counts
+// those from zero as the row lands (§6.6's "money rows count from 0 to value over the beat"),
+// and the unit names the formatter, so the counter's last write is by construction the same
+// string the server already rendered. A line with no unit is not money and does not count.
+function ledgerRow({ label, text, value = null, unit = null, tone = '', cls = '', snark = '' }) {
   const data = unit && Number.isFinite(value) ? ` data-value="${value}" data-unit="${unit}"` : '';
   const aside = snark ? ` <span class="snark">(${escapeHtml(snark)})</span>` : '';
   return `<div class="ledger__row is-hidden${cls}">
@@ -145,7 +142,8 @@ function ledgerRow(label, { text, value = null, unit = null, tone = '', cls = ''
 // A money line. Always signed (§3: the sign is the channel that survives grayscale), green for
 // income, red for expense — and muted at zero, because §6.6 is explicit that a zero line is
 // never red. "Injuries gained: 0" is good news.
-const moneyRow = (label, amount, opts = {}) => ledgerRow(label, {
+const moneyRow = (label, amount, opts = {}) => ({
+  label,
   text: formatGold(amount, { signed: true }),
   value: amount,
   unit: 'gold-signed',
@@ -155,8 +153,8 @@ const moneyRow = (label, amount, opts = {}) => ledgerRow(label, {
 
 // A line that counts something that is not gold — injuries, durability. Never gold-coloured
 // (Law 2 reserves the gold hues for currency), and red only when there is something to regret.
-const tallyRow = (label, count, text) => ledgerRow(label, {
-  text, tone: count > 0 ? ' amount--neg' : '',
+const tallyRow = (label, count, text) => ({
+  label, text, tone: count > 0 ? ' amount--neg' : '',
 });
 
 export function renderResult(state, config) {
@@ -170,20 +168,31 @@ export function renderResult(state, config) {
   // priced in the same units as a victory (§6.6: "the same ledger with expense-heavy rows").
   // The tax label states no rate: the result carries the amount, not the rate that produced
   // it, and a rate re-derived from a rounded amount would be a number that lies (Law 1).
-  const rows = [
+  const lines = [
     moneyRow('Purse', r.purse),
     moneyRow('Arena tax', -r.tax, { snark: config.snark.tax }),
     r.sponsorIncome
       ? moneyRow('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward })
-      : '',
+      : null,
     moneyRow('Net gold', r.netGold, { cls: ' ledger__row--net' }),
     tallyRow('Injuries gained', r.injuriesGained, `${r.injuriesGained}`),
     tallyRow('Weapon wear', r.durabilityLost, `${MINUS}${r.durabilityLost} durability`),
-    ledgerRow('New balance', {
+    {
+      label: 'New balance',
       text: formatGold(state.gold), value: state.gold, unit: 'gold',
       cls: ' ledger__row--balance',
-    }),
-  ].join('');
+    },
+  ].filter(Boolean);
+  const rows = lines.map(ledgerRow).join('');
+  // §8 wants the ledger announced politely. It cannot be the visible card: §6.6's theater
+  // rewrites every money cell about six times as it counts, and inside a live region each write
+  // is its own utterance — roughly thirty of them over 2.5s, so a screen reader hears the
+  // counting and never hears the ledger. `aria-hidden` on the counting cells would silence the
+  // flood but also take the amounts out of the accessibility tree, leaving a browse-mode reader
+  // a column of labels with no numbers. So the announcement is this one sr-only line, built from
+  // the very same strings the rows show, written once and never touched again — while the
+  // visible card stays plain markup that is complete and correct from the first paint.
+  const summary = `${lines.map((l) => `${l.label}: ${l.text}`).join('. ')}.`;
 
   // §6.13 + §8: the screen-level stamp, announced as a status. Victory gets the exclamation,
   // defeat the deadpan period (§9) — death never reaches this screen, it goes to GAMEOVER.
@@ -211,8 +220,9 @@ export function renderResult(state, config) {
         <p class="snark result__flavor">${escapeHtml(r.commentary)}</p>
       </div>
       <div class="result__ledger">
-        <section class="ledger tape" aria-live="polite">
+        <section class="ledger tape">
           <h2>The ledger</h2>
+          <p class="ledger__summary sr-only" role="status">${escapeHtml(summary)}</p>
           <dl>${rows}</dl>
           <span class="wordmark">GOLD &amp; GLORY</span>
         </section>

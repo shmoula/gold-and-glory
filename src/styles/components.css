@@ -231,5 +231,7 @@
 .delta-chip--neg { color: var(--color-expense); }
 .delta-chip + .delta-chip { top: calc(100% + 22px); }
 @keyframes chip-fall { to { transform: translateY(14px); opacity: 0; } }
-.hud__purse.is-shaking { animation: purse-shake 300ms steps(3, end); }
+/* --dur-shake, not a literal: ui/effects.js takes the class off again on its own timer, and
+   tests/styles.test.js holds SHAKE_MS and this token to the same number. */
+.hud__purse.is-shaking { animation: purse-shake var(--dur-shake) steps(3, end); }
 @keyframes purse-shake { 33% { transform: translateX(-3px); } 66% { transform: translateX(3px); } }

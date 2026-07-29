@@ -12,7 +12,7 @@
 //    Task 6's meter capture learned this the hard way. `now` is injectable so tests can
 //    advance time deterministically — vitest's fake timers do not fake `performance`, so a
 //    hard-wired `performance.now()` would freeze at 0 for the whole suite.
-import { formatGold } from './format.js';
+import { formatGold, MINUS } from './format.js';
 
 // Spec §6.7: "count toward the new value over <= 600ms". The step is the write interval, not
 // the value quantum — the value is always recomputed from the clock, so a dropped step costs
@@ -30,9 +30,11 @@ export const CHIP_MAX = 2;
 // A chip that no longer travels has to stay put long enough to be read (§5 reduced motion).
 export const REDUCED_CHIP_LIFE_MS = 1500;
 // §6.7: a 3-frame ±3px shake. The class carries the keyframes; this is how long they run.
+// --dur-shake. Every constant in this block restates a token in tokens.css so the DOM work and
+// the CSS animation share one clock; tests/styles.test.js reads the token source and holds the
+// two sides to the same number, because a drift here is invisible outside a real browser.
 export const SHAKE_MS = 300;
 
-const MINUS = '\u2212'; // U+2212 MINUS SIGN, never a hyphen (spec §2)
 const defaultNow = () => performance.now();
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
@@ -49,15 +51,19 @@ const UNITS = {
   'gold-signed': (v) => formatGold(v, { signed: true }),
 };
 
+// One place writes a counted cell, so a pre-tallied row and a finished count leave a cell in
+// exactly the same state — text and `data-value` together, never one without the other.
+function writeAmount(el, value, format) {
+  el.textContent = format(value);
+  el.setAttribute('data-value', String(value));
+}
+
 // Count `el` from `from` to `to` over `durationMs`, writing whole gold (§6.7). Returns a
 // finish function: calling it stops the count and writes the final value, so a skip or a
 // superseding render can never leave a half-counted number on screen.
 export function tickTo(el, from, to, {
   durationMs = TICKER_MS, stepMs = TICKER_STEP_MS, format = UNITS.gold, now = defaultNow } = {}) {
-  const write = (v) => {
-    el.textContent = format(v);
-    el.setAttribute('data-value', String(v));
-  };
+  const write = (v) => writeAmount(el, v, format);
   if (!el) return () => {};
   const timers = [];
   const finish = () => {
@@ -120,7 +126,10 @@ export function runLedgerTheater(container, {
 }
 
 // Show one row and start its money counter. Returns the counter's finish functions (none for
-// a row that carries no money). With no options the row is revealed pre-tallied.
+// a row that carries no money). With no options the row is revealed *pre-tallied*: its cells are
+// written straight to the posted figure, which is what a skip and a reduced-motion reveal want.
+// Starting a count only to finish it in the same breath would schedule — and immediately clear —
+// ten timers per money row, and would read as animation where none is intended.
 function revealRow(row, opts = null) {
   row.classList.remove('is-hidden');
   const finishers = [];
@@ -128,9 +137,8 @@ function revealRow(row, opts = null) {
     const format = UNITS[amount.getAttribute('data-unit')];
     const to = Number(amount.getAttribute('data-value'));
     if (!format || !Number.isFinite(to)) continue;
-    const done = tickTo(amount, 0, to, { ...opts, format });
-    if (opts) finishers.push(done);
-    else done();
+    if (!opts) writeAmount(amount, to, format);
+    else finishers.push(tickTo(amount, 0, to, { ...opts, format }));
   }
   return finishers;
 }
@@ -140,19 +148,25 @@ function revealRow(row, opts = null) {
 // timer can be cancelled without parsing a string back into a timer id.
 const chipTimers = new WeakMap();
 
-function mountChip(host, { text, negative, amount = null, lifeMs, now }) {
+function mountChip(host, { text, negative, amount = null, lifeMs, now, spawnedAt = null }) {
   const chips = [...host.querySelectorAll('.delta-chip')];
   const last = chips[chips.length - 1];
   // §6.7: "Consolidate same-sign changes within 300ms into one chip." Two trainings bought in
   // one breath read as one purse movement, not a stack of confetti. A shortfall chip carries
   // no amount, so it never merges with money.
+  //
+  // The window runs from the *first* change in the group, which is why the merged chip inherits
+  // its predecessor's timestamp instead of taking a fresh one. Restamping it restarted the
+  // window on every merge, so clicks 299ms apart consolidated forever and the purse never once
+  // showed what a single purchase cost. (The chip's *lifetime* does restart — it is a new chip
+  // with new text, and it has to stay up long enough to be read.)
   if (amount != null && last && last.dataset.amount) {
     const previous = Number(last.dataset.amount);
-    const fresh = now() - Number(last.dataset.spawnedAt) <= CHIP_MERGE_MS;
-    if (fresh && Math.sign(previous) === Math.sign(amount)) {
+    const opened = Number(last.dataset.spawnedAt);
+    if (now() - opened <= CHIP_MERGE_MS && Math.sign(previous) === Math.sign(amount)) {
       dropChip(last);
       return mountChip(host, {
-        ...signed(previous + amount), amount: previous + amount, lifeMs, now,
+        ...signed(previous + amount), amount: previous + amount, lifeMs, now, spawnedAt: opened,
       });
     }
   }
@@ -163,7 +177,7 @@ function mountChip(host, { text, negative, amount = null, lifeMs, now }) {
   // textContent, not innerHTML: the shortfall string is built from a data attribute that a
   // hostile amount could otherwise ride in on.
   chip.textContent = text;
-  chip.dataset.spawnedAt = String(now());
+  chip.dataset.spawnedAt = String(spawnedAt ?? now());
   if (amount != null) chip.dataset.amount = String(amount);
   host.appendChild(chip);
   chipTimers.set(chip, setTimeout(() => dropChip(chip),

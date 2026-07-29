@@ -98,6 +98,7 @@
   --dur-stamp: 240ms;   /* stamps, chicken drop */
   --dur-tally: 350ms;   /* per ledger line */
   --dur-chip: 900ms;    /* delta chip lifetime */
+  --dur-shake: 300ms;   /* §6.7's 3-frame rejection shake */
   --ease-snap: steps(3, end);
   --ease-drop: steps(2, end);
 

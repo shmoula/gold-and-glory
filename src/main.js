@@ -44,6 +44,11 @@ let lastGold = null;
 // The count still running against the last render's (now detached) purse. Finished before a
 // new one starts, so two tickers can never write to one number.
 let purseTicker = () => {};
+// The ledger sequence still running against the last render's (now detached) rows, retained for
+// exactly the same reason as `purseTicker` above: its timers outlive the DOM they were aimed at.
+// Discarding it left a superseded theater counting rows nothing can see, and let two theaters
+// run at once. Retired at the top of render(), before anything can replace what it writes to.
+let ledgerTheater = () => {};
 // The live sweep. Named `sweep`, not `meter`, because `meter()` is the mandated bar helper in
 // ui/components.js and a module-scope shadow of it invites a call site to render a bar from this.
 const sweep = { running: false, t0: 0, period: 0, sweet: 0, captured: null, raf: 0 };
@@ -66,6 +71,11 @@ function newRun() {
 
 function render() {
   const previousGold = lastGold;
+  // Retire the outgoing theater before its rows are replaced: finishing it writes every posted
+  // figure one last time and clears the timers that would otherwise keep counting on detached
+  // rows. Cheap and idempotent when there was no theater running.
+  ledgerTheater();
+  ledgerTheater = () => {};
   mount(app, state, CONFIG);
   lastGold = state.gold;
   // Spec §6.9: the newest entry is appended at the bottom and auto-scrolled to. mount() has
@@ -80,16 +90,22 @@ function render() {
   // screen — not just on the card — skips to the final state. The renderer emits the rows
   // already hidden and already carrying their final values, so a run with no JS theater at
   // all (or a reduced-motion one) still reads a complete, correct ledger.
-  if (state.phase === PHASE.RESULT) runLedgerTheater(app.querySelector('.screen--result'));
+  if (state.phase === PHASE.RESULT) {
+    ledgerTheater = runLedgerTheater(app.querySelector('.screen--result'));
+  }
 }
 
 // Spec §6.7: every gold change is announced by the purse itself — the number counts toward its
 // new value and a signed chip falls beside it. Both are pure DOM work over two numbers, so
 // they live here rather than in a renderer that is handed only the current state.
 function moveTheMoney(previousGold) {
+  // Retire the outgoing count first, whatever this render turns out to be: mount() has already
+  // detached the node it was writing to. This used to sit below the guard, so a render that
+  // moved no gold — or a GAMEOVER screen with no HUD at all — left it counting into nothing.
+  purseTicker();
+  purseTicker = () => {};
   const purse = app.querySelector('.hud__purse'); // GAMEOVER renders no HUD
   if (!purse || previousGold == null || previousGold === state.gold) return;
-  purseTicker();
   purseTicker = tickTo(purse.querySelector('.ticker'), previousGold, state.gold);
   spawnDeltaChip(purse, state.gold - previousGold);
 }
@@ -223,10 +239,12 @@ function endFight() {
 // rejection is spoken by the purse (§6.7): a 3-frame shake plus the shortfall the button is
 // already carrying in `data-missing`. Without this, the one thing a player can do while broke
 // produces no feedback whatsoever, because the state is identical and nothing re-renders.
+// Refusal is detected by identity, not by an unchanged purse: game.js returns the *same* state
+// object when it declines, and a spend that moves the model without moving gold (a zero-cost
+// action, a non-monetary one) would otherwise be applied to the model and never drawn.
 const commerce = (spend) => (el) => {
-  const before = state.gold;
-  state = spend(state);
-  if (state.gold !== before) { render(); return; }
+  const next = spend(state);
+  if (next !== state) { state = next; render(); return; }
   const purse = app.querySelector('.hud__purse');
   purseShake(purse);
   const missing = el?.getAttribute('data-missing');

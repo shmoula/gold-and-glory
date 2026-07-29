@@ -190,6 +190,25 @@ describe('runLedgerTheater (spec §6.6)', () => {
     expect(el.querySelector('.amount').textContent).toBe(formatGold(600, { signed: true }));
   });
 
+  // A row revealed with no options is revealed *pre-tallied*: it states the figure the renderer
+  // already wrote. Getting there by starting a ten-timer count and clearing it in the same
+  // breath is ten timers per money row per skip, and says the opposite of what it means.
+  it('reveals a pre-tallied row with a plain write, scheduling nothing', () => {
+    const el = ledger(moneyRow(600) + moneyRow(-90));
+    runLedgerTheater(el, { beatMs: BEAT_MS, now });
+    const scheduled = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      el.click(); // the skip reveals every remaining row pre-tallied
+      expect(scheduled).not.toHaveBeenCalled();
+      expect([...el.querySelectorAll('.amount')].map((a) => a.textContent)).toEqual([
+        formatGold(600, { signed: true }), formatGold(-90, { signed: true })]);
+      expect([...el.querySelectorAll('.amount')].map((a) => a.getAttribute('data-value')))
+        .toEqual(['600', '-90']); // …and still agree with the value they were counted from
+    } finally {
+      scheduled.mockRestore();
+    }
+  });
+
   it('paints no frames', () => {
     const el = ledger(plainRows(3) + moneyRow(600));
     runLedgerTheater(el, { beatMs: BEAT_MS, now });
@@ -231,6 +250,21 @@ describe('spawnDeltaChip (spec §6.7)', () => {
     const chips = host.querySelectorAll('.delta-chip');
     expect(chips.length).toBe(1);
     expect(chips[0].textContent).toBe(formatGold(30, { signed: true }));
+  });
+
+  // §6.7's window is "within 300ms" — of the first change, not of the last merge. Restamping the
+  // merged chip restarts the window, so a player clicking every 299ms consolidates forever and
+  // the purse never once shows what a single purchase cost.
+  it('measures the merge window from the first chip, not from the last merge', () => {
+    const host = document.createElement('div');
+    spawnDeltaChip(host, 10, { now });
+    advance(CHIP_MERGE_MS - 1);
+    spawnDeltaChip(host, 10, { now }); // inside the window: merges to +20
+    expect(host.querySelectorAll('.delta-chip').length).toBe(1);
+    advance(CHIP_MERGE_MS - 1); // now well past 300ms from the first chip
+    spawnDeltaChip(host, 10, { now });
+    expect([...host.querySelectorAll('.delta-chip')].map((c) => c.textContent)).toEqual([
+      formatGold(20, { signed: true }), formatGold(10, { signed: true })]);
   });
 
   it('does not consolidate across a sign change or past the window', () => {

@@ -98,28 +98,39 @@ afterAll(() => vi.restoreAllMocks());
 
 afterEach(() => vi.unstubAllGlobals());
 
-beforeEach(async () => {
-  // Each test gets a fresh module instance; the previous one's document-level listeners
-  // would otherwise keep driving its own detached game.
-  for (const [type, fn, opts] of docListeners) document.removeEventListener(type, fn, opts);
-  docListeners = [];
+// Load a fresh main.js over a fresh #app, collecting the document-level listeners it binds so
+// the next test can detach them. A test that needs main.js built against a mocked module calls
+// this again after `vi.doMock`; both instances' listeners end up in `docListeners`, so the next
+// beforeEach still cleans up after every one of them.
+async function loadMain() {
   const realAdd = document.addEventListener;
   document.addEventListener = function collect(type, fn, opts) {
     docListeners.push([type, fn, opts]);
     return realAdd.call(this, type, fn, opts);
   };
+  try {
+    document.body.innerHTML = '<div id="app"></div>';
+    clock = 0;
+    t0 = 0;
+    vi.resetModules();
+    await import('../src/main.js');
+  } finally {
+    document.addEventListener = realAdd;
+  }
+}
+
+beforeEach(async () => {
+  // Each test gets a fresh module instance; the previous one's document-level listeners
+  // would otherwise keep driving its own detached game.
+  for (const [type, fn, opts] of docListeners) document.removeEventListener(type, fn, opts);
+  docListeners = [];
 
   raf = vi.fn(() => 0);
   caf = vi.fn();
   vi.stubGlobal('requestAnimationFrame', raf);
   vi.stubGlobal('cancelAnimationFrame', caf);
 
-  document.body.innerHTML = '<div id="app"></div>';
-  clock = 0;
-  t0 = 0;
-  vi.resetModules();
-  await import('../src/main.js');
-  document.addEventListener = realAdd;
+  await loadMain();
 });
 
 describe('sweet-spot seeding', () => {
@@ -510,6 +521,21 @@ describe('money theater (spec §6.6 / §6.7)', () => {
     });
   });
 
+  // A render that moves no gold still replaces the purse, so the count in flight is aimed at a
+  // detached node from that moment on. Retiring it has to happen above the no-change guard, or
+  // the outgoing ticker keeps writing into a number nobody can see.
+  it('retires the outgoing count even when the new render moves no gold', () => {
+    withTimers(() => {
+      click('[data-action="train-power"]');
+      tick(120);
+      const outgoing = ticker();
+      expect(outgoing.textContent).not.toBe(formatGold(START - TRAIN_COST)); // mid-count
+      click('[data-action="next-fight"]'); // a render that changes no gold at all
+      expect(app().contains(outgoing)).toBe(false); // …and detaches the node being counted
+      expect(outgoing.textContent).toBe(formatGold(START - TRAIN_COST));
+    });
+  });
+
   it('drops a signed chip beside the purse on every gold change', () => {
     withTimers(() => {
       expect(chips()).toEqual([]); // …but not on the first render of a run
@@ -559,6 +585,31 @@ describe('money theater (spec §6.6 / §6.7)', () => {
     });
   });
 
+  // game.js refuses a purchase by returning the *identical* state object, so object identity is
+  // the only honest test of refusal. Inferring it from an unchanged purse means any spend that
+  // moves the model without moving gold — a zero-cost action, a non-monetary one — is applied
+  // and then never drawn, and the player is shown a shake for a purchase that went through.
+  it('draws a spend that changes state without changing gold', async () => {
+    vi.doMock('../src/game.js', async () => {
+      const actual = await vi.importActual('../src/game.js');
+      return { ...actual, bribeOfficial: (s) => ({ ...s, bribedThisFight: true }) };
+    });
+    try {
+      await loadMain();
+      expect(q('[data-action="bribe"]')).not.toBeNull();
+      const gold = q('.hud__purse .ticker').getAttribute('data-value');
+      q('[data-action="bribe"]').click();
+      expect(q('.hud__purse .ticker').getAttribute('data-value')).toBe(gold); // no money moved…
+      // …but the hub redrew: the bribe slot is now the inert "Bribed ✓" button.
+      expect(q('[data-action="bribe"]')).toBeNull();
+      expect(app().textContent).toContain('Bribed');
+      expect(q('.hud__purse').classList.contains('is-shaking')).toBe(false);
+      expect(chips()).toEqual([]); // and nothing told the player they were broke
+    } finally {
+      vi.doUnmock('../src/game.js');
+    }
+  });
+
   it('leaves an affordable purchase unshaken', () => {
     withTimers(() => {
       click('[data-action="train-power"]');
@@ -582,6 +633,83 @@ describe('money theater (spec §6.6 / §6.7)', () => {
       q('.screen--result').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       expect(hiddenRows()).toEqual([]);
       expect(raf.mock.calls.length).toBe(2); // the two fight renders' sweeps, and nothing since
+    });
+  });
+
+  // Spec §8's accessibility floor, measured against the running theater rather than the markup:
+  // the ledger tallies ~6 writes per money cell over 2.5s, so a live region anywhere above
+  // those cells is roughly thirty polite utterances and a screen reader hears the counting
+  // instead of the ledger. Nothing that speaks may change while the numbers move.
+  it('never floods a live region while the ledger tallies (spec §8)', () => {
+    withTimers(() => {
+      enterFight();
+      captureAt(renderedCenter());
+      act('1');
+      captureAt(renderedCenter());
+      act('2'); // the result screen opens, mid-theater
+      const speaking = () =>
+        [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"]')];
+      expect(app().querySelectorAll('.amount[data-unit]').length).toBeGreaterThan(2);
+      expect(speaking().filter((el) => el.querySelector('.amount[data-unit]'))).toEqual([]);
+      const before = speaking().map((el) => el.textContent);
+      expect(before.join('')).not.toBe(''); // something does speak, so this is not vacuous
+      tick(5000); // the whole sequence, counters included
+      expect(speaking().map((el) => el.textContent)).toEqual(before);
+    });
+  });
+
+  // The ledger theater hands back a finish function. Discarding it leaves its timers writing to
+  // rows the next render has already detached, and leaves two theaters able to run at once.
+  // Both tests below reach the seam through a control that is *outside* `.screen--result`, so
+  // §6.6's click-to-skip (which any click inside the card would trip) is out of the picture:
+  // what is under test is the render, not the click. Task 9's game-over ledger is a second call
+  // site of exactly this shape.
+  function winTheBout() {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1');
+    captureAt(renderedCenter());
+    act('2');
+    expect(q('.screen--result'), 'the fight did not end').not.toBeNull();
+  }
+  const counters = () => [...app().querySelectorAll('.ledger__row .amount[data-unit]')];
+
+  it('retires the ledger theater when the screen navigates away', () => {
+    withTimers(() => {
+      winTheBout();
+      const posted = counters();
+      const finals = posted.map((c) => c.textContent);
+      expect(finals.length).toBeGreaterThan(2);
+      tick(400); // the first row has landed and is counting; the rest are still pending
+      const leave = q('[data-action="to-hub"]');
+      app().appendChild(leave); // out of the card, so the click cannot skip the theater
+      leave.click();
+      expect(q('.screen--hub')).not.toBeNull();
+      tick(400); // the next beat would have fired here, on rows nothing can see any more
+      expect(posted.map((c) => c.textContent)).toEqual(finals);
+    });
+  });
+
+  it('lets only one ledger theater drive the ledger at a time', () => {
+    withTimers(() => {
+      winTheBout();
+      const posted = counters();
+      const finals = posted.map((c) => c.textContent);
+      tick(400);
+      // A render that lands while the theater still runs, without leaving the result phase.
+      const spend = document.createElement('button');
+      spend.setAttribute('data-action', 'train-power');
+      app().appendChild(spend);
+      spend.click();
+      const fresh = counters();
+      expect(q('.screen--result')).not.toBeNull(); // still the result screen…
+      expect(fresh[0]).not.toBe(posted[0]); // …on a brand-new ledger
+      const freshFinals = fresh.map((c) => c.textContent);
+      tick(400);
+      expect(posted.map((c) => c.textContent)).toEqual(finals); // the superseded one is mute
+      tick(5000);
+      expect(fresh.map((c) => c.textContent)).toEqual(freshFinals);
+      expect(hiddenRows()).toEqual([]);
     });
   });
 
