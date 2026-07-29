@@ -17,18 +17,18 @@ then spec-compliance review, then code-quality review, then next task.
 | 5 — Hub screen | **done, both reviews passed** | `16ffa9c` + `8a3cde7` + `741afd0` + `c80fd17` |
 | 6 — Timing meter | **done, both reviews passed** | `078b8a1` + `616d6b3` + `b112433` |
 | 7 — Fight screen | **done, both reviews passed** | `fc5a1dd` + `982f36b` + `6205a85` + `aebe210` |
-| 8 — Result screen + effects | pending | — |
+| 8 — Result screen + effects | **done, both reviews passed** | `993ce07` + `8373bf3` + `959f9e5` |
 | 9 — Game Over | pending | — |
 | 10 — Verification pass | pending | — |
 
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 8 (Result screen: ledger, theater, delta chips, purse ticker)
+## RESUME HERE — Task 9 (Game Over: endings gallery, cause of death, final cleanup)
 
-Tasks 3, 4, 5, 6 and 7 are **fully closed**, each with spec review + code-quality review + at least
-one fix round + an independent re-review. Suite is **228 tests green**, build clean. Every fix
-assertion was mutation-verified twice — once by the implementer, once independently by a reviewer.
+Tasks 3 through 8 are **fully closed**, each with spec review + code-quality review + at least one
+fix round + an independent re-review. Suite is **297 tests green**, build clean. Every fix assertion
+was mutation-verified twice — once by the implementer, once independently by a reviewer.
 
 - Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
 - Task 4: `5e42184` → `9b0f859` (9 quality fixes).
@@ -37,6 +37,50 @@ assertion was mutation-verified twice — once by the implementer, once independ
 - Task 6: `078b8a1` → `616d6b3` (4 correctness bugs) → `b112433` (7 polish fixes).
 - Task 7: `fc5a1dd` → `982f36b` (3 spec gaps + 3 correctness bugs) → `6205a85` (5 structural
   fixes) → `aebe210` (HUD/poster health divergence).
+- Task 8: `993ce07` → `8373bf3` (3 Important + 6 lesser fixes) → `959f9e5` (ledger announcer).
+
+### What Task 8 leaves you — read before writing the Game Over screen
+
+**`src/ui/effects.js` is new** and owns every animation: `tickTo`, `runLedgerTheater`,
+`spawnDeltaChip`, `spawnShortfallChip`, `purseShake`. It contains **no `requestAnimationFrame`** —
+everything is timer-driven with an injectable `now`, values computed as `f(now() - t0)` and never
+accumulated, and every animation returns a `finish()` that writes the target outright. That is what
+makes it correct in a stalled tab, a zero-frame pane, or a skip. Keep it that way.
+
+**Retain and retire animation handles.** `purseTicker` and `ledgerTheater` are module-scope in
+`main.js` and retired at the top of `render()`. Discarding a `finish()` means timers writing to
+detached nodes after navigation, and two animations racing one container — that was an Important
+bug. If Task 9 adds a game-over ledger, retire it the same way.
+
+**The live-region rule, learned the hard way.** The ledger went flood → silence → correct:
+1. `aria-live` on `.ledger` let the counting theater fire ~30 utterances in 2.5s.
+2. Moving it to a once-written `role="status"` line **inside `#app`** made it announce *nothing* —
+   `mount()` re-creates the node already-populated every render, and a live region inserted
+   already-populated is silent.
+3. Correct: `renderResult` emits **no** live region at all. It exports a string; `render()` writes
+   it into a persistent region built by `liveRegion(id)` outside `#app`.
+
+So: **never put a live region in rendered markup.** Export the string, announce from `render()`.
+
+**`commerce()` detects rejection by object identity** (`const next = spend(state); if (next !== state)`),
+not by comparing gold — `game.js` returns the identical object on refusal, so a gold comparison
+would silently swallow a zero-cost or non-gold-changing spend.
+
+**JS animation constants are now bound to their CSS tokens.** `styles.test.js` regexes the duration
+out of `tokens.css` source and compares it to `BEAT_MS` / `CHIP_LIFE_MS` / `SHAKE_MS`, and asserts
+those rules state no literal duration. Add a token, not a literal.
+
+**`legacy.css` is down from 18 rules to 5.** Every removal was proved dead by mounting all six
+phases, matching each selector against every rendered element, and resolving the cascade *per
+declaration* at six widths. **The plan's keep-list was wrong:** it directed deleting the button-skin
+group, whose only match in the entire game is Game Over's restart button — deleting it would have
+shipped that button unstyled. Task 9 deletes the file and moves `#app` / `button:disabled` into
+`base.css`; re-verify the same way before removing anything, and check what Task 9's own markup
+still depends on.
+
+**One `MINUS` constant** is exported from `format.js` as a `−` escape. A source-walk test
+asserts no `.js` or `.css` file in `src/` spells the glyph any other way — raw, JS escape, or CSS
+`\2212`. Do not add a second copy.
 
 ### What Task 7 leaves you
 
