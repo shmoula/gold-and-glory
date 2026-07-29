@@ -388,3 +388,87 @@ describe('keyboard parity (spec §8)', () => {
     expect(press('5').defaultPrevented).toBe(false);
   });
 });
+
+// Spec §6.9 wants the newest entry "appended at bottom and auto-scrolled", and §8 wants a turn
+// announced politely. Neither can live in the renderer: it emits strings and touches no DOM,
+// and mount() replaces #app wholesale on every render — so the strip's scrollTop returns to 0
+// and any live region inside it is a brand-new node that assistive tech has never seen.
+describe('the combat log strip (spec §6.9 / §8)', () => {
+  const live = () => document.getElementById('log-announcer');
+
+  it('scrolls the strip to the newest entry after every render', () => {
+    // jsdom performs no layout, so scrollHeight is 0 unless stubbed — and the <ul> is rebuilt
+    // each render, so the stub has to sit on the prototype rather than on one node.
+    const HEIGHT = 431;
+    const real = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight');
+    Object.defineProperty(Element.prototype, 'scrollHeight', {
+      configurable: true, get: () => HEIGHT });
+    try {
+      enterFight();
+      expect(q('.log').scrollTop).toBe(HEIGHT);
+      act('1'); // a turn resolves and the whole screen is rebuilt…
+      expect(q('.log').scrollTop).toBe(HEIGHT); // …and the strip is back at the bottom
+    } finally {
+      Object.defineProperty(Element.prototype, 'scrollHeight', real);
+    }
+  });
+
+  it('keeps one persistent live region outside the re-rendered screen', () => {
+    enterFight();
+    const region = live();
+    expect(region).not.toBeNull();
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(app().contains(region)).toBe(false); // mount() cannot destroy it
+    act('1');
+    expect(live()).toBe(region); // same node, so the announcement is a real content change
+  });
+
+  it('announces the turn that just happened, not the whole strip', () => {
+    enterFight();
+    expect(live().textContent).toBe('');
+    act('1'); // a miss, then the enemy's answer: one exchange, one utterance
+    const spoken = live().textContent;
+    expect(spoken).toContain('You strike (miss) for 0 damage.');
+    expect(spoken).toContain('strikes ('); // the enemy's reply is in the same announcement
+    expect(spoken).not.toContain('<'); // plain speech, never markup
+    expect(spoken).not.toMatch(/T\d/); // and no turn stamps read out loud
+    act('2');
+    expect(live().textContent).toContain('You heavy (miss)');
+    expect(live().textContent).not.toContain('You strike'); // the last turn is not repeated
+  });
+
+  // The Brute has 40 hp and a crit strike takes 28, so two crits end the bout — deterministic,
+  // and the second one is thrown with a *different* verb so the last announcement cannot be
+  // mistaken for a repeat of the one before it.
+  function critTheBruteDown() {
+    captureAt(renderedCenter());
+    act('1'); // crit: the press is offered, so the enemy never answers
+    captureAt(renderedCenter());
+    act('2'); // a heavy crit finishes it
+    expect(q('[data-meter]'), 'the fight did not end').toBeNull();
+  }
+
+  // The killing blow is pushed and then rendered as the *result* screen, so anything gated on
+  // the FIGHT phase leaves every fight's last exchange unspoken.
+  it('announces the blow that ends the fight', () => {
+    enterFight();
+    critTheBruteDown();
+    expect(live().textContent).toContain('You heavy (crit)');
+  });
+
+  // The count of already-spoken lines has to be forgotten between fights, or the next fight —
+  // whose log starts empty again — is silently never announced at all.
+  it('starts announcing again in the next fight', () => {
+    enterFight();
+    critTheBruteDown();
+    const lastFight = live().textContent;
+    click('[data-action="to-hub"]');
+    enterFight();
+    // The region is not wiped on the way out — a stale string is never re-announced — but the
+    // next turn must still overwrite it. Without the reset, `slice(announced)` on a log that
+    // has restarted at zero is empty forever and the whole next bout goes unspoken.
+    act('1');
+    expect(live().textContent).not.toBe(lastFight);
+    expect(live().textContent).toContain('You strike (miss) for 0 damage.');
+  });
+});

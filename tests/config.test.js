@@ -5,6 +5,10 @@ import { CONFIG } from '../src/config.js';
 // because the hub renders `config.snark[g.id] ?? ''`, which swallows a missing entry.
 const GEAR_KEYS = Object.keys(CONFIG.gear);
 const BUTTON_SNARK_KEYS = ['repair', 'heal', 'bribe', ...GEAR_KEYS];
+// Same rule for the §6.5 poster asides: a fifth opponent must fail until it has one, because
+// the fight screen reads `config.snark[opponent.id]` and an empty aside renders as "()".
+const OPPONENT_KEYS = CONFIG.opponents.map((o) => o.id);
+const POSTER_SNARK_KEYS = ['player', ...OPPONENT_KEYS];
 
 describe('CONFIG', () => {
   it('has starting wallet and player vitals', () => {
@@ -55,14 +59,23 @@ describe('CONFIG', () => {
     }
   });
 
+  it('has a snark aside for every combatant poster the fight screen renders', () => {
+    expect(OPPONENT_KEYS.length).toBeGreaterThan(0); // guard against a vacuous loop
+    for (const key of POSTER_SNARK_KEYS) {
+      expect(typeof CONFIG.snark[key], `${key} needs a poster aside`).toBe('string');
+      expect(CONFIG.snark[key]?.length ?? 0, `${key} aside must not be empty`)
+        .toBeGreaterThan(0);
+    }
+  });
+
   it('keeps snark asides inside the §6.8 grammar', () => {
     for (const [key, aside] of Object.entries(CONFIG.snark)) {
       expect(aside.length, `${key} aside must be <= 40 chars`).toBeLessThanOrEqual(40);
       expect(aside, `${key} aside must not contain numbers`).not.toMatch(/\d/);
     }
-    // Button asides are wrapped in parentheses by the renderer, so the strings must not
-    // carry their own. (`taunt` is a standalone hint, not a button aside — exempt.)
-    for (const key of BUTTON_SNARK_KEYS) {
+    // Button and poster asides are wrapped in parentheses by the renderer, so the strings must
+    // not carry their own. (`taunt` is a standalone hint, not an aside — exempt.)
+    for (const key of [...BUTTON_SNARK_KEYS, ...POSTER_SNARK_KEYS]) {
       expect(CONFIG.snark[key], `${key} aside must not be parenthesized`).not.toMatch(/[()]/);
     }
   });

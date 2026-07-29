@@ -5,6 +5,7 @@ import { createGameState } from '../src/state.js';
 import {
   btn, meter, poster, shopItem, renderHud, renderHub, renderResult, renderGameOver, renderFight,
   meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter, URGENT_FRACTION,
+  logEntry, logEntryText,
 } from '../src/ui/render.js';
 import { formatGold } from '../src/ui/format.js';
 import { startFight, effectiveStats } from '../src/game.js';
@@ -328,6 +329,23 @@ describe('poster', () => {
       .not.toContain('is-urgent');
   });
 
+  // The derivation is the *default*, not a law: Tasks 8 and 9 mount 0-HP plates on the result
+  // and game-over screens, where an infinitely pulsing plate on a corpse is noise. An explicit
+  // flag must therefore win over the derived one in both directions.
+  it('lets a call site override the derived urgency without losing the default', () => {
+    const max = 60;
+    const dead = { value: 0, max };
+    const healthy = { value: max, max };
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead })))).toContain('is-urgent');
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead, urgent: false }))))
+      .not.toContain('is-urgent');
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: healthy, urgent: true }))))
+      .toContain('is-urgent');
+    // Omitted — not merely falsy — is what re-arms the derivation.
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead, urgent: undefined }))))
+      .toContain('is-urgent');
+  });
+
   it('takes sub as markup and parenthesizes the snark', () => {
     const html = poster({ name: 'Foe', sub: 'Purse: <span class="amount">50</span>', snark: 'A big lad' });
     expect(html).toContain('<p class="poster__sub">Purse: <span class="amount">50</span></p>');
@@ -537,6 +555,103 @@ describe('renderGameOver', () => {
   });
 });
 
+// Spec §6.9 gives the entry a typographic grammar, not a sentence: `.log__turn`, then the
+// mechanics clause with blood-ink bold damage dealt, a sword glyph on damage taken, gold-ink
+// money and italic status, then an optional snark. combat.js emits the clause as a trusted
+// template plus separate values; everything that could carry content (a name) is escaped here.
+describe('logEntry (spec §6.9)', () => {
+  const SWORD = 0x2694; // ⚔ CROSSED SWORDS, pinned by codepoint, never by a pasted glyph
+  const entry = (over = {}) => ({ turn: 1, kind: 'attack', text: 'You swing.', ...over });
+  const swordCount = (html) => (html.match(new RegExp(String.fromCodePoint(SWORD), 'g')) || []).length;
+
+  it('wraps the clause in a numbered log entry', () => {
+    const html = logEntry(entry({ turn: 7 }));
+    expect(html).toContain('<li class="log__entry">');
+    expect(html).toContain('<span class="log__turn">T7</span>');
+    expect(html).toContain('You swing.');
+  });
+
+  it('paints damage dealt as a bold value (--blood-ink via .log__entry b)', () => {
+    const html = logEntry(entry({ text: 'You strike (crit) for {dmg} damage.', dmg: 21 }));
+    expect(html).toContain('You strike (crit) for <b>21</b> damage.');
+    expect(swordCount(html)).toBe(0); // dealing damage is not taking it
+  });
+
+  it('marks damage taken with a sword glyph that assistive tech does not read', () => {
+    const html = logEntry(entry({ text: '{who} strikes (hit) for {taken}.', who: 'The Brute', taken: 9 }));
+    const glyph = html.match(/<span aria-hidden="true">(.)<\/span>/)[1];
+    expect(glyph.codePointAt(0)).toBe(SWORD);
+    expect(html).toContain('The Brute strikes (hit) for ');
+    expect(html).toContain('9.');
+    expect(html).not.toContain('<b>'); // taken damage is plain ink, not the blood-ink value
+    // A line break between glyph and number would orphan the sword, so they are joined by
+    // U+00A0 — pinned by codepoint, because a plain space here is invisible in review.
+    const joiner = html.match(/<\/span>(.)9\./)[1];
+    expect(joiner.codePointAt(0)).toBe(0x00a0);
+  });
+
+  it('italicises a status clause and leaves an attack clause upright', () => {
+    expect(logEntry(entry({ kind: 'status', text: 'You raise your guard.' })))
+      .toContain('<em>You raise your guard.</em>');
+    expect(logEntry(entry({ kind: 'attack', text: 'You raise your guard.' })))
+      .not.toContain('<em>');
+  });
+
+  it('formats money through formatGold in a gold-ink amount slot', () => {
+    const html = logEntry(entry({ text: 'The crowd throws {gold}.', gold: 1234 }));
+    expect(html).toContain(`<span class="amount">${formatGold(1234)}</span>`);
+    expect(html).not.toContain('1234'); // never hand-formatted (spec §2)
+  });
+
+  it('escapes the clause and its values exactly once', () => {
+    const html = logEntry(entry({
+      text: '{who} jeers & <spits> at "you".',
+      who: '<img src=x onerror="alert(1)">',
+    }));
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('<spits>');
+    expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+    expect(html).toContain('&amp; &lt;spits&gt; at &quot;you&quot;.');
+    expect(html).not.toContain('&amp;lt;');
+    expect(html).not.toContain('&amp;quot;');
+  });
+
+  // Substitution must be a single pass. If the filled-in values were rescanned, an enemy
+  // named "{taken}" would mint a second damage figure out of nothing.
+  it('does not rescan a substituted value for further placeholders', () => {
+    const html = logEntry(entry({
+      text: '{who} strikes for {taken}.', who: '{taken}{dmg}', taken: 4, dmg: 99,
+    }));
+    expect(swordCount(html)).toBe(1);
+    expect(html).toContain('{taken}{dmg} strikes for ');
+    expect(html).not.toContain('99');
+  });
+
+  it('leaves a placeholder alone when the entry carries no such value', () => {
+    expect(logEntry(entry({ text: 'You hit for {dmg}.' }))).toContain('You hit for {dmg}.');
+  });
+
+  it('parenthesises an optional snark aside and escapes it', () => {
+    expect(logEntry(entry({ snark: 'The crowd studies its sandals' })))
+      .toContain('<span class="snark">(The crowd studies its sandals)</span>');
+    expect(logEntry(entry({ snark: '<b>no</b>' }))).toContain('(&lt;b&gt;no&lt;/b&gt;)');
+    expect(logEntry(entry())).not.toContain('class="snark"');
+  });
+
+  // The live region (main.js) speaks this string, so it must be plain text with no markup and
+  // no decorative glyph — and it must not drift from the visible clause.
+  it('renders a speakable plain-text twin with no markup', () => {
+    const e = entry({
+      text: '{who} strikes (hit) for {taken}, taking {gold}.',
+      who: 'The <Brute>', taken: 9, gold: 50, snark: 'Rude',
+    });
+    const text = logEntryText(e);
+    expect(text).toBe(`The <Brute> strikes (hit) for 9, taking ${formatGold(50)}. (Rude)`);
+    expect(text).not.toContain('<span'); // no markup…
+    expect(swordCount(text)).toBe(0); // …and no glyph to read out as "crossed swords"
+  });
+});
+
 describe('renderFight', () => {
   it('shows both combatants and the four action buttons', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
@@ -554,46 +669,60 @@ describe('renderFight', () => {
 
   it('renders the combat log', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = ['You strike (hit) for 13 damage.'];
-    expect(renderFight(s, CONFIG)).toContain('You strike (hit) for 13 damage.');
+    s.combat.log = [{ turn: 1, kind: 'attack', text: 'You strike (hit) for {dmg} damage.', dmg: 13 }];
+    expect(renderFight(s, CONFIG)).toContain('You strike (hit) for <b>13</b> damage.');
   });
 
   it('renders posters for both fighters and turn-numbered log entries', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = ['You strike (hit) for 13 damage.', 'The Brute hits back.'];
+    // One exchange: the player's blow and the answer share a turn number (spec §6.9).
+    s.combat.log = [
+      { turn: 1, kind: 'attack', text: 'You strike.' },
+      { turn: 1, kind: 'attack', text: 'The Brute hits back.' },
+      { turn: 2, kind: 'status', text: 'You raise your guard.' },
+    ];
     const html = renderFight(s, CONFIG);
     expect((html.match(/class="poster tape/g) || []).length).toBe(2);
     expect(html).toContain('log__turn');
     expect(html).toContain('screen--fight');
     // Spec 6.9: turn numbers, not fake timestamps, and the newest entry sits at the bottom.
-    expect(html).toContain('>T1</span> You strike (hit) for 13 damage.');
-    expect(html).toContain('>T2</span> The Brute hits back.');
-    expect(html.indexOf('>T1<')).toBeLessThan(html.indexOf('>T2<'));
+    expect(html).toContain('>T1</span> You strike.');
+    expect(html).toContain('>T1</span> The Brute hits back.');
+    expect(html).toContain('>T2</span> <em>You raise your guard.</em>');
+    expect(html.indexOf('You strike.')).toBeLessThan(html.indexOf('The Brute hits back.'));
   });
 
-  // The strip is a fixed-height parchment (spec 6.9), so it shows a tail — but the numbers must
-  // keep counting from the start of the fight, or turn 9 is announced as turn 1.
-  it('windows the log to the last eight entries without renumbering them', () => {
+  // The strip is a fixed-height parchment (spec 6.9), so it shows a tail — but the numbers are
+  // the entries' own turn stamps, so windowing cannot renumber anything.
+  it('windows the log to the last eight entries, keeping their own turn numbers', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = Array.from({ length: 10 }, (_, i) => `line ${i + 1}`);
+    // Ten entries over five exchanges: two lines per turn, exactly as a real fight pushes them.
+    s.combat.log = Array.from({ length: 10 }, (_, i) => (
+      { turn: Math.floor(i / 2) + 1, kind: 'attack', text: `line ${i + 1}` }));
     const entries = [...renderFight(s, CONFIG).matchAll(
       /<li class="log__entry"><span class="log__turn">T(\d+)<\/span> ([^<]*)<\/li>/g)];
-    expect(entries.map((m) => Number(m[1]))).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(entries.map((m) => Number(m[1]))).toEqual([2, 2, 3, 3, 4, 4, 5, 5]);
     expect(entries.map((m) => m[2])).toEqual([
       'line 3', 'line 4', 'line 5', 'line 6', 'line 7', 'line 8', 'line 9', 'line 10']);
   });
 
   // Log lines interpolate the opponent's name, which comes from config and one day from a mod.
+  // The entry carries markup now, so a hostile name must still escape exactly once.
   it('escapes log entries exactly once', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = ['<script>alert("x")</script> & co'];
+    s.combat.log = [{
+      turn: 1, kind: 'attack', text: '{who} & co', who: '<script>alert("x")</script>',
+    }];
     const html = renderFight(s, CONFIG);
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; co');
     expect(html).not.toContain('&amp;lt;');
   });
 
-  it('announces the log politely so a turn is read out once (spec 6.9/8)', () => {
+  // Spec §6.9 puts aria-live on the strip. It cannot carry the announcement on its own — the
+  // whole subtree is replaced every render — so main.js owns a persistent region and
+  // tests/main.test.js asserts that a turn is actually spoken. This is the markup marker only.
+  it('marks the log strip as a polite live region (spec 6.9/8)', () => {
     const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
     expect(html).toMatch(/<ul class="log" aria-live="polite">/);
   });
@@ -618,6 +747,27 @@ describe('renderFight', () => {
     expect(s.combat.player.health / s.combat.player.maxHealth).toBeGreaterThan(URGENT_FRACTION);
     expect(cards[1]).toContain('class="bar is-urgent"');
     expect(cards[0]).not.toContain('is-urgent');
+  });
+
+  // Spec §6.5's poster anatomy is name / portrait / HP plate / sub / snark — the fight screen
+  // shipped the first three and stopped. The sub is the only place the bout's stakes are
+  // stated during the fight, and the money in it must come from formatGold (spec §2).
+  it('bills both fight posters with a §6.5 sub line and a snark', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.gold = 1234;
+    s.wins = 2;
+    const opp = CONFIG.opponents[s.currentOpponentIndex];
+    const [you, foe] = posterCards(renderFight(s, CONFIG));
+    for (const card of [you, foe]) {
+      expect(card).toContain('<p class="poster__sub">');
+      expect(card).toMatch(/<span class="snark">\(.+\)<\/span>/);
+    }
+    expect(foe).toContain(`Tier: ${opp.tier}`);
+    expect(foe).toContain(`<span class="amount">${formatGold(opp.purse)}</span>`);
+    expect(foe).toContain(`<span class="snark">(${CONFIG.snark[opp.id]})</span>`);
+    expect(you).toContain('Wins: 2');
+    expect(you).toContain(`<span class="amount">${formatGold(1234)}</span>`);
+    expect(you).toContain(`<span class="snark">(${CONFIG.snark.player})</span>`);
   });
 
   // Overkill takes health negative; the plate must read 0, not -6, and must not print the

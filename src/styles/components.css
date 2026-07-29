@@ -81,6 +81,8 @@
   transform: translateX(-50%); background: #443019; border-radius: 46% 46% 40% 40%; }
 .poster__sub { font-size: var(--text-sm); font-weight: 700; text-align: center;
   margin: var(--space-2) 0 0; }
+/* §6.5: the fight purse on a poster is a gold-ink amount. */
+.poster__sub .amount { color: var(--color-money); }
 .poster .bar { width: 100%; margin-top: var(--space-2); }
 .poster .snark { display: block; text-align: center; }
 
@@ -149,5 +151,13 @@
 .log__entry:last-child { border-bottom: none; }
 .log__turn { font-weight: 700; color: var(--color-text-muted); font-variant-numeric: tabular-nums;
   margin-right: var(--space-1); }
+/* §6.9's four typographic channels. Selected by element, not by new classes: the entry is
+   built by one component (ui/components.js logEntry) and §6.0's class index is closed.
+   Damage dealt is the blood-ink bold value; damage taken stays plain ink and is marked by the
+   sword glyph instead; money is gold ink; a status clause (block, counter, feint) is italic. */
+.log__entry b { color: var(--blood-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.log__entry em { font-style: italic; }
+.log .amount { color: var(--color-money); }
+.log__entry .snark { font-size: var(--text-xs); }
 .fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .fight__actions { display: flex; flex-direction: column; gap: var(--space-3); align-items: stretch; }

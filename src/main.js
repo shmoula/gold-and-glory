@@ -11,9 +11,25 @@ import {
   enemyTurn, isFightOver, fightWinner, markPressable,
 } from './combat.js';
 import { meterDistance, meterPosition, meterPeriod, sweetCenter } from './ui/timing.js';
+import { logEntryText } from './ui/components.js';
 import { mount, wire } from './ui/screens.js';
 
 const app = document.getElementById('app');
+
+// Spec §6.9/§8: a turn must be announced politely, exactly once. The `aria-live` the fight
+// screen puts on the strip cannot do it — mount() replaces #app wholesale, so that region is a
+// brand-new node every render and assistive tech announces nothing at all. This one is built
+// once, lives outside #app, and is never re-created, so writing to it is a genuine content
+// change in a region the screen reader already knows about.
+const announcer = document.createElement('div');
+announcer.id = 'log-announcer';
+announcer.className = 'sr-only';
+announcer.setAttribute('aria-live', 'polite');
+announcer.setAttribute('aria-atomic', 'true');
+document.body.appendChild(announcer);
+// How many log lines have already been spoken. One exchange pushes two entries (three with a
+// press), so this speaks the turn that just happened rather than re-reading all eight rows.
+let announced = 0;
 
 let state;
 let rng;
@@ -37,7 +53,23 @@ function newRun() {
 
 function render() {
   mount(app, state, CONFIG);
+  // Spec §6.9: the newest entry is appended at the bottom and auto-scrolled to. mount() has
+  // just rebuilt the strip, so its scrollTop is 0 again and the tail is below the fold; the
+  // renderer only emits strings, so the one line of DOM work belongs here.
+  const log = app.querySelector('.log');
+  if (log) log.scrollTop = log.scrollHeight;
+  announceTurn();
   if (state.phase === PHASE.FIGHT) startMeter();
+}
+
+// Speak the lines pushed since the last announcement — one exchange's worth. The count follows
+// the log's own length, so the result screen (which has no combat at all) resets it and the
+// next fight starts announcing from its own first line.
+function announceTurn() {
+  const log = state.combat?.log ?? [];
+  const fresh = log.slice(announced);
+  announced = log.length;
+  if (fresh.length) announcer.textContent = fresh.map(logEntryText).join(' ');
 }
 
 // --- Timing meter animation ---
@@ -145,6 +177,10 @@ function enemyResponds() {
 
 function endFight() {
   const won = fightWinner(state.combat) === 'player';
+  // Speak the killing blow while the log still exists: resolveFightOutcome clears `combat`,
+  // so by the time the result screen renders there is nothing left to announce and the
+  // exchange that decided the fight would be the one exchange never read out.
+  announceTurn();
   state = resolveFightOutcome(state, won, rng, CONFIG);
   render();
 }

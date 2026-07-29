@@ -131,18 +131,73 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
       ${snarkAside(snark, missingAttr)}</button>`;
 }
 
+// ---- Combat log entry (spec §6.9) ----
+// A log entry is data, not a sentence: `{ turn, kind, text, ...values }`. `text` is a trusted
+// template written in combat.js with `{who} {dmg} {taken} {gold}` placeholders; every value
+// that could ever carry content (an opponent name) travels in its own field. Both are escaped
+// here, exactly once, and substitution runs in a single pass — so a fighter named `{dmg}`
+// prints those six characters instead of minting a damage figure.
+// `kind` is 'attack' or 'status'; §6.9 sets status clauses (block, counter, feint) in italics.
+const SWORD = '\u2694'; // ⚔ CROSSED SWORDS — damage taken. Written as an escape, per the
+const NBSP = '\u00a0'; // U+00A0 post-mortem: never paste an invisible or lookalike character.
+const SLOT = /\{(who|dmg|taken|gold)\}/g;
+// Two skins over one substitution pass, so the spoken twin cannot drift from the visible one.
+const SKINS = {
+  html: {
+    who: (v) => escapeHtml(v),
+    // Damage dealt: the bold value spec §6.9 paints in --blood-ink (.log__entry b).
+    dmg: (v) => `<b>${Number(v)}</b>`,
+    // Damage taken: plain ink, a sword glyph, and a non-breaking space so the glyph can never
+    // be orphaned on its own line. The glyph is a visual channel; AT reads the number.
+    taken: (v) => `<span aria-hidden="true">${SWORD}</span>${NBSP}${Number(v)}`,
+    gold: (v) => `<span class="amount">${formatGold(v)}</span>`,
+  },
+  text: {
+    who: (v) => String(v),
+    dmg: (v) => String(Number(v)),
+    taken: (v) => String(Number(v)),
+    gold: (v) => formatGold(v),
+  },
+};
+
+function logClause(entry, skin) {
+  const paint = SKINS[skin];
+  const clause = skin === 'html' ? escapeHtml(entry.text) : String(entry.text);
+  // A replacement function's output is never rescanned, so a value containing `{dmg}` is inert.
+  return clause.replace(SLOT, (match, key) => (
+    entry[key] == null ? match : paint[key](entry[key])));
+}
+
+export function logEntry(entry) {
+  const clause = logClause(entry, 'html');
+  const body = entry.kind === 'status' ? `<em>${clause}</em>` : clause;
+  const snark = entry.snark ? ` <span class="snark">(${escapeHtml(entry.snark)})</span>` : '';
+  return `<li class="log__entry"><span class="log__turn">T${Number(entry.turn)}</span> ` +
+    `${body}${snark}</li>`;
+}
+
+// The speakable twin, for main.js's live region (spec §8). No markup, no decorative glyph,
+// and no turn stamp: a screen reader is being told what just happened, not shown a strip.
+export function logEntryText(entry) {
+  return `${logClause(entry, 'text')}${entry.snark ? ` (${entry.snark})` : ''}`;
+}
+
 // Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.
 // `sub` is markup — call sites embed `.amount` spans in it — so it is deliberately not
 // escaped; everything else here is. hp: {value, max} | null. tilt: 1|2|3, and neighbouring
 // posters must never share a tilt token.
-export function poster({ name, sub = '', snark = '', hp = null, tilt = 1 }) {
+export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent }) {
   // Raw name: meter() escapes its own label (escaping here would double-encode).
-  // Urgency is derived here, not accepted as an option. Spec §6.5 requires the player poster
-  // and the HUD beam to read the same field, so they must not disagree about when that number
-  // is alarming — and a call site that forgot the flag would show a calm plate beside a
-  // flashing beam. Same URGENT_FRACTION as §6.1's bar, so there is one threshold, not two.
+  // Urgency is derived here by default, not demanded of the caller. Spec §6.5 requires the
+  // player poster and the HUD beam to read the same field, so they must not disagree about
+  // when that number is alarming — and a call site that forgot the flag would show a calm
+  // plate beside a flashing beam. Same URGENT_FRACTION as §6.1's bar: one threshold, not two.
+  // `urgent` overrides that default when supplied (`??`, so only an omitted/undefined flag
+  // re-arms the derivation): the result and game-over screens mount 0-HP plates, and a corpse
+  // whose plate pulses forever is noise, not an alarm.
   const hpBar = hp
-    ? meter(`${name} health`, hp.value, hp.max, { urgent: hp.value / hp.max < URGENT_FRACTION })
+    ? meter(`${name} health`, hp.value, hp.max,
+      { urgent: urgent ?? (hp.value / hp.max < URGENT_FRACTION) })
     : '';
   return `<article class="poster tape poster--tilt-${tilt}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>

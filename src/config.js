@@ -96,6 +96,16 @@ export const CONFIG = {
     shield: 'A big plate. For hiding',
     sponsorReward: 'He loves losers',
     taunt: "Time your hit! (Or don't!)",
+    // §6.5 poster asides. `player` is your own card; the rest are keyed by opponent id, so a
+    // new opponent fails tests/config.test.js until it is given one.
+    player: 'Still upright, technically',
+    brute: 'Mostly muscle, no plan',
+    journeyman: 'Has done this before, sadly',
+    veteran: 'Missing an ear. Not his own',
+    champion: 'The crowd knows his name',
+    // §6.9 log asides.
+    logWhiff: 'The crowd studies its sandals',
+    logPress: 'Bold. The guard was optional',
   },
 
   deathRecaps: [

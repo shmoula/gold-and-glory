@@ -7,13 +7,14 @@ import { timingWindowWidth } from '../combat.js';
 import { formatGold } from './format.js';
 import {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
-  escapeHtml, btn, meter, bar, poster, shopItem,
+  escapeHtml, btn, meter, bar, poster, shopItem, logEntry,
 } from './components.js';
 import { meterZones } from './timing.js';
 
 export {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
   escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster, shopItem,
+  logEntry, logEntryText,
 } from './components.js';
 export { meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter } from './timing.js';
 
@@ -24,6 +25,19 @@ const PIP_MIN_SLOTS = 5;
 // This is a display denominator only — it is never exposed to assistive tech as a real
 // maximum (the training meter is presentational; the row label carries the true number).
 const TRAIN_METER_CAP = 50;
+
+// Spec §6.5's poster sub line: "tier · fight purse", the amount in gold ink. It is markup, so
+// it is written once here rather than at each call site — the hub and the fight screen bill
+// the same bout and must not drift. The separator is escaped (· MIDDLE DOT) rather than
+// pasted: an invisible-lookalike character has already cost this project one bug (see the
+// U+00A0 post-mortem in the progress file).
+const MIDDOT = '\u00b7';
+const opponentSub = (opponent) =>
+  `Tier: ${escapeHtml(opponent.tier)} ${MIDDOT} ` +
+  `Purse: <span class="amount">${formatGold(opponent.purse)}</span>`;
+// The player's card bills their record and their purse — the same two facts, about them.
+const playerSub = (state) =>
+  `Wins: ${state.wins} ${MIDDOT} Purse: <span class="amount">${formatGold(state.gold)}</span>`;
 
 export function renderHud(state, config) {
   const pipCount = Math.max(PIP_MIN_SLOTS, state.injuries);
@@ -97,8 +111,7 @@ export function renderHub(state, config) {
       <div class="hub__fight">
         ${poster({ name: 'You', tilt: 1, hp: { value: state.health, max: state.maxHealth } })}
         <span class="hub__next-label">Next bout</span>
-        ${poster({ name: opponent.name, tilt: 2,
-          sub: `Tier: ${escapeHtml(opponent.tier)} · Purse: <span class="amount">${formatGold(opponent.purse)}</span>` })}
+        ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent) })}
       </div>
       <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
       <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
@@ -170,28 +183,28 @@ function renderMeter(state, config) {
 }
 
 // Spec §6.9: the parchment strip is a fixed-height tail of the fight, newest at the bottom.
-// One combat.log entry is one turn — the player's action and the enemy's answer are pushed by
-// separate calls — so the entry index *is* the turn number. Numbering counts from the start of
-// the fight, not from the top of the window, or turn 9 would announce itself as turn 1.
+// Each entry carries its own turn stamp from combat.js, so the number survives windowing and
+// counts exchanges rather than lines — an exchange pushes two entries, or three with a press.
 const LOG_WINDOW = 8;
 
 export function renderFight(state, config) {
   const c = state.combat;
-  const shown = c.log.slice(-LOG_WINDOW);
-  const firstTurn = c.log.length - shown.length + 1;
-  const logHtml = shown.map((l, i) =>
-    `<li class="log__entry"><span class="log__turn">T${firstTurn + i}</span> ${escapeHtml(l)}</li>`)
-    .join('');
+  // The bout being fought is still the current one: resolveFightOutcome advances the index
+  // only after the fight is over, so the poster bills the right tier, purse and aside.
+  const opponent = config.opponents[state.currentOpponentIndex];
+  const logHtml = c.log.slice(-LOG_WINDOW).map(logEntry).join('');
   // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
   // at the shared urgency threshold — the fight screen states no number by hand.
   return `
     ${renderHud(state, config)}
     <section class="screen screen--fight">
       <div class="fight__you">${poster({ name: 'You', tilt: 1,
-        hp: { value: c.player.health, max: c.player.maxHealth } })}</div>
+        hp: { value: c.player.health, max: c.player.maxHealth },
+        sub: playerSub(state), snark: config.snark.player })}</div>
       <div class="fight__stage">${renderMeter(state, config)}</div>
       <div class="fight__foe">${poster({ name: c.enemy.name, tilt: 2,
-        hp: { value: c.enemy.health, max: c.enemy.maxHealth } })}</div>
+        hp: { value: c.enemy.health, max: c.enemy.maxHealth },
+        sub: opponentSub(opponent), snark: config.snark[opponent.id] ?? '' })}</div>
       <div class="fight__log"><h2>Commentary</h2><ul class="log" aria-live="polite">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
