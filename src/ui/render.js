@@ -123,24 +123,102 @@ export function renderHub(state, config) {
     </section>`;
 }
 
+// ---- The ledger (spec §6.6) ----
+// U+2212 MINUS SIGN, written as an escape. Spec §2 mandates it over the ASCII hyphen, and the
+// two are indistinguishable in review — the same reason MIDDOT above is not pasted either.
+const MINUS = '\u2212';
+
+// One row builder for every line, so no line can state its amount a different way. The `dd`
+// carries `data-value` + `data-unit` for the money lines: ui/effects.js counts those from zero
+// as the row lands (§6.6's "money rows count from 0 to value over the beat"), and the unit
+// names the formatter, so the counter's last write is by construction the same string the
+// server already rendered. A line with no unit is not money and does not count.
+function ledgerRow(label, { text, value = null, unit = null, tone = '', cls = '', snark = '' }) {
+  const data = unit && Number.isFinite(value) ? ` data-value="${value}" data-unit="${unit}"` : '';
+  const aside = snark ? ` <span class="snark">(${escapeHtml(snark)})</span>` : '';
+  return `<div class="ledger__row is-hidden${cls}">
+            <dt>${escapeHtml(label)}${aside}</dt>
+            <dd class="amount${tone}"${data}>${text}</dd>
+          </div>`;
+}
+
+// A money line. Always signed (§3: the sign is the channel that survives grayscale), green for
+// income, red for expense — and muted at zero, because §6.6 is explicit that a zero line is
+// never red. "Injuries gained: 0" is good news.
+const moneyRow = (label, amount, opts = {}) => ledgerRow(label, {
+  text: formatGold(amount, { signed: true }),
+  value: amount,
+  unit: 'gold-signed',
+  tone: amount > 0 ? ' amount--pos' : (amount < 0 ? ' amount--neg' : ''),
+  ...opts,
+});
+
+// A line that counts something that is not gold — injuries, durability. Never gold-coloured
+// (Law 2 reserves the gold hues for currency), and red only when there is something to regret.
+const tallyRow = (label, count, text) => ledgerRow(label, {
+  text, tone: count > 0 ? ' amount--neg' : '',
+});
+
 export function renderResult(state, config) {
   const r = state.lastResult;
-  const cls = r.won ? 'good' : 'danger';
+  // By name, not by index: resolveFightOutcome has already advanced currentOpponentIndex past
+  // the bout being reported. Absent (a fixture, a renamed opponent) means no tier/purse line
+  // rather than a broken one.
+  const foe = config.opponents.find((o) => o.name === r.opponentName) ?? null;
+
+  // The same seven lines win or lose, so the ledger reads as one document and a defeat is
+  // priced in the same units as a victory (§6.6: "the same ledger with expense-heavy rows").
+  // The tax label states no rate: the result carries the amount, not the rate that produced
+  // it, and a rate re-derived from a rounded amount would be a number that lies (Law 1).
+  const rows = [
+    moneyRow('Purse', r.purse),
+    moneyRow('Arena tax', -r.tax, { snark: config.snark.tax }),
+    r.sponsorIncome
+      ? moneyRow('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward })
+      : '',
+    moneyRow('Net gold', r.netGold, { cls: ' ledger__row--net' }),
+    tallyRow('Injuries gained', r.injuriesGained, `${r.injuriesGained}`),
+    tallyRow('Weapon wear', r.durabilityLost, `${MINUS}${r.durabilityLost} durability`),
+    ledgerRow('New balance', {
+      text: formatGold(state.gold), value: state.gold, unit: 'gold',
+      cls: ' ledger__row--balance',
+    }),
+  ].join('');
+
+  // §6.13 + §8: the screen-level stamp, announced as a status. Victory gets the exclamation,
+  // defeat the deadpan period (§9) — death never reaches this screen, it goes to GAMEOVER.
+  const banner = r.won
+    ? '<p class="banner-stamp banner-stamp--victory" role="status">VICTORY!</p>'
+    : '<p class="banner-stamp banner-stamp--defeat" role="status">DEFEAT.</p>';
+
   return `
     ${renderHud(state, config)}
-    <section class="result ${cls}">
-      <h2>${r.won ? 'VICTORY' : 'DEFEAT'} — ${escapeHtml(r.opponentName)}</h2>
-      <p>${escapeHtml(r.commentary)}</p>
-      ${r.won ? `<ul>
-        <li>Purse: ${r.purse}g (tax ${r.tax}g)</li>
-        ${r.sponsorIncome ? `<li>Sponsor: +${r.sponsorIncome}g</li>` : ''}
-        <li><strong>Net: +${r.netGold}g</strong></li>
-        <li>Weapon wear: -${r.durabilityLost} durability</li>
-      </ul>` : `<ul>
-        <li>Injuries gained: ${r.injuriesGained}</li>
-        <li>Weapon wear: -${r.durabilityLost} durability</li>
-      </ul>`}
-      <button data-action="to-hub">Back to the Ludus</button>
+    <section class="screen screen--result">
+      <div class="result__recap">
+        ${banner}
+        ${poster({
+          name: r.opponentName,
+          tilt: 2,
+          // Only a beaten opponent gets a plate, and it reads zero: the result carries no
+          // figure for a foe who is still standing, and inventing one would be a number that
+          // lies. `urgent: false` because a corpse's plate must not pulse forever.
+          hp: r.won && foe ? { value: 0, max: foe.health } : null,
+          urgent: false,
+          sub: foe ? opponentSub(foe) : '',
+          snark: foe ? (config.snark[foe.id] ?? '') : '',
+        })}
+        ${r.won ? '<div class="result__cross" aria-hidden="true"></div>' : ''}
+        <p class="snark result__flavor">${escapeHtml(r.commentary)}</p>
+      </div>
+      <div class="result__ledger">
+        <section class="ledger tape" aria-live="polite">
+          <h2>The ledger</h2>
+          <dl>${rows}</dl>
+          <span class="wordmark">GOLD &amp; GLORY</span>
+        </section>
+      </div>
+      <div class="result__cta commit-bar">${btn('to-hub', 'Return to Ludus',
+        { variant: 'commit', price: state.gold })}</div>
     </section>`;
 }
 

@@ -41,7 +41,7 @@ export function snarkAside(snark, missing = '') {
 // `disabled` (native; a true no-op such as nothing to repair) and `owned` (inert plank for an
 // already-taken option — aria-disabled so it is announced, not focus-trapped out of the tab order).
 // Exported so the guard below can be exercised directly; screens use the render* wrappers.
-export function btn(action, label, { cost = null, gold, variant = '', snark = '',
+export function btn(action, label, { cost = null, price = null, gold, variant = '', snark = '',
   urgent = false, disabled = false, owned = false } = {}) {
   // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
   // would render a full-price button as unaffordable — wrong pixels, no error, green suite.
@@ -64,9 +64,15 @@ export function btn(action, label, { cost = null, gold, variant = '', snark = ''
   if (owned) attrs += ' aria-disabled="true"';
   if (disabled) attrs += ' disabled';
   const actionAttr = action ? ` data-action="${action}"` : '';
-  const price = cost != null ? `<span class="btn__price">${formatGold(cost)}</span>` : '';
+  // `price` is a *displayed* amount with no purchase semantics. Spec §6.6's result CTA puts the
+  // resulting balance in the price slot ("Return to Ludus · 3,110 G"), and §9 forbids money
+  // inside a label string — but a balance is not a cost: it can never be unaffordable, and
+  // checking it against the purse would compare the purse with itself. `cost` keeps the
+  // purchase spelling and its `gold` guard; this one is presentation only.
+  const shown = cost ?? price;
+  const priceSlot = shown != null ? `<span class="btn__price">${formatGold(shown)}</span>` : '';
   return `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${price}${snarkAside(snark, missingAttr)}</button>`;
+    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr)}</button>`;
 }
 
 // Fill width as a whole percent, clamped to the track. Shared with the purely decorative

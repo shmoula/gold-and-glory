@@ -95,6 +95,8 @@ export const CONFIG = {
     blade: 'Slightly less blunt',
     shield: 'A big plate. For hiding',
     sponsorReward: 'He loves losers',
+    // §6.6's ledger aside: the arena's cut lands with a stamp, and the player should feel it.
+    tax: 'Ouch',
     taunt: "Time your hit! (Or don't!)",
     // §6.5 poster asides. `player` is your own card; the rest are keyed by opponent id, so a
     // new opponent fails tests/config.test.js until it is given one.

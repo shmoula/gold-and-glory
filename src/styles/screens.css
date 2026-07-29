@@ -53,6 +53,32 @@
   gap: var(--space-3); align-items: stretch; }
 .fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 
+/* RESULT — recap and ledger co-primary. Areas are spec §7 verbatim; as on the hub and the
+   fight, the `hud` row is reserved for the beam that still renders above the section. Must
+   stay above the ≤640px block for the same reason the fight's block does. */
+.screen--result {
+  grid-template-columns: 1.1fr 1fr;
+  grid-template-areas:
+    "hud    hud"
+    "recap  ledger"
+    "cta    cta";
+}
+/* recap: banner-stamp + defeated-opponent poster with CSS red-X overlay (two rotated
+   --blood bars, ::before/::after) · cta: centered .btn--commit */
+.result__recap { grid-area: recap; position: relative; }
+.result__ledger { grid-area: ledger; }
+.result__cta { grid-area: cta; justify-self: center; }
+/* The X is drawn over the whole recap column rather than over an extra wrapper around the
+   poster: §6.0's class index is closed, and the bars land across the portrait at these
+   offsets. `pointer-events: none` so it cannot eat the click that skips the ledger theater. */
+.result__cross { position: absolute; inset: 0; pointer-events: none; }
+.result__cross::before, .result__cross::after { content: ""; position: absolute;
+  left: 10%; right: 10%; top: 45%; height: 12px; background: var(--blood);
+  border-radius: 6px; opacity: 0.85; }
+.result__cross::before { transform: rotate(18deg); }
+.result__cross::after { transform: rotate(-18deg); }
+.result__flavor { display: block; text-align: center; margin: var(--space-3) 0 0; }
+
 @media (max-width: 900px) {
   .screen--hub { grid-template-columns: 1fr 1fr;
     grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
@@ -67,6 +93,13 @@
      centrepiece competing for slack, and every row should size to its content. */
   .screen--fight { grid-template-columns: 1fr 1fr; grid-template-rows: none;
     grid-template-areas: "hud hud" "you foe" "stage stage" "actions actions" "log log"; }
+  /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
+     order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
+     their named areas, and CSS Grid §8.3 collapses all of them into one implicit cell rather
+     than stacking them. Naming the stack recomposes the screen *and* keeps every child
+     placed, which is what tests/grid-areas.test.js checks in both directions. */
+  .screen--result { grid-template-columns: 1fr;
+    grid-template-areas: "hud" "recap" "ledger" "cta"; }
 }
 @media (max-width: 640px) {
   /* One stack reset for every screen, present and future. Both halves are required:

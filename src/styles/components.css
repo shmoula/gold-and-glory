@@ -10,8 +10,11 @@
   color: var(--color-text-inverse);
   font-family: var(--font-body); font-weight: 700; font-size: var(--text-sm);
 }
+/* `position: relative` is the delta chip's anchor (§6.7): the chip is spawned *into* the purse
+   and positioned against it, so the money that just moved appears where the money lives. */
 .hud__purse { color: var(--color-money-on-dark); display: inline-flex; align-items: center;
-  gap: var(--space-2); font-variant-numeric: tabular-nums; text-transform: uppercase; }
+  gap: var(--space-2); font-variant-numeric: tabular-nums; text-transform: uppercase;
+  position: relative; }
 .coin { width: 15px; height: 15px; border-radius: 50%; display: inline-block;
   background: var(--grad-coin); border: 1.5px solid var(--border-ink); }
 .bar { position: relative; width: 108px; height: 16px; background: var(--track);
@@ -163,4 +166,70 @@
 .log .amount { color: var(--color-money); }
 .log__entry .snark { font-size: var(--text-xs); }
 /* `.fight__grid` and `.fight__actions` are screen layout, not §6 catalog entries — they live
-   with the rest of the `.fight__*` placement in screens.css. */
+   with the rest of the `.fight__*` placement in screens.css. Same for `.result__*` below. */
+
+/* ---- 6.6 The ledger ----
+   The row/net/balance rules are spec §6.6's block verbatim. Three of its lines are omitted
+   deliberately: `.amount`, `.amount--pos` and `.amount--neg` are already declared, identically,
+   in base.css (they are shared with the hub and the log, not owned by the ledger), and
+   `.ledger__banner` has no markup — the screen-level `.banner-stamp` (§6.13) carries the title
+   once, in the recap column, rather than printing "VICTORY!" twice on one screen.
+   §6.6 asks for "Parchment M2, --tilt-2" but its CSS block never states it, so the card's own
+   treatment is written here the way .poster and .sponsor-card state theirs. */
+.ledger { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3); padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-paper); transform: rotate(var(--tilt-2)); }
+.ledger dl { margin: var(--space-3) 0 0; }
+.ledger__row { display: flex; justify-content: space-between; align-items: baseline;
+  gap: var(--space-4); padding: var(--space-1) 0;
+  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25); }
+.ledger__row--net { border-top: var(--border-w) solid var(--border-ink); margin-top: var(--space-2); }
+.ledger__row--balance .amount { color: var(--color-money); font-size: var(--text-lg); }
+.ledger .wordmark { display: block; text-align: right; margin-top: var(--space-3); }
+/* The theater (ui/effects.js) reveals one row per --dur-tally beat. `visibility`, not
+   `display`, so the card is its final height from the first beat and the rows below do not
+   shuffle upward as each one lands. */
+.ledger__row.is-hidden { visibility: hidden; }
+/* §6.6: "The tax row lands with a stamp animation on its amount — the player must *feel* the
+   cut, every fight." Scoped by `[data-unit]`, which only the money cells carry, so the injury
+   and durability lines stay still; the tax line is the ledger's only negative money row. The
+   animation starts when the row stops matching `.is-hidden`, i.e. on the beat it is revealed. */
+.ledger__row:not(.is-hidden) .amount--neg[data-unit] {
+  animation: amount-stamp var(--dur-stamp) var(--ease-drop); display: inline-block; }
+@keyframes amount-stamp { from { transform: scale(1.4); } }
+
+/* ---- 6.13 Banner stamps ----
+   §6.13 wants a tilted parchment ribbon with an ink border, not bare text: Law 4 forbids text
+   sitting straight on the stone page, and this stamp is the one piece of copy on the result
+   screen with no card under it. Entrance is scale 1.5→1.0 over two frames with one rotation
+   settle frame. */
+.banner-stamp { display: inline-block; margin: 0 0 var(--space-3);
+  font: 400 var(--text-3xl)/1 var(--font-display); letter-spacing: 0.03em;
+  padding: var(--space-1) var(--space-5);
+  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2); box-shadow: var(--shadow-paper);
+  transform: rotate(var(--tilt-3));
+  animation: stamp-in var(--dur-stamp) var(--ease-drop); }
+.banner-stamp--victory { color: var(--moss-ink); }
+.banner-stamp--defeat { color: var(--blood-ink); }
+.banner-stamp--death { color: var(--blood); font-size: var(--text-4xl); }
+@keyframes stamp-in {
+  from { transform: scale(1.5) rotate(var(--tilt-3)); }
+  50% { transform: scale(1) rotate(2deg); }
+}
+
+/* ---- 6.7 Delta chip & purse shake ----
+   Spawned into `.hud__purse` (which is the positioning context) whenever the purse changes,
+   and again — as a shortfall — when a purchase is rejected. Two can be alive at once, so the
+   second one sits below the first instead of on top of it. */
+.delta-chip { position: absolute; top: 100%; left: var(--space-2);
+  font-weight: 700; font-variant-numeric: tabular-nums; font-size: var(--text-sm);
+  padding: 1px 6px; background: var(--grad-paper); border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar); z-index: var(--z-chip); white-space: nowrap;
+  animation: chip-fall var(--dur-chip) steps(4, end) forwards; }
+.delta-chip--pos { color: var(--color-income); }
+.delta-chip--neg { color: var(--color-expense); }
+.delta-chip + .delta-chip { top: calc(100% + 22px); }
+@keyframes chip-fall { to { transform: translateY(14px); opacity: 0; } }
+.hud__purse.is-shaking { animation: purse-shake 300ms steps(3, end); }
+@keyframes purse-shake { 33% { transform: translateX(-3px); } 66% { transform: translateX(3px); } }

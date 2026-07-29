@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } 
 import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
+import { formatGold } from '../src/ui/format.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
 const SEED = Math.floor(SEED_ROLL * 1e9); // …and the run seed main.js derives from it
@@ -470,6 +471,134 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     act('1');
     expect(live().textContent).not.toBe(lastFight);
     expect(live().textContent).toContain('You strike (miss) for 0 damage.');
+  });
+});
+
+// Spec §6.6/§6.7: money is never allowed to teleport. The purse counts, a signed chip falls
+// beside it, the ledger tallies one line at a time — and a rejected purchase says so out loud.
+//
+// Every assertion below runs with requestAnimationFrame stubbed to a no-op that never calls
+// back, exactly like the rest of this file, so none of this theater can quietly come to depend
+// on a painted frame. `performance.now` is already pinned to `clock`, and vitest's fake timers
+// do not fake `performance`, so advancing the two together is what real time looks like here.
+describe('money theater (spec §6.6 / §6.7)', () => {
+  const purse = () => q('.hud__purse');
+  const ticker = () => q('.hud__purse .ticker');
+  const chips = () => [...app().querySelectorAll('.delta-chip')];
+  const rows = () => [...app().querySelectorAll('.ledger__row')];
+  const hiddenRows = () => rows().filter((r) => r.classList.contains('is-hidden'));
+
+  // Fake timers, restored however the body exits — a leaked fake clock breaks every later file.
+  function withTimers(body) {
+    vi.useFakeTimers();
+    try { body(); } finally { vi.useRealTimers(); }
+  }
+  const tick = (ms) => { clock += ms; vi.advanceTimersByTime(ms); };
+
+  const TRAIN_COST = 80; // config: training.baseCost at level 0
+  const START = CONFIG.startingGold;
+
+  it('counts the purse down to its new value, painting no frames', () => {
+    withTimers(() => {
+      click('[data-action="train-power"]');
+      expect(ticker().textContent).toBe(formatGold(START)); // opens on the old number
+      tick(300);
+      expect(ticker().textContent).toBe(formatGold(START - TRAIN_COST / 2));
+      tick(300);
+      expect(ticker().textContent).toBe(formatGold(START - TRAIN_COST));
+      expect(raf).not.toHaveBeenCalled();
+    });
+  });
+
+  it('drops a signed chip beside the purse on every gold change', () => {
+    withTimers(() => {
+      expect(chips()).toEqual([]); // …but not on the first render of a run
+      click('[data-action="train-power"]');
+      expect(chips().map((c) => c.textContent))
+        .toEqual([formatGold(-TRAIN_COST, { signed: true })]);
+      expect(chips()[0].className).toContain('delta-chip--neg');
+      expect(purse().contains(chips()[0])).toBe(true);
+    });
+  });
+
+  it('spends the whole fight purse in one chip when the ledger pays out', () => {
+    withTimers(() => {
+      enterFight();
+      captureAt(renderedCenter());
+      act('1');
+      captureAt(renderedCenter());
+      act('2'); // the Brute goes down; the result screen opens on a fatter purse
+      const won = CONFIG.opponents[0].purse - Math.round(CONFIG.opponents[0].purse * CONFIG.arena.taxRate);
+      expect(chips().map((c) => c.textContent)).toEqual([formatGold(won, { signed: true })]);
+      expect(chips()[0].className).toContain('delta-chip--pos');
+    });
+  });
+
+  // Spec §6.2 keeps the unaffordable button clickable on purpose. The click must therefore do
+  // something: before this, the handler recomputed an identical state and the game sat there.
+  it('shakes the purse and states the gap when a purchase is rejected', () => {
+    withTimers(() => {
+      click('[data-action="train-power"]'); // 100 -> 20, next level costs 128
+      tick(1000); // let the successful purchase's chip and count expire
+      const before = purse();
+      const button = q('[data-action="train-power"]');
+      expect(button.getAttribute('data-missing')).toBeTruthy();
+      button.click();
+      expect(purse()).toBe(before); // nothing re-rendered: the state genuinely did not change
+      expect(purse().classList.contains('is-shaking')).toBe(true);
+      // The gap the button was already carrying, spoken by the purse. The sign is pinned by
+      // codepoint rather than compared against a pasted glyph — U+2212 and a hyphen are
+      // indistinguishable in source, so that comparison passes when both sides are wrong.
+      expect(chips().length).toBe(1);
+      expect(chips()[0].textContent)
+        .toContain(`need ${button.getAttribute('data-missing')} more`);
+      expect(chips()[0].textContent.codePointAt(0)).toBe(0x2212);
+      expect(chips()[0].className).toContain('delta-chip--neg');
+      tick(300);
+      expect(purse().classList.contains('is-shaking')).toBe(false);
+    });
+  });
+
+  it('leaves an affordable purchase unshaken', () => {
+    withTimers(() => {
+      click('[data-action="train-power"]');
+      expect(purse().classList.contains('is-shaking')).toBe(false);
+      expect(q('[data-action="train-power"]').getAttribute('data-missing')).toBeTruthy();
+    });
+  });
+
+  it('tallies the result ledger one beat at a time, and a click skips it', () => {
+    withTimers(() => {
+      enterFight();
+      captureAt(renderedCenter());
+      act('1');
+      captureAt(renderedCenter());
+      act('2'); // …and the result screen renders, mid-theater
+      expect(rows().length).toBeGreaterThan(3);
+      expect(hiddenRows().length).toBe(rows().length);
+      tick(350);
+      expect(hiddenRows().length).toBe(rows().length - 1);
+      // A click anywhere on the screen, not only on the card, finishes the sequence (§6.6).
+      q('.screen--result').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(hiddenRows()).toEqual([]);
+      expect(raf.mock.calls.length).toBe(2); // the two fight renders' sweeps, and nothing since
+    });
+  });
+
+  it('lands every ledger counter on the figure the renderer already wrote', () => {
+    withTimers(() => {
+      enterFight();
+      captureAt(renderedCenter());
+      act('1');
+      captureAt(renderedCenter());
+      act('2');
+      const cells = [...app().querySelectorAll('.amount[data-unit]')];
+      const posted = cells.map((c) => c.textContent);
+      expect(posted.length).toBeGreaterThan(2);
+      tick(5000); // run the whole sequence out
+      expect(cells.map((c) => c.textContent)).toEqual(posted);
+      expect(hiddenRows()).toEqual([]);
+    });
   });
 });
 

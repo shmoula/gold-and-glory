@@ -12,6 +12,9 @@ import {
 } from './combat.js';
 import { meterDistance, meterPosition, meterPeriod, sweetCenter } from './ui/timing.js';
 import { logEntryText } from './ui/components.js';
+import {
+  runLedgerTheater, spawnDeltaChip, spawnShortfallChip, purseShake, tickTo,
+} from './ui/effects.js';
 import { mount, wire } from './ui/screens.js';
 
 const app = document.getElementById('app');
@@ -33,6 +36,14 @@ let announced = 0;
 
 let state;
 let rng;
+// The purse as it stood before the current render. Spec §6.7 wants money *seen* to move, and
+// the only place that knows both the old number and the new one is the seam between two
+// renders — the renderer is handed one state and no history. `null` means "no previous render
+// to compare against", which is why a fresh run opens without a chip firing at its own purse.
+let lastGold = null;
+// The count still running against the last render's (now detached) purse. Finished before a
+// new one starts, so two tickers can never write to one number.
+let purseTicker = () => {};
 // The live sweep. Named `sweep`, not `meter`, because `meter()` is the mandated bar helper in
 // ui/components.js and a module-scope shadow of it invites a call site to render a bar from this.
 const sweep = { running: false, t0: 0, period: 0, sweet: 0, captured: null, raf: 0 };
@@ -48,18 +59,39 @@ function newRun() {
   const seed = Math.floor(Math.random() * 1e9);
   state = createGameState(seed, CONFIG);
   rng = makeRng(seed);
+  // A new run is not a transaction: the old run's purse must not spawn a chip against it.
+  lastGold = null;
   render();
 }
 
 function render() {
+  const previousGold = lastGold;
   mount(app, state, CONFIG);
+  lastGold = state.gold;
   // Spec §6.9: the newest entry is appended at the bottom and auto-scrolled to. mount() has
   // just rebuilt the strip, so its scrollTop is 0 again and the tail is below the fold; the
   // renderer only emits strings, so the one line of DOM work belongs here.
   const log = app.querySelector('.log');
   if (log) log.scrollTop = log.scrollHeight;
+  moveTheMoney(previousGold);
   announceTurn();
   if (state.phase === PHASE.FIGHT) startMeter();
+  // Spec §6.6: the ledger tallies itself one beat at a time, and a click anywhere on the
+  // screen — not just on the card — skips to the final state. The renderer emits the rows
+  // already hidden and already carrying their final values, so a run with no JS theater at
+  // all (or a reduced-motion one) still reads a complete, correct ledger.
+  if (state.phase === PHASE.RESULT) runLedgerTheater(app.querySelector('.screen--result'));
+}
+
+// Spec §6.7: every gold change is announced by the purse itself — the number counts toward its
+// new value and a signed chip falls beside it. Both are pure DOM work over two numbers, so
+// they live here rather than in a renderer that is handed only the current state.
+function moveTheMoney(previousGold) {
+  const purse = app.querySelector('.hud__purse'); // GAMEOVER renders no HUD
+  if (!purse || previousGold == null || previousGold === state.gold) return;
+  purseTicker();
+  purseTicker = tickTo(purse.querySelector('.ticker'), previousGold, state.gold);
+  spawnDeltaChip(purse, state.gold - previousGold);
 }
 
 // Speak the lines pushed since the last announcement — one exchange's worth. The count follows
@@ -186,16 +218,31 @@ function endFight() {
 }
 
 // --- Action handlers ---
+// Spec §6.2 keeps an unaffordable button enabled and clickable — "the game *tells* you you're
+// broke rather than hiding the option" — so every commerce action goes through here and the
+// rejection is spoken by the purse (§6.7): a 3-frame shake plus the shortfall the button is
+// already carrying in `data-missing`. Without this, the one thing a player can do while broke
+// produces no feedback whatsoever, because the state is identical and nothing re-renders.
+const commerce = (spend) => (el) => {
+  const before = state.gold;
+  state = spend(state);
+  if (state.gold !== before) { render(); return; }
+  const purse = app.querySelector('.hud__purse');
+  purseShake(purse);
+  const missing = el?.getAttribute('data-missing');
+  if (purse && missing) spawnShortfallChip(purse, missing);
+};
+
 const handlers = {
-  'train-power': () => { state = trainStat(state, 'power', CONFIG); render(); },
-  'train-guard': () => { state = trainStat(state, 'guard', CONFIG); render(); },
-  'train-speed': () => { state = trainStat(state, 'speed', CONFIG); render(); },
-  repair: () => { state = repairWeapon(state, CONFIG); render(); },
-  heal: () => { state = healInjuries(state, CONFIG); render(); },
-  'buy-shield': () => { state = buyGear(state, 'shield', CONFIG); render(); },
-  'buy-blade': () => { state = buyGear(state, 'blade', CONFIG); render(); },
-  'buy-charm': () => { state = buyGear(state, 'charm', CONFIG); render(); },
-  bribe: () => { state = bribeOfficial(state, CONFIG); render(); },
+  'train-power': commerce((s) => trainStat(s, 'power', CONFIG)),
+  'train-guard': commerce((s) => trainStat(s, 'guard', CONFIG)),
+  'train-speed': commerce((s) => trainStat(s, 'speed', CONFIG)),
+  repair: commerce((s) => repairWeapon(s, CONFIG)),
+  heal: commerce((s) => healInjuries(s, CONFIG)),
+  'buy-shield': commerce((s) => buyGear(s, 'shield', CONFIG)),
+  'buy-blade': commerce((s) => buyGear(s, 'blade', CONFIG)),
+  'buy-charm': commerce((s) => buyGear(s, 'charm', CONFIG)),
+  bribe: commerce((s) => bribeOfficial(s, CONFIG)),
   'next-fight': () => {
     state = startFight(state, CONFIG);
     state = { ...state, combat: { ...state.combat, sweet: seedSweet() } };

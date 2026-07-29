@@ -68,6 +68,16 @@ describe('CONFIG', () => {
     }
   });
 
+  // The ledger reads `config.snark.tax` for the arena-cut line (spec §6.6/§6.8: snark is
+  // content, not markup). A missing entry renders the row with no aside at all, silently.
+  it('has a snark aside for the ledger lines that carry one', () => {
+    for (const key of ['tax', 'sponsorReward']) {
+      expect(typeof CONFIG.snark[key], `${key} needs a ledger aside`).toBe('string');
+      expect(CONFIG.snark[key].length, `${key} aside must not be empty`).toBeGreaterThan(0);
+      expect(CONFIG.snark[key], `${key} aside must not be parenthesized`).not.toMatch(/[()]/);
+    }
+  });
+
   it('keeps snark asides inside the §6.8 grammar', () => {
     for (const [key, aside] of Object.entries(CONFIG.snark)) {
       expect(aside.length, `${key} aside must be <= 40 chars`).toBeLessThanOrEqual(40);

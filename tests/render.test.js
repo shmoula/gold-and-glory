@@ -611,19 +611,185 @@ describe('shopItem', () => {
   });
 });
 
-describe('renderResult', () => {
+// Spec §6.6: the ledger IS the product. Every line states an amount the same way, every money
+// line carries the data the theater counts it from, and nothing on this screen formats money
+// by hand. §6.13 stamps the title, §7 lays out recap / ledger / cta, §8 announces both.
+describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
+  const WIN = {
+    won: true, died: false, opponentName: 'The Brute',
+    purse: 50, tax: 10, sponsorIncome: 0, netGold: 40,
+    durabilityLost: 3, injuriesGained: 0, causeOfDeath: null,
+    commentary: 'The Brute falls.',
+  };
+  const LOSS = {
+    won: false, died: false, opponentName: 'The Brute',
+    purse: 0, tax: 0, sponsorIncome: 0, netGold: 0,
+    durabilityLost: 3, injuriesGained: 1, causeOfDeath: null,
+    commentary: 'You crawl out of the arena.',
+  };
+  const resultOf = (lastResult, over = {}) => {
+    const s = { ...createGameState(1, CONFIG), ...over, lastResult };
+    return renderResult(s, CONFIG);
+  };
+  // Rows as { label, amount } with the snark aside stripped off the term.
+  const ledgerRows = (html) => [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
+    label: row.querySelector('dt').firstChild.textContent.trim(),
+    amount: row.querySelector('dd').textContent,
+    classes: [...row.classList],
+    tone: [...row.querySelector('dd').classList],
+  }));
+  const rowFor = (html, label) => ledgerRows(html).find((r) => r.label === label);
+
   it('renders a win recap card', () => {
-    const s = createGameState(1, CONFIG);
-    s.lastResult = {
-      won: true, died: false, opponentName: 'The Brute',
-      purse: 50, tax: 10, sponsorIncome: 0, netGold: 40,
-      durabilityLost: 3, injuriesGained: 0, causeOfDeath: null,
-      commentary: 'The Brute falls.',
-    };
-    const html = renderResult(s, CONFIG);
+    const html = resultOf(WIN);
     expect(html).toContain('The Brute');
-    expect(html).toContain('40');
+    expect(html).toContain('ledger');
+    expect(html).toContain('New balance');
     expect(html).toContain('data-action="to-hub"');
+  });
+
+  it('lays the screen out as spec §7 recap / ledger / cta', () => {
+    const section = dom(resultOf(WIN)).querySelector('section.screen');
+    expect([...section.classList]).toContain('screen--result');
+    expect([...section.children].map((c) => c.className)).toEqual([
+      'result__recap', 'result__ledger', 'result__cta commit-bar']);
+  });
+
+  it('stamps the title, announced as a status (§6.13/§8)', () => {
+    const win = dom(resultOf(WIN)).querySelector('.banner-stamp');
+    expect(win.textContent).toBe('VICTORY!'); // §9: victory gets the exclamation
+    expect([...win.classList]).toContain('banner-stamp--victory');
+    expect(win.getAttribute('role')).toBe('status');
+    const loss = dom(resultOf(LOSS)).querySelector('.banner-stamp');
+    expect(loss.textContent).toBe('DEFEAT.'); // …defeat the deadpan period
+    expect([...loss.classList]).toContain('banner-stamp--defeat');
+  });
+
+  it('announces the ledger politely and signs the brand (§6.6/§8)', () => {
+    const card = dom(resultOf(WIN)).querySelector('.ledger');
+    expect(card.getAttribute('aria-live')).toBe('polite');
+    expect([...card.classList]).toContain('tape');
+    expect(card.querySelector('.wordmark').textContent).toBe('GOLD & GLORY');
+  });
+
+  it('starts every row hidden, so the theater has something to reveal', () => {
+    const rows = ledgerRows(resultOf(WIN));
+    expect(rows.length).toBeGreaterThan(3);
+    expect(rows.every((r) => r.classes.includes('is-hidden'))).toBe(true);
+  });
+
+  it('bills a win: purse in, tax out, net and the resulting balance', () => {
+    const html = resultOf(WIN, { gold: 100 });
+    expect(rowFor(html, 'Purse').amount).toBe(formatGold(50, { signed: true }));
+    expect(rowFor(html, 'Arena tax').amount).toBe(formatGold(-10, { signed: true }));
+    expect(rowFor(html, 'Net gold').amount).toBe(formatGold(40, { signed: true }));
+    expect(rowFor(html, 'Net gold').classes).toContain('ledger__row--net');
+    expect(rowFor(html, 'New balance').amount).toBe(formatGold(100));
+    expect(rowFor(html, 'New balance').classes).toContain('ledger__row--balance');
+  });
+
+  it('colours income green, expense red, and a zero line neither (§6.6)', () => {
+    const html = resultOf(WIN);
+    expect(rowFor(html, 'Purse').tone).toContain('amount--pos');
+    expect(rowFor(html, 'Arena tax').tone).toContain('amount--neg');
+    // "Injuries gained: 0" is good news — a zero line is muted ink, never red.
+    expect(rowFor(html, 'Injuries gained').amount).toBe('0');
+    expect(rowFor(html, 'Injuries gained').tone).toEqual(['amount']);
+    // …and a zero *money* line is muted for the same reason, not painted as income.
+    expect(rowFor(resultOf(LOSS), 'Purse').tone).toEqual(['amount']);
+  });
+
+  it('bills a defeat on the same ledger, with the injury and the wear', () => {
+    const html = resultOf(LOSS);
+    expect(rowFor(html, 'Purse').amount).toBe(formatGold(0, { signed: true }));
+    expect(rowFor(html, 'Purse').tone).toEqual(['amount']);
+    expect(rowFor(html, 'Injuries gained').amount).toBe('1');
+    expect(rowFor(html, 'Injuries gained').tone).toContain('amount--neg');
+    expect(rowFor(html, 'Weapon wear').amount).toBe('\u22123 durability');
+    expect(rowFor(html, 'Weapon wear').amount.codePointAt(0)).toBe(0x2212); // never a hyphen
+    // Wear is not money, so it never takes the gold treatment (Law 2).
+    expect(rowFor(html, 'Weapon wear').amount).not.toContain('G');
+  });
+
+  it('shows the sponsor line only when a sponsor paid', () => {
+    expect(rowFor(resultOf(WIN), 'Sponsor')).toBeUndefined();
+    const paid = resultOf({ ...WIN, sponsorIncome: 80, netGold: 120 });
+    expect(rowFor(paid, 'Sponsor').amount).toBe(formatGold(80, { signed: true }));
+    expect(paid).toContain(CONFIG.snark.sponsorReward);
+  });
+
+  it('hangs the §6.8 aside off the tax line from the config string table', () => {
+    const aside = dom(resultOf(WIN)).querySelector('.ledger__row .snark');
+    expect(aside.textContent).toBe(`(${CONFIG.snark.tax})`);
+  });
+
+  // The theater rewrites these cells from `data-value` using the formatter `data-unit` names.
+  // If the two ever disagree with the rendered text, the count ends on a different string than
+  // the one the server sent — the number would change after the animation for no reason.
+  it('agrees with the counters it hands the theater', () => {
+    const cells = [...dom(resultOf(WIN, { gold: 1234 })).querySelectorAll('.amount[data-unit]')];
+    expect(cells.length).toBe(4); // purse, tax, net, balance
+    for (const dd of cells) {
+      const value = Number(dd.getAttribute('data-value'));
+      const unit = dd.getAttribute('data-unit');
+      expect(Number.isFinite(value)).toBe(true);
+      expect(dd.textContent).toBe(formatGold(value, { signed: unit === 'gold-signed' }));
+    }
+    // Lines that are not money carry no counter at all.
+    const wear = dom(resultOf(WIN)).querySelectorAll('.ledger__row')[4];
+    expect(wear.querySelector('.amount').hasAttribute('data-unit')).toBe(false);
+  });
+
+  it('formats every gold figure through formatGold (spec §2)', () => {
+    const html = resultOf(WIN, { gold: 4500 });
+    // The old screen hand-rolled `${n}g` strings. Nothing may do that again.
+    expect(html).not.toMatch(/\d\s*g\b/);
+    expect(html).toContain(formatGold(4500));
+  });
+
+  it('crosses out a beaten opponent and shows their plate at zero', () => {
+    const won = dom(resultOf(WIN));
+    expect(won.querySelector('.result__cross')).not.toBeNull();
+    expect(won.querySelector('.result__cross').getAttribute('aria-hidden')).toBe('true');
+    const plate = won.querySelector('.poster .bar');
+    expect(plate.getAttribute('aria-valuenow')).toBe('0');
+    expect(plate.getAttribute('aria-valuemax'))
+      .toBe(String(CONFIG.opponents.find((o) => o.name === 'The Brute').health));
+    // A corpse's plate must not pulse forever — the override, not the derived default.
+    expect([...plate.classList]).not.toContain('is-urgent');
+  });
+
+  it('does not cross out, or invent a number for, an opponent still standing', () => {
+    const lost = dom(resultOf(LOSS));
+    expect(lost.querySelector('.result__cross')).toBeNull();
+    expect(lost.querySelector('.poster .bar')).toBeNull();
+    expect(lost.querySelector('.poster__sub').textContent).toContain(formatGold(50));
+  });
+
+  it('puts the resulting balance in the CTA price slot, never in its label (§6.6/§9)', () => {
+    const cta = dom(resultOf(WIN, { gold: 3110 })).querySelector('[data-action="to-hub"]');
+    expect([...cta.classList]).toEqual(['btn', 'btn--commit']);
+    expect(cta.querySelector('.btn__price').textContent).toBe(formatGold(3110));
+    expect(cta.firstChild.textContent).toBe('Return to Ludus'); // no money in the label
+    expect([...cta.classList]).not.toContain('is-unaffordable'); // a balance is never a cost
+  });
+
+  it('escapes the opponent name and the commentary', () => {
+    const html = resultOf({ ...WIN, opponentName: '<script>x</script>', commentary: '"&"' });
+    expect(dom(html).querySelector('script')).toBeNull();
+    expect(html).toContain('&lt;script&gt;');
+    expect(dom(html).querySelector('.result__flavor').textContent).toBe('"&"');
+  });
+
+  it('reports a real resolved fight, not just hand-built fixtures', () => {
+    const fought = resolveFightOutcome(
+      startFight(createGameState(1, CONFIG), CONFIG), true, makeRng(1), CONFIG);
+    const html = renderResult(fought, CONFIG);
+    expect(rowFor(html, 'New balance').amount).toBe(formatGold(fought.gold));
+    expect(rowFor(html, 'Net gold').amount)
+      .toBe(formatGold(fought.lastResult.netGold, { signed: true }));
+    expect(rowFor(html, 'Weapon wear').amount)
+      .toBe(`\u2212${fought.lastResult.durabilityLost} durability`);
   });
 });
 
