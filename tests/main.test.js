@@ -485,6 +485,86 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
   });
 });
 
+// Spec §8 wants the ledger announced politely. §6.6's theater makes that impossible inside the
+// card — it rewrites every money cell about six times as it counts, ~30 utterances over 2.5s —
+// but moving the announcement to a once-written `role="status"` line *inside the card* does not
+// fix it either: mount() replaces #app wholesale, so that line is a brand-new node carrying its
+// text already inside it, and a live region inserted already-populated announces nothing at all.
+// Silence and flood are two failure modes of the same design, and the fix for both is the same
+// one #log-announcer already uses: a region built once, outside #app, written after insertion.
+describe('the ledger announcement (spec §6.6 / §8)', () => {
+  const live = () => document.getElementById('ledger-announcer');
+
+  function winTheBout() {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1');
+    captureAt(renderedCenter());
+    act('2');
+    expect(q('.screen--result'), 'the fight did not end').not.toBeNull();
+  }
+
+  // The rows as the card states them, so the announcement can be held to the card's own words.
+  const cardLines = () => [...app().querySelectorAll('.ledger__row')].map((row) =>
+    `${row.querySelector('dt').firstChild.textContent.trim()}: ${row.querySelector('dd').textContent}`);
+
+  // The silence guard. Every assertion is about *when* the text lands relative to the region's
+  // insertion: the region must pre-date the result screen and still be the same node once the
+  // screen is up, or there is no content change for assistive tech to notice.
+  it('speaks from a persistent region written after it was inserted', () => {
+    const region = live();
+    expect(region).not.toBeNull();
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(document.body.contains(region)).toBe(true);
+    expect(app().contains(region)).toBe(false); // mount() cannot re-create it
+    expect(region.textContent).toBe(''); // inserted empty, long before a ledger exists
+    winTheBout();
+    expect(live()).toBe(region); // the same node, so the write is a real content change
+    // …and it states the visible ledger line for line, in the card's own words.
+    const lines = cardLines();
+    expect(lines.length).toBeGreaterThan(3);
+    expect(region.textContent).toBe(`${lines.join('. ')}.`);
+    // Nothing re-creates the summary inside the screen, where it would be mute.
+    expect(app().querySelector('.ledger__summary')).toBeNull();
+  });
+
+  // §8 asks for one announcement, and a re-render of the same result screen is not new news.
+  // Detected with a sentinel rather than by comparing strings: a second write of the same text
+  // is still a second utterance, and would be invisible to an equality check.
+  it('announces once per result screen, not once per render of it', () => {
+    winTheBout();
+    const region = live();
+    expect(region.textContent).not.toBe('');
+    region.textContent = 'SENTINEL';
+    // A render that lands while the result screen stays up (the same seam the ledger theater
+    // is retired through).
+    const spend = document.createElement('button');
+    spend.setAttribute('data-action', 'train-power');
+    app().appendChild(spend);
+    spend.click();
+    expect(q('.screen--result')).not.toBeNull();
+    expect(region.textContent).toBe('SENTINEL'); // nothing spoke a second time
+  });
+
+  // The flood guard, walked up the ancestor chain rather than checked on one element: putting
+  // `aria-live` back on `.ledger`, on the `<dl>`, on `.result__ledger` or on `#app` all produce
+  // the same thirty-utterance flood. And the amounts may not be hidden to buy the silence —
+  // that leaves a browse-mode reader a column of labels with no numbers.
+  it('keeps every counting cell out of a live region, without hiding it (§8)', () => {
+    winTheBout();
+    const cells = [...app().querySelectorAll('.ledger__row .amount[data-unit]')];
+    expect(cells.length).toBeGreaterThan(2);
+    for (const cell of cells) {
+      for (let el = cell; el; el = el.parentElement) {
+        expect(el.getAttribute('aria-live'), `${el.nodeName}.${el.className}`).toBeNull();
+        expect(el.getAttribute('role'), `${el.nodeName}.${el.className}`)
+          .not.toBe('status');
+        expect(el.getAttribute('aria-hidden'), `${el.nodeName}.${el.className}`).toBeNull();
+      }
+    }
+  });
+});
+
 // Spec §6.6/§6.7: money is never allowed to teleport. The purse counts, a signed chip falls
 // beside it, the ledger tallies one line at a time — and a rejected purchase says so out loud.
 //

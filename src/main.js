@@ -12,6 +12,7 @@ import {
 } from './combat.js';
 import { meterDistance, meterPosition, meterPeriod, sweetCenter } from './ui/timing.js';
 import { logEntryText } from './ui/components.js';
+import { ledgerSummary } from './ui/render.js';
 import {
   runLedgerTheater, spawnDeltaChip, spawnShortfallChip, purseShake, tickTo,
 } from './ui/effects.js';
@@ -19,20 +20,35 @@ import { mount, wire } from './ui/screens.js';
 
 const app = document.getElementById('app');
 
-// Spec §6.9/§8: a turn must be announced politely, exactly once. The `aria-live` the fight
-// screen puts on the strip cannot do it — mount() replaces #app wholesale, so that region is a
-// brand-new node every render and assistive tech announces nothing at all. This one is built
-// once, lives outside #app, and is never re-created, so writing to it is a genuine content
-// change in a region the screen reader already knows about.
-const announcer = document.createElement('div');
-announcer.id = 'log-announcer';
-announcer.className = 'sr-only';
-announcer.setAttribute('aria-live', 'polite');
-announcer.setAttribute('aria-atomic', 'true');
-document.body.appendChild(announcer);
+// Spec §8: a dynamic announcement must be spoken politely, exactly once. Nothing a renderer
+// emits can do it — mount() replaces #app wholesale, so any live region inside a screen is a
+// brand-new node every render, arriving with its text already inside it, and assistive tech
+// announces nothing at all. A region built once here, outside #app and never re-created, turns
+// each write into a genuine content change in a region the screen reader already knows about.
+// Every announcement in this file goes through one of these; none is ever emitted as markup.
+function liveRegion(id) {
+  const el = document.createElement('div');
+  el.id = id;
+  el.className = 'sr-only';
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('aria-atomic', 'true');
+  document.body.appendChild(el);
+  return el;
+}
+const announcer = liveRegion('log-announcer');
+// Spec §8 wants the ledger announced too, and it needs a region of its own rather than a share
+// of the one above. Both fire in the same tick when a fight ends — endFight() speaks the killing
+// blow, then the result screen renders — and an `aria-atomic` region only ever holds one message,
+// so the ledger would overwrite the exchange that decided the bout before it was ever spoken.
+// Two regions means two queued utterances instead of one clobbered pair.
+const ledgerAnnouncer = liveRegion('ledger-announcer');
 // How many log lines have already been spoken. One exchange pushes two entries (three with a
 // press), so this speaks the turn that just happened rather than re-reading all eight rows.
 let announced = 0;
+// The result already announced, held by identity. Every bout produces a fresh `lastResult`
+// object, so this re-arms itself for the next ledger while making a re-render of the screen
+// already up — a spend, a superseding render — not news worth speaking twice.
+let announcedResult = null;
 
 let state;
 let rng;
@@ -91,6 +107,7 @@ function render() {
   // already hidden and already carrying their final values, so a run with no JS theater at
   // all (or a reduced-motion one) still reads a complete, correct ledger.
   if (state.phase === PHASE.RESULT) {
+    announceLedger();
     ledgerTheater = runLedgerTheater(app.querySelector('.screen--result'));
   }
 }
@@ -118,6 +135,16 @@ function announceTurn() {
   const fresh = log.slice(announced);
   announced = log.length;
   if (fresh.length) announcer.textContent = fresh.map(logEntryText).join(' ');
+}
+
+// The ledger, spoken once per result. The renderer hands over the string and nothing else: the
+// region it lands in was built before the screen existed and is never re-created, which is the
+// only arrangement assistive tech treats as a content change (see the note on ledgerSummary).
+function announceLedger() {
+  const result = state.lastResult;
+  if (!result || result === announcedResult) return;
+  announcedResult = result;
+  ledgerAnnouncer.textContent = ledgerSummary(state, CONFIG);
 }
 
 // --- Timing meter animation ---

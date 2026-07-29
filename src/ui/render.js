@@ -157,18 +157,21 @@ const tallyRow = (label, count, text) => ({
   label, text, tone: count > 0 ? ' amount--neg' : '',
 });
 
-export function renderResult(state, config) {
-  const r = state.lastResult;
-  // By name, not by index: resolveFightOutcome has already advanced currentOpponentIndex past
-  // the bout being reported. Absent (a fixture, a renamed opponent) means no tier/purse line
-  // rather than a broken one.
-  const foe = config.opponents.find((o) => o.name === r.opponentName) ?? null;
+// The bout being reported, by name rather than by index: resolveFightOutcome has already
+// advanced currentOpponentIndex past it. Absent (a fixture, a renamed opponent) means no
+// tier/purse line rather than a broken one.
+const foeOf = (state, config) =>
+  config.opponents.find((o) => o.name === state.lastResult.opponentName) ?? null;
 
+// The ledger as data, one array, described once. Both the visible rows and the spoken summary
+// are derived from it, so the two can never state different numbers.
+function ledgerLines(state, config) {
+  const r = state.lastResult;
   // The same seven lines win or lose, so the ledger reads as one document and a defeat is
   // priced in the same units as a victory (§6.6: "the same ledger with expense-heavy rows").
   // The tax label states no rate: the result carries the amount, not the rate that produced
   // it, and a rate re-derived from a rounded amount would be a number that lies (Law 1).
-  const lines = [
+  return [
     moneyRow('Purse', r.purse),
     moneyRow('Arena tax', -r.tax, { snark: config.snark.tax }),
     r.sponsorIncome
@@ -183,16 +186,30 @@ export function renderResult(state, config) {
       cls: ' ledger__row--balance',
     },
   ].filter(Boolean);
-  const rows = lines.map(ledgerRow).join('');
-  // §8 wants the ledger announced politely. It cannot be the visible card: §6.6's theater
-  // rewrites every money cell about six times as it counts, and inside a live region each write
-  // is its own utterance — roughly thirty of them over 2.5s, so a screen reader hears the
-  // counting and never hears the ledger. `aria-hidden` on the counting cells would silence the
-  // flood but also take the amounts out of the accessibility tree, leaving a browse-mode reader
-  // a column of labels with no numbers. So the announcement is this one sr-only line, built from
-  // the very same strings the rows show, written once and never touched again — while the
-  // visible card stays plain markup that is complete and correct from the first paint.
-  const summary = `${lines.map((l) => `${l.label}: ${l.text}`).join('. ')}.`;
+}
+
+// §8 wants the ledger announced politely. The announcement cannot live on the visible card:
+// §6.6's theater rewrites every money cell about six times as it counts, and inside a live
+// region each write is its own utterance — roughly thirty of them over 2.5s, so a screen reader
+// hears the counting and never hears the ledger. `aria-hidden` on the counting cells would
+// silence the flood but also take the amounts out of the accessibility tree, leaving a
+// browse-mode reader a column of labels with no numbers.
+//
+// It cannot be a once-written `role="status"` line inside the card either: mount() replaces
+// #app wholesale, so such a line is a brand-new node on every render carrying its text already
+// inside it, and a live region inserted already-populated announces nothing at all — the same
+// defect that put #log-announcer outside #app in the first place (see src/main.js).
+//
+// So the renderer's job ends at the *string*: this states every line the card states, in the
+// card's own words, and main.js writes it into a region that already exists.
+export function ledgerSummary(state, config) {
+  return `${ledgerLines(state, config).map((l) => `${l.label}: ${l.text}`).join('. ')}.`;
+}
+
+export function renderResult(state, config) {
+  const r = state.lastResult;
+  const foe = foeOf(state, config);
+  const rows = ledgerLines(state, config).map(ledgerRow).join('');
 
   // §6.13 + §8: the screen-level stamp, announced as a status. Victory gets the exclamation,
   // defeat the deadpan period (§9) — death never reaches this screen, it goes to GAMEOVER.
@@ -222,7 +239,6 @@ export function renderResult(state, config) {
       <div class="result__ledger">
         <section class="ledger tape">
           <h2>The ledger</h2>
-          <p class="ledger__summary sr-only" role="status">${escapeHtml(summary)}</p>
           <dl>${rows}</dl>
           <span class="wordmark">GOLD &amp; GLORY</span>
         </section>

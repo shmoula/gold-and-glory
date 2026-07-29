@@ -3,7 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  btn, meter, poster, shopItem, renderHud, renderHub, renderResult, renderGameOver, renderFight,
+  btn, meter, poster, shopItem, renderHud, renderHub, renderResult, ledgerSummary,
+  renderGameOver, renderFight,
   meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter, URGENT_FRACTION,
   logEntry, logEntryText,
 } from '../src/ui/render.js';
@@ -627,10 +628,9 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     durabilityLost: 3, injuriesGained: 1, causeOfDeath: null,
     commentary: 'You crawl out of the arena.',
   };
-  const resultOf = (lastResult, over = {}) => {
-    const s = { ...createGameState(1, CONFIG), ...over, lastResult };
-    return renderResult(s, CONFIG);
-  };
+  const stateOf = (lastResult, over = {}) =>
+    ({ ...createGameState(1, CONFIG), ...over, lastResult });
+  const resultOf = (lastResult, over = {}) => renderResult(stateOf(lastResult, over), CONFIG);
   // Rows as { label, amount } with the snark aside stripped off the term.
   const ledgerRows = (html) => [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
     label: row.querySelector('dt').firstChild.textContent.trim(),
@@ -681,20 +681,25 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   // §8 wants the ledger announced politely, but §6.6's theater rewrites every money cell about
   // six times as it counts — inside a live region that is one utterance per write, roughly
   // thirty of them over 2.5s, and the screen reader reads the counting instead of the ledger.
-  // So the announcement is a single sr-only line written once by the renderer, and the visible
-  // card carries no live region at all: it is plain, complete markup from the first paint.
-  it('announces the ledger once, out of the theater’s way (§6.6/§8)', () => {
-    const html = resultOf(WIN, { gold: 100 });
+  // A once-written `role="status"` line inside the card is no better: mount() rebuilds #app on
+  // every render, so the line is a brand-new node carrying its text already inside it, and a
+  // live region inserted already-populated announces nothing at all.
+  //
+  // So the renderer emits the summary as a *string* and the card as plain, complete markup with
+  // nothing on it that speaks; main.js writes the string into the persistent region outside #app
+  // (tests/main.test.js holds that end of the contract).
+  it('emits the ledger summary as a string, on a card that never speaks (§6.6/§8)', () => {
+    const state = stateOf(WIN, { gold: 100 });
+    const html = renderResult(state, CONFIG);
     const card = dom(html).querySelector('.ledger');
     expect([...card.classList]).toContain('tape');
     expect(card.querySelector('.wordmark').textContent).toBe('GOLD & GLORY');
-
-    const summary = dom(html).querySelector('.ledger__summary');
-    expect(summary.getAttribute('role')).toBe('status'); // implies polite + atomic
-    expect([...summary.classList]).toContain('sr-only');
+    expect(card.getAttribute('aria-live')).toBeNull();
+    expect(card.getAttribute('role')).toBeNull();
+    expect(card.querySelector('[aria-live], [role="status"], .ledger__summary')).toBeNull();
     // One utterance stating every line the visible ledger states, in the same order and in the
     // same words — derived from the rendered rows, so the two can never drift apart.
-    expect(summary.textContent).toBe(
+    expect(ledgerSummary(state, CONFIG)).toBe(
       ledgerRows(html).map((r) => `${r.label}: ${r.amount}`).join('. ') + '.');
   });
 

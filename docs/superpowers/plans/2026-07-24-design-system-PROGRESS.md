@@ -60,6 +60,16 @@ Things Task 8 will touch or depend on:
   directly in a renderer.
 - **`poster()`'s `urgent` is an overridable default** (`urgent ?? derivation`). Tasks 8/9 render
   0-HP posters — pass `urgent: false` so a corpse's plate does not pulse forever.
+- **Announcements are built, never rendered.** `liveRegion(id)` in `src/main.js` builds every
+  live region: `.sr-only`, `aria-live="polite"`, `aria-atomic="true"`, appended to
+  `document.body`. There are two — `#log-announcer` (combat exchanges) and `#ledger-announcer`
+  (the result ledger, §8). **Separate on purpose:** both fire in the same tick when a fight ends
+  (`endFight()` speaks the killing blow, then the result screen renders), and an `aria-atomic`
+  region holds exactly one message, so sharing one would let the ledger overwrite the exchange
+  that decided the bout before it was ever spoken. `renderResult` emits **no** live region: it
+  exports `ledgerSummary(state, config)` as a string, and `render()` writes it once per result
+  (guarded by `state.lastResult` identity, so a re-render of the screen already up is not
+  re-spoken). Any future announcement belongs here too — see backlog item 26.
 - **`#log-announcer`** is a persistent `.sr-only` live region appended to `document.body`, outside
   `#app`, so `mount()`'s wholesale `innerHTML` replacement cannot destroy it. It announces only the
   exchange that just happened, and `endFight()` calls it before `resolveFightOutcome` nulls
@@ -231,6 +241,14 @@ Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task'
     10,000 entries would mean ~1 MB of `innerHTML` re-parsed every turn. Fix the stall, not the log.
 25. `renderGameOver` emits no HUD, so §6.1's "HUD persists showing the fatal state (0/100)" is
     unmet. **Task 9 territory** — flagged here so it is not lost.
+26. **`banner-stamp`'s `role="status"` is a live region that cannot speak.** It is emitted inside
+    `#app`, so `mount()` re-creates it on every render with "VICTORY!" already inside it — and a
+    live region inserted already-populated announces nothing. Exactly the defect that put
+    `#log-announcer` outside `#app`, and the one that made the ledger's in-card `role="status"`
+    summary silent. Spec §8 mandates `role="status"` on the result stamps **explicitly**, so the
+    markup was left as the spec demands rather than fixed under Task 8. Task 10 should reconcile
+    the spec with the only arrangement that actually speaks: a persistent region outside `#app`,
+    written after insertion (`liveRegion()` in `src/main.js`).
 
 **Task 8's `legacy.css` trim list keeps growing.** Dead as of now: `:where(.hud .gold)`,
 `:where(.hub .row)`, the `.hub` arm of the button-skin group, `:where(.sponsor)`,
