@@ -2,7 +2,7 @@
 // timing-meter math in ./timing.js; both are re-exported below so existing importers (and the
 // render tests) keep their single entry point.
 import { trainingCost, repairCost, healCost } from '../economy.js';
-import { effectiveStats } from '../game.js';
+import { effectiveStats, playerHealth } from '../game.js';
 import { timingWindowWidth } from '../combat.js';
 import { formatGold } from './format.js';
 import {
@@ -40,13 +40,18 @@ const playerSub = (state) =>
   `Wins: ${state.wins} ${MIDDOT} Purse: <span class="amount">${formatGold(state.gold)}</span>`;
 
 export function renderHud(state, config) {
+  // Spec 6.5: the beam and the player poster read the same field. During a fight that field is
+  // the live combat one, so the beam falls with the fighter - and, crucially, its URGENT_FRACTION
+  // flash fires on the one screen where being nearly dead is actionable. Reading `state.health`
+  // here showed a full beam beside a wounded poster and could never flash mid-fight.
+  const hp = playerHealth(state);
   const pipCount = Math.max(PIP_MIN_SLOTS, state.injuries);
   const pips = Array.from({ length: pipCount }, (_, i) =>
     `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`).join('');
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
-      ${bar('Health', state.health, state.maxHealth, { urgent: state.health / state.maxHealth < URGENT_FRACTION })}
+      ${bar('Health', hp.value, hp.max, { urgent: hp.value / hp.max < URGENT_FRACTION })}
       ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
       <span class="hud__stat"><span class="hud__label">Injuries</span>
         <span class="pips" role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}">${pips}</span></span>
@@ -109,7 +114,7 @@ export function renderHub(state, config) {
         ${sponsorCard}
       </div>
       <div class="hub__fight">
-        ${poster({ name: 'You', tilt: 1, hp: { value: state.health, max: state.maxHealth } })}
+        ${poster({ name: 'You', tilt: 1, hp: playerHealth(state) })}
         <span class="hub__next-label">Next bout</span>
         ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent) })}
       </div>
@@ -205,7 +210,7 @@ export function renderFight(state, config) {
     ${renderHud(state, config)}
     <section class="screen screen--fight">
       <div class="fight__you">${poster({ name: 'You', tilt: 1,
-        hp: { value: c.player.health, max: c.player.maxHealth },
+        hp: playerHealth(state),
         sub: playerSub(state), snark: config.snark.player })}</div>
       <div class="fight__stage">${renderMeter(state, config)}</div>
       <div class="fight__foe">${poster({ name: c.enemy.name, tilt: 2,

@@ -5,6 +5,7 @@ import { createGameState } from '../src/state.js';
 import {
   effectiveStats, trainStat, repairWeapon, healInjuries, buyGear, bribeOfficial,
 } from '../src/game.js';
+import { healCost } from '../src/economy.js';
 
 describe('effectiveStats', () => {
   it('returns base stats with no training or gear', () => {
@@ -196,6 +197,55 @@ describe('resolveFightOutcome (loss)', () => {
     expect(next.phase).toBe(PHASE.GAMEOVER);
     expect(next.ended).toBe('dead');
     expect(typeof next.lastResult.causeOfDeath).toBe('string');
+  });
+});
+
+// Spec 6.5's "one health field" is a read-side fix: the HUD derives the live number from
+// state.combat while a fight is running, and nothing writes damage back to state.health as it
+// happens. These pin the ledger that a write-back would have broken - combat damage must reach
+// state.health exactly once, at the end of the bout, and the money and healing economics must
+// not move at all.
+describe('combat damage reaches state.health exactly once', () => {
+  it('leaves the persistent field untouched while the fight is running', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.player.health = 80;
+    expect(s.health).toBe(100);
+    expect(s.maxHealth).toBe(100);
+  });
+
+  it('writes the fight health back on a win without disturbing the ledger', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.player.health = 80;
+    const next = resolveFightOutcome(s, true, makeRng(1), CONFIG);
+    expect(next.health).toBe(s.combat.player.health); // once, not twice: 80, never 60
+    expect(next.maxHealth).toBe(100);
+    // Brute purse 50, tax 20% = 10, net +40 on a starting purse of 100.
+    expect(next.gold).toBe(140);
+    expect(next.lastResult.purse).toBe(50);
+    expect(next.lastResult.tax).toBe(10);
+    expect(next.lastResult.netGold).toBe(40);
+    expect(next.lastResult.durabilityLost).toBe(3);
+    expect(next.weaponDurability).toBe(27);
+    expect(next.lastResult.injuriesGained).toBe(0);
+    expect(next.injuries).toBe(0);
+  });
+
+  // The loss branch prices health off injuries, not off what was left in the fight, so an
+  // overkilled fighter who survives still crawls out on the injury table.
+  it('prices post-loss health off injuries, whatever the fight left', () => {
+    let s = createGameState(1, CONFIG);
+    s.currentOpponentIndex = 1; // Journeyman: seed 2 does not roll a death
+    s = startFight(s, CONFIG);
+    s.combat.player.health = -30;
+    const next = resolveFightOutcome(s, false, makeRng(2), CONFIG);
+    expect(next.lastResult.died).toBe(false);
+    expect(next.injuries).toBe(1);
+    expect(next.health).toBe(80); // maxHealth - 20 per injury, not -30 and not 0
+    // Healing is priced per injury and refills to the cap, so the fix moves neither.
+    expect(healCost(next.injuries, CONFIG)).toBe(healCost(1, CONFIG));
+    const healed = healInjuries({ ...next, gold: 1000 }, CONFIG);
+    expect(healed.health).toBe(next.maxHealth);
+    expect(healed.gold).toBe(1000 - healCost(1, CONFIG));
   });
 });
 

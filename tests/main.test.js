@@ -472,3 +472,43 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     expect(live().textContent).toContain('You strike (miss) for 0 damage.');
   });
 });
+
+// Spec 6.5: the beam and the player poster show one quantity, so they must read one field.
+// Measured before the fix, in this very harness: after three exchanges the screen carried
+// HUD 100/100 beside poster 80/100 - two numbers for one fighter, side by side.
+describe('one health number on screen (spec 6.5)', () => {
+  const valueOf = (sel) => Number(q(sel).getAttribute('aria-valuenow'));
+  const hudHealth = () => valueOf('.hud [aria-label="Health"]');
+  const posterHealth = () => valueOf('.poster--tilt-1 [aria-label="You health"]');
+
+  it('keeps the beam and the poster in step across three exchanges of real damage', () => {
+    enterFight();
+    const start = hudHealth();
+    expect(hudHealth()).toBe(posterHealth());
+    for (let exchange = 1; exchange <= 3; exchange += 1) {
+      act('1'); // no capture: a miss, so the enemy answers and lands a blow
+      expect(hudHealth(), `exchange ${exchange}`).toBe(posterHealth());
+    }
+    expect(hudHealth()).toBeLessThan(start); // the enemy really did connect
+  });
+
+  // The damage the beam now shows live must not also be charged at the end of the bout. If a
+  // future change mirrored combat damage into state.health each turn, resolveFightOutcome would
+  // write it back a second time and the result screen would open on a lower number than the
+  // last frame of the fight.
+  it('carries the last fight number onto the result screen unchanged', () => {
+    enterFight();
+    act('1');
+    act('1'); // two exchanges of enemy damage
+    const wounded = hudHealth();
+    expect(wounded).toBeLessThan(CONFIG.player.maxHealth);
+    // Two crits end the Brute (40 hp) and the enemy never answers between them, so no further
+    // damage can reach the player before the result screen renders.
+    captureAt(renderedCenter());
+    act('1');
+    captureAt(renderedCenter());
+    act('2');
+    expect(q('[data-meter]'), 'the fight did not end').toBeNull();
+    expect(hudHealth()).toBe(wounded);
+  });
+});

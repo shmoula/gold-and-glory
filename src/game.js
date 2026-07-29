@@ -23,6 +23,20 @@ export function effectiveStats(state, config) {
   return stats;
 }
 
+// The one answer to "how much health does the player have right now" (spec 6.5: the poster and
+// the HUD beam must read the same field). While a bout is running the live figure is
+// `state.combat.player.health` - combat owns it, every blow lands on it, and `isFightOver` and
+// `fightWinner` judge the fight by it. `state.health` is the *between-fights* value: nothing
+// touches it during a fight and `resolveFightOutcome` writes the fight's result into it once,
+// at the end. So this is a read-side selector, not a mirror: no field is copied, no damage can
+// be applied twice, and there is exactly one expression in the codebase that picks the
+// authoritative one. Every surface that shows player health calls this.
+export function playerHealth(state) {
+  const live = state.combat?.player;
+  if (live) return { value: live.health, max: live.maxHealth };
+  return { value: state.health, max: state.maxHealth };
+}
+
 export function trainStat(state, stat, config) {
   const cost = trainingCost(state.trainingLevels[stat], config);
   if (!canAfford(state.gold, cost)) return state;

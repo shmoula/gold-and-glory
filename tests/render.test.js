@@ -8,7 +8,8 @@ import {
   logEntry, logEntryText,
 } from '../src/ui/render.js';
 import { formatGold } from '../src/ui/format.js';
-import { startFight, effectiveStats } from '../src/game.js';
+import { startFight, effectiveStats, resolveFightOutcome } from '../src/game.js';
+import { makeRng } from '../src/rng.js';
 import { resolveTiming, timingWindowWidth } from '../src/combat.js';
 
 // Match classes as a set, never as a literal class string: adding or reordering a class is a
@@ -159,6 +160,80 @@ describe('renderHud', () => {
     expect(html).toContain('2,450\u00A0G');
     expect(html).toContain('data-value="2450"');
     expect(html).not.toContain('data-gold');
+  });
+});
+
+// Spec 6.5: "Player poster and HUD may both show HP; they must read from the same state field."
+// They did not. `renderHud` read `state.health`, which combat never touches until
+// `resolveFightOutcome` writes it back at the end of the bout, while the poster read the live
+// `state.combat.player.health` - so mid-fight the screen showed 100/100 beside 80/100, and the
+// HUD's urgency flash was computed from the stale field and therefore never fired during the
+// one screen where it matters. Both now go through `playerHealth(state)`, the single answer to
+// "what is the player's health right now".
+describe('the HUD beam and the player poster read one health field (spec 6.5)', () => {
+  const plate = (el) => ({
+    value: Number(el.getAttribute('aria-valuenow')),
+    max: Number(el.getAttribute('aria-valuemax')),
+    urgent: el.classList.contains('is-urgent'),
+  });
+  // Both readings come from the ARIA the player's assistive tech is given, not from markup
+  // substrings: these are the two numbers shown side by side.
+  const hudPlate = (html) => plate(dom(html).querySelector('.hud [aria-label="Health"]'));
+  const posterPlate = (html) =>
+    plate(dom(html).querySelector('.poster--tilt-1 [aria-label="You health"]'));
+
+  it('agrees at fight start', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    const html = renderFight(s, CONFIG);
+    expect(hudPlate(html)).toEqual(posterPlate(html));
+    expect(hudPlate(html).value).toBe(s.combat.player.health);
+    expect(hudPlate(html).max).toBe(s.combat.player.maxHealth);
+  });
+
+  it('agrees mid-fight, once the enemy has landed blows', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.player.health = 80;
+    // The stale field is exactly the trap: it still reads full while the fighter is at 80.
+    expect(s.health).toBe(100);
+    const html = renderFight(s, CONFIG);
+    expect(hudPlate(html)).toEqual(posterPlate(html));
+    expect(hudPlate(html).value).toBe(80);
+    expect(html).toContain('80/100');
+    expect(html).not.toContain('100/100');
+  });
+
+  it('agrees again after the fight ends and the hub renders', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.player.health = 80;
+    const next = resolveFightOutcome(s, true, makeRng(1), CONFIG);
+    expect(next.combat).toBeNull(); // no live fight left to read from
+    const html = renderHub(next, CONFIG);
+    expect(hudPlate(html)).toEqual(posterPlate(html));
+    expect(hudPlate(html).value).toBe(next.health);
+    expect(hudPlate(html).value).toBe(80);
+  });
+
+  // The consequence that actually costs a player the run: the beam's URGENT_FRACTION flash was
+  // computed from the stale field, so it could not fire while the fight was being lost.
+  it('flashes the HUD beam urgent mid-fight, off the live fight health', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    const max = s.combat.player.maxHealth;
+    // Derived from maxHealth, as the existing urgency tests do: the smallest health that is
+    // still at or above the threshold, and the largest one below it.
+    const atThreshold = Math.ceil(max * URGENT_FRACTION);
+    expect((atThreshold - 1) / max).toBeLessThan(URGENT_FRACTION);
+    expect(atThreshold / max).toBeGreaterThanOrEqual(URGENT_FRACTION);
+
+    s.combat.player.health = atThreshold - 1;
+    expect(s.health).toBe(max); // stale field says "untouched"; the beam must not believe it
+    const hurt = renderFight(s, CONFIG);
+    expect(hudPlate(hurt).urgent).toBe(true);
+    expect(posterPlate(hurt).urgent).toBe(true);
+
+    s.combat.player.health = atThreshold;
+    const steady = renderFight(s, CONFIG);
+    expect(hudPlate(steady).urgent).toBe(false);
+    expect(posterPlate(steady).urgent).toBe(false);
   });
 });
 
