@@ -16,7 +16,7 @@ then spec-compliance review, then code-quality review, then next task.
 | 4 — Button system + snark | **done, both reviews passed** | `5e42184` + `9b0f859` |
 | 5 — Hub screen | **done, both reviews passed** | `16ffa9c` + `8a3cde7` + `741afd0` + `c80fd17` |
 | 6 — Timing meter | **done, both reviews passed** | `078b8a1` + `616d6b3` + `b112433` |
-| 7 — Fight screen | pending | — |
+| 7 — Fight screen | **done, both reviews passed** | `fc5a1dd` + `982f36b` + `6205a85` + `aebe210` |
 | 8 — Result screen + effects | pending | — |
 | 9 — Game Over | pending | — |
 | 10 — Verification pass | pending | — |
@@ -24,10 +24,10 @@ then spec-compliance review, then code-quality review, then next task.
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 7 (Fight screen layout + combat log)
+## RESUME HERE — Task 8 (Result screen: ledger, theater, delta chips, purse ticker)
 
-Tasks 3, 4, 5 and 6 are **fully closed**, each with spec review + code-quality review + at least
-one fix round + an independent re-review. Suite is **183 tests green**, build clean. Every fix
+Tasks 3, 4, 5, 6 and 7 are **fully closed**, each with spec review + code-quality review + at least
+one fix round + an independent re-review. Suite is **228 tests green**, build clean. Every fix
 assertion was mutation-verified twice — once by the implementer, once independently by a reviewer.
 
 - Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
@@ -35,6 +35,42 @@ assertion was mutation-verified twice — once by the implementer, once independ
 - Task 5: `16ffa9c` → `8a3cde7` (file split + 2 quality fixes) → `741afd0` (7 fixes + the player
   poster) → `c80fd17` (mobile grid-area overlap fix).
 - Task 6: `078b8a1` → `616d6b3` (4 correctness bugs) → `b112433` (7 polish fixes).
+- Task 7: `fc5a1dd` → `982f36b` (3 spec gaps + 3 correctness bugs) → `6205a85` (5 structural
+  fixes) → `aebe210` (HUD/poster health divergence).
+
+### What Task 7 leaves you
+
+Task 7 was marked **NOT COMPLIANT** on first review — the plan had omitted three spec requirements
+outright. Assume the plan is incomplete for Tasks 8 and 9 too, and read the spec sections
+themselves rather than trusting the plan's markup to be sufficient.
+
+Things Task 8 will touch or depend on:
+- **`logEntry()` / `logEntryText()` in `components.js`.** Log entries are now **data**
+  (`{turn, kind, text, ...values}`) with `{who}{dmg}{taken}{gold}` slots, not pre-baked strings.
+  Every value is escaped exactly once and substituted in a single pass, so a hostile name can
+  neither inject nor mint a second placeholder. Verified against 6 payloads. Do not reintroduce
+  string concatenation here.
+- **Turn numbers are real.** `createCombat` seeds `turn: 1`, `pushEntry` stamps it, `enemyTurn`
+  advances it, so a player action, its press and the reply all share one turn. The old code
+  numbered log *lines* and ran at roughly double the real turn count.
+- **`playerHealth(state)` in `game.js` is the single read-side source of truth for player HP** —
+  live combat figure during a bout, `state.health` between bouts. `renderHud` and both player
+  posters go through it. Before this, the HUD read a stale field, so the health beam **never
+  turned urgent during a fight**. Do not read `state.health` or `state.combat.player.health`
+  directly in a renderer.
+- **`poster()`'s `urgent` is an overridable default** (`urgent ?? derivation`). Tasks 8/9 render
+  0-HP posters — pass `urgent: false` so a corpse's plate does not pulse forever.
+- **`#log-announcer`** is a persistent `.sr-only` live region appended to `document.body`, outside
+  `#app`, so `mount()`'s wholesale `innerHTML` replacement cannot destroy it. It announces only the
+  exchange that just happened, and `endFight()` calls it before `resolveFightOutcome` nulls
+  `combat` — otherwise the killing blow is the one exchange never spoken.
+- **`LOG_WINDOW` is gone.** The renderer emits the whole bout; CSS `max-height` + `overflow-y` plus
+  the auto-scroll in `main.js`'s `render()` decide scrollback. Realistic worst case measured at
+  254 entries / 29 KB / ~12 ms per mount.
+- **`tests/grid-areas.test.js` now derives its screen list** by driving `mount()` over
+  `Object.values(PHASE)`, and asserts variant parity both ways plus that a screen sizes as many
+  rows as it names. Task 8's result screen is covered automatically — but it also means a layout
+  mistake there fails this test rather than going unnoticed.
 
 ### What Task 6 leaves you
 
@@ -178,8 +214,30 @@ Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task'
     band, so mutating the seed to 0.5 survives. Zero production impact: the default is re-seeded
     before it can ever render.
 
-**Task 8's `legacy.css` trim list has grown again:** `:where(.meter-sweet)` is now dead too, since
-Task 6 deleted its markup.
+20. Spec §7's comment puts the fight's action grid inside `.commit-bar` when stacked; the plan's
+    markup has no `commit-bar` on `.fight__actions`. The plan was followed. (§7's line is a
+    comment, not a rule, and the hub already implements it.)
+21. `fight__you|stage|foe|log|actions|grid` are not in spec §6.0's closed class index — the same
+    shape as the already-accepted `hub__*` classes.
+22. Spec §6.9 says at most **one entry** announced per turn, but `#log-announcer` joins the whole
+    exchange (2 entries, 3 with a press) into one utterance. One *announcement* per turn, but not
+    one *entry* — reconcile the code or the spec line.
+23. **Two live regions now cover the same content:** `aria-live="polite"` remains on the
+    `<ul class="log">` (§8 mandates it) alongside `#log-announcer`. On AT that speaks a
+    freshly-inserted live region, the duplicate reading is now the entire bout.
+24. **A non-terminating fight is reachable** — a player whose guard ≥ the enemy's max crit damage
+    who blocks every turn never finishes (measured: 5000 exchanges, enemy still at 40 HP). This is
+    a **game-logic bug that predates the design system**, but it now has no log cap in front of it:
+    10,000 entries would mean ~1 MB of `innerHTML` re-parsed every turn. Fix the stall, not the log.
+25. `renderGameOver` emits no HUD, so §6.1's "HUD persists showing the fatal state (0/100)" is
+    unmet. **Task 9 territory** — flagged here so it is not lost.
+
+**Task 8's `legacy.css` trim list keeps growing.** Dead as of now: `:where(.hud .gold)`,
+`:where(.hub .row)`, the `.hub` arm of the button-skin group, `:where(.sponsor)`,
+`:where(.meter-sweet)`, `:where(.timing-meter)`, `:where(.combatants)`, `:where(.press)`,
+`:where(.log)`, and the `.actions` arms of both `:where(.actions)` and the button-skin group.
+Plus the `:where(.hud)` `margin-bottom` leak. Verify each is really dead before removing it —
+jsdom `element.matches` over a mounted screen is how the earlier ones were confirmed.
 
 ## Dispatch pattern that actually works in this environment
 
