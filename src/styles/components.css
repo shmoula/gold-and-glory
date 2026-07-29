@@ -135,3 +135,19 @@
   padding: 2px var(--space-1) 0; }
 .meter__taunt { text-align: center; font-size: var(--text-md); color: var(--bone);
   text-shadow: 0 1px 0 rgba(31,22,12,0.8); }
+
+/* ---- 6.9 Combat log ---- */
+/* `color` is not in the plan's block: legacy.css's zero-specificity `:where(.log)` still paints
+   the strip in muted ink, which would leave `.log__turn` the same colour as the clause it is
+   supposed to stand out from. Stating the ink here makes the component self-contained before
+   Task 9 deletes that file. */
+.log { list-style: none; margin: 0; padding: var(--space-3);
+  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2); box-shadow: var(--shadow-paper); color: var(--color-text);
+  max-height: 160px; overflow-y: auto; font-size: var(--text-sm); }
+.log__entry { padding: 2px 0; border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25); }
+.log__entry:last-child { border-bottom: none; }
+.log__turn { font-weight: 700; color: var(--color-text-muted); font-variant-numeric: tabular-nums;
+  margin-right: var(--space-1); }
+.fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.fight__actions { display: flex; flex-direction: column; gap: var(--space-3); align-items: stretch; }

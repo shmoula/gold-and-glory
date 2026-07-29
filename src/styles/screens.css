@@ -26,9 +26,32 @@
 .hub__next-label { font-family: var(--font-display); font-size: var(--text-lg);
   letter-spacing: 0.05em; color: var(--bone); text-shadow: 0 1.5px 0 rgba(31,22,12,0.8); }
 
+/* FIGHT — posters flank, meter center-stage, log left / actions right. Areas are spec §7
+   verbatim; as on the hub, the `hud` row is reserved for the beam that still renders above
+   the section. Must stay above the ≤640px block: the `.screen > *` reset there is what hands
+   these children back to auto-placement when the areas go away (see tests/grid-areas.test.js). */
+.screen--fight {
+  grid-template-columns: 260px 1fr 300px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "hud  hud    hud"
+    "you  stage  foe"
+    "log  log    actions";
+}
+/* stage: taunt line + .meter + labels · actions: Press-the-Attack slot above 2×2 action grid */
+.fight__you { grid-area: you; }
+.fight__stage { grid-area: stage; align-self: center; }
+.fight__foe { grid-area: foe; }
+.fight__log { grid-area: log; }
+.fight__actions { grid-area: actions; }
+
 @media (max-width: 900px) {
   .screen--hub { grid-template-columns: 1fr 1fr;
     grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
+  /* The posters pair up, the stage spans, and the actions come before the commentary: at this
+     width the log is history and the buttons are the thing you reach for. */
+  .screen--fight { grid-template-columns: 1fr 1fr;
+    grid-template-areas: "hud hud" "you foe" "stage stage" "actions actions" "log log"; }
 }
 @media (max-width: 640px) {
   /* One stack reset for every screen, present and future. Both halves are required:

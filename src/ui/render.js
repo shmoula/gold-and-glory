@@ -159,7 +159,7 @@ function renderMeter(state, config) {
   // Spec 6.4 puts the first-fight taunt above the track.
   return `
       ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}
-      <div class="meter timing-meter" data-meter="1" tabindex="0" role="application"
+      <div class="meter" data-meter="1" tabindex="0" role="application"
         aria-label="Timing meter \u2014 press Space or click to strike">
         ${zone('graze')}
         ${zone('hit')}
@@ -169,25 +169,38 @@ function renderMeter(state, config) {
       <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
 }
 
+// Spec §6.9: the parchment strip is a fixed-height tail of the fight, newest at the bottom.
+// One combat.log entry is one turn — the player's action and the enemy's answer are pushed by
+// separate calls — so the entry index *is* the turn number. Numbering counts from the start of
+// the fight, not from the top of the window, or turn 9 would announce itself as turn 1.
+const LOG_WINDOW = 8;
+
 export function renderFight(state, config) {
   const c = state.combat;
-  const logHtml = c.log.slice(-6).map((l) => `<li>${escapeHtml(l)}</li>`).join('');
+  const shown = c.log.slice(-LOG_WINDOW);
+  const firstTurn = c.log.length - shown.length + 1;
+  const logHtml = shown.map((l, i) =>
+    `<li class="log__entry"><span class="log__turn">T${firstTurn + i}</span> ${escapeHtml(l)}</li>`)
+    .join('');
+  // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
+  // at the shared urgency threshold — the fight screen states no number by hand.
   return `
     ${renderHud(state, config)}
-    <section class="fight">
-      <div class="combatants">
-        <div class="you">YOU<br/>${Math.max(0, c.player.health)}/${c.player.maxHealth}</div>
-        <div class="them">${escapeHtml(c.enemy.name)}<br/>${Math.max(0, c.enemy.health)}/${c.enemy.maxHealth}</div>
+    <section class="screen screen--fight">
+      <div class="fight__you">${poster({ name: 'You', tilt: 1,
+        hp: { value: c.player.health, max: c.player.maxHealth } })}</div>
+      <div class="fight__stage">${renderMeter(state, config)}</div>
+      <div class="fight__foe">${poster({ name: c.enemy.name, tilt: 2,
+        hp: { value: c.enemy.health, max: c.enemy.maxHealth } })}</div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log" aria-live="polite">${logHtml}</ul></div>
+      <div class="fight__actions">
+        ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
+        <div class="fight__grid">
+          ${btn('strike', 'Strike')}
+          ${btn('heavy', 'Heavy')}
+          ${btn('block', 'Block')}
+          ${btn('feint', 'Feint')}
+        </div>
       </div>
-      ${renderMeter(state, config)}
-      <p class="meter-hint">Click the meter, then choose your action.</p>
-      <div class="actions">
-        <button data-action="strike">Strike</button>
-        <button data-action="heavy">Heavy</button>
-        <button data-action="block">Block</button>
-        <button data-action="feint">Feint</button>
-      </div>
-      ${c.canPress ? '<button data-action="press" class="press">PRESS THE ATTACK!</button>' : ''}
-      <ul class="log">${logHtml}</ul>
     </section>`;
 }

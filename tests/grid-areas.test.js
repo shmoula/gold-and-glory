@@ -12,6 +12,10 @@
 // affected child lands in the same implicit cell and paints on top of the others.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
+import { CONFIG } from '../src/config.js';
+import { createGameState } from '../src/state.js';
+import { startFight } from '../src/game.js';
+import { renderHub, renderFight } from '../src/ui/render.js';
 
 // Cascade order = the entry point's @import order, then anything not imported yet.
 const ENTRY = 'src/styles.css';
@@ -203,6 +207,56 @@ describe('screen grid areas', () => {
       }
     }
     expect(broken).toEqual([]);
+  });
+
+  // Spec §7 makes ≤900px a real breakpoint, not a free pass. A desktop grid left undeclared
+  // there keeps all of its columns on a tablet, and nothing else in this file notices: the
+  // areas are still defined, so every child still resolves. Rule-level, because jsdom lays
+  // nothing out. A screen that genuinely wants one layout everywhere can drop its areas at 900
+  // (as spec §7 does for result/gameover) and satisfy this.
+  it('recomposes every screen variant at the ≤900px compact breakpoint', () => {
+    const stuck = [];
+    for (const variant of VARIANTS.filter((v) => v !== 'screen')) {
+      const el = container(variant);
+      const wide = winner(el, 'grid-template-areas', 1280);
+      if (wide && winner(el, 'grid-template-areas', 900) === wide) stuck.push(variant);
+      el.remove();
+    }
+    expect(stuck).toEqual([]);
+  });
+
+  // Everything above reads rules only, so a wrapper the renderer emits but the sheet never
+  // places is invisible to it: the child falls into auto-placement and the grid it was written
+  // for quietly ignores it. This walks the real markup instead - every direct child of a
+  // rendered `.screen` must resolve to an area its own variant defines, at every width where
+  // that variant still has areas. (Below that, the ≤640px reset stacks them, which the test
+  // above owns.)
+  it('places every direct child the screens actually render', () => {
+    const hub = createGameState(1, CONFIG);
+    const rendered = [renderHub(hub, CONFIG), renderFight(startFight(hub, CONFIG), CONFIG)];
+    const misplaced = [];
+    let checked = 0;
+    for (const html of rendered) {
+      const host = document.createElement('div');
+      host.innerHTML = html;
+      document.body.appendChild(host);
+      const section = host.querySelector('.screen');
+      const variant = [...section.classList].find((c) => c.startsWith('screen--'));
+      expect(variant, 'a rendered .screen with no --variant').toBeDefined();
+      for (const child of section.children) {
+        for (const width of WIDTHS) {
+          if (areasOf[variant][width].size === 0) continue; // stacked here, not placed
+          const area = namedArea(winner(child, 'grid-area', width));
+          checked += 1;
+          if (!area || !areasOf[variant][width].has(area)) {
+            misplaced.push(`${width}px: .${variant} > .${[...child.classList].join('.')} → ${area}`);
+          }
+        }
+      }
+      host.remove();
+    }
+    expect(misplaced).toEqual([]);
+    expect(checked).toBeGreaterThan(0);
   });
 
   // grid-area has longhand spellings this checker does not read. If one ever appears with a

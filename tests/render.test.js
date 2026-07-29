@@ -4,7 +4,7 @@ import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
   btn, meter, poster, shopItem, renderHud, renderHub, renderResult, renderGameOver, renderFight,
-  meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter,
+  meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter, URGENT_FRACTION,
 } from '../src/ui/render.js';
 import { formatGold } from '../src/ui/format.js';
 import { startFight, effectiveStats } from '../src/game.js';
@@ -311,6 +311,23 @@ describe('poster', () => {
     expect(over).not.toContain('55');
   });
 
+  // The HUD health bar and the player poster read the same field (spec 6.5), so they must not
+  // disagree about when that number is alarming. Derived inside poster() from URGENT_FRACTION
+  // rather than passed in, because a call site that forgets the flag shows a calm plate over a
+  // flashing beam. Thresholds are computed from the constant, never restated as 0.33.
+  const hpPlate = (html) => html.match(/<span class="bar[^"]*"/)[0];
+  it('flashes the HP plate below the same fraction the HUD bar flashes at', () => {
+    const max = 60;
+    const under = Math.floor(max * URGENT_FRACTION) - 1;
+    const over = Math.ceil(max * URGENT_FRACTION) + 1;
+    expect(under / max).toBeLessThan(URGENT_FRACTION);
+    expect(over / max).toBeGreaterThan(URGENT_FRACTION);
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: { value: under, max } }))))
+      .toContain('is-urgent');
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: { value: over, max } }))))
+      .not.toContain('is-urgent');
+  });
+
   it('takes sub as markup and parenthesizes the snark', () => {
     const html = poster({ name: 'Foe', sub: 'Purse: <span class="amount">50</span>', snark: 'A big lad' });
     expect(html).toContain('<p class="poster__sub">Purse: <span class="amount">50</span></p>');
@@ -529,15 +546,110 @@ describe('renderFight', () => {
     expect(html).toContain('data-action="heavy"');
     expect(html).toContain('data-action="block"');
     expect(html).toContain('data-action="feint"');
-    // Task 6 renamed the track to `.meter` (spec §6.4/§6.0) and keeps the legacy class only
-    // until Task 7 Step 3 drops it. Matched as a set so that removal is a one-line change.
-    expect(classesOf(meterTag(html))).toEqual(expect.arrayContaining(['meter', 'timing-meter']));
+    // Task 6 renamed the track to `.meter` (spec §6.4/§6.0); Task 7 Step 3 drops the legacy
+    // class, which is the only thing left holding `:where(.timing-meter)` in legacy.css alive.
+    expect(classesOf(meterTag(html))).toContain('meter');
+    expect(classesOf(meterTag(html))).not.toContain('timing-meter');
   });
 
   it('renders the combat log', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
     s.combat.log = ['You strike (hit) for 13 damage.'];
     expect(renderFight(s, CONFIG)).toContain('You strike (hit) for 13 damage.');
+  });
+
+  it('renders posters for both fighters and turn-numbered log entries', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.log = ['You strike (hit) for 13 damage.', 'The Brute hits back.'];
+    const html = renderFight(s, CONFIG);
+    expect((html.match(/class="poster tape/g) || []).length).toBe(2);
+    expect(html).toContain('log__turn');
+    expect(html).toContain('screen--fight');
+    // Spec 6.9: turn numbers, not fake timestamps, and the newest entry sits at the bottom.
+    expect(html).toContain('>T1</span> You strike (hit) for 13 damage.');
+    expect(html).toContain('>T2</span> The Brute hits back.');
+    expect(html.indexOf('>T1<')).toBeLessThan(html.indexOf('>T2<'));
+  });
+
+  // The strip is a fixed-height parchment (spec 6.9), so it shows a tail — but the numbers must
+  // keep counting from the start of the fight, or turn 9 is announced as turn 1.
+  it('windows the log to the last eight entries without renumbering them', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.log = Array.from({ length: 10 }, (_, i) => `line ${i + 1}`);
+    const entries = [...renderFight(s, CONFIG).matchAll(
+      /<li class="log__entry"><span class="log__turn">T(\d+)<\/span> ([^<]*)<\/li>/g)];
+    expect(entries.map((m) => Number(m[1]))).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(entries.map((m) => m[2])).toEqual([
+      'line 3', 'line 4', 'line 5', 'line 6', 'line 7', 'line 8', 'line 9', 'line 10']);
+  });
+
+  // Log lines interpolate the opponent's name, which comes from config and one day from a mod.
+  it('escapes log entries exactly once', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.log = ['<script>alert("x")</script> & co'];
+    const html = renderFight(s, CONFIG);
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; co');
+    expect(html).not.toContain('&amp;lt;');
+  });
+
+  it('announces the log politely so a turn is read out once (spec 6.9/8)', () => {
+    const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+    expect(html).toMatch(/<ul class="log" aria-live="polite">/);
+  });
+
+  it('flanks the stage with one HP-plated poster per fighter, on opposite tilts', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.player.health = 40;
+    s.combat.enemy.health = 7;
+    const cards = posterCards(renderFight(s, CONFIG));
+    expect(cards).toHaveLength(2);
+    // Source order is reading order (spec 7): you, then the stage, then the foe.
+    expect(classesOf(cards[0])).toContain('poster--tilt-1');
+    expect(classesOf(cards[1])).toContain('poster--tilt-2');
+    expect(cards[0]).toContain('aria-label="You health"');
+    expect(cards[0]).toContain('aria-valuenow="40"');
+    expect(cards[0]).toContain(`aria-valuemax="${s.combat.player.maxHealth}"`);
+    expect(cards[1]).toContain(`aria-label="${s.combat.enemy.name} health"`);
+    expect(cards[1]).toContain('aria-valuenow="7"');
+    expect(cards[1]).toContain(`aria-valuemax="${s.combat.enemy.maxHealth}"`);
+    // 7 of 40-odd is deep inside URGENT_FRACTION: the foe's plate flashes, the player's does not.
+    expect(s.combat.enemy.health / s.combat.enemy.maxHealth).toBeLessThan(URGENT_FRACTION);
+    expect(s.combat.player.health / s.combat.player.maxHealth).toBeGreaterThan(URGENT_FRACTION);
+    expect(cards[1]).toContain('class="bar is-urgent"');
+    expect(cards[0]).not.toContain('is-urgent');
+  });
+
+  // Overkill takes health negative; the plate must read 0, not -6, and must not print the
+  // raw number anywhere (meter() clamps, so this is really a "poster still routes through it").
+  it('clamps an overkilled fighter’s plate to an empty bar', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.enemy.health = -6;
+    const foe = posterCards(renderFight(s, CONFIG))[1];
+    expect(foe).toContain('aria-valuenow="0"');
+    expect(foe).toContain('width:0%');
+    expect(foe).not.toContain('-6');
+  });
+
+  it('renders Press the Attack as a commit banner only when pressable', () => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    expect(renderFight(s, CONFIG)).not.toContain('data-action="press"');
+    s.combat.canPress = true;
+    const html = renderFight(s, CONFIG);
+    expect(html).toContain('data-action="press"');
+    expect(html).toContain('btn--commit');
+    // A banner above the 2x2 grid, not a fifth cell in it.
+    expect(html.indexOf('data-action="press"')).toBeLessThan(html.indexOf('fight__grid'));
+  });
+
+  it('wraps each grid area of the spec 7 fight layout', () => {
+    const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+    for (const cls of ['fight__you', 'fight__stage', 'fight__foe', 'fight__log', 'fight__actions']) {
+      expect(html, `missing wrapper ${cls}`).toContain(`class="${cls}"`);
+    }
+    // The meter is the stage, not a stray sibling of it.
+    expect(html.indexOf('fight__stage')).toBeLessThan(html.indexOf('data-meter'));
+    expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'));
   });
 });
 

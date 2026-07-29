@@ -137,7 +137,13 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
 // posters must never share a tilt token.
 export function poster({ name, sub = '', snark = '', hp = null, tilt = 1 }) {
   // Raw name: meter() escapes its own label (escaping here would double-encode).
-  const hpBar = hp ? meter(`${name} health`, hp.value, hp.max) : '';
+  // Urgency is derived here, not accepted as an option. Spec §6.5 requires the player poster
+  // and the HUD beam to read the same field, so they must not disagree about when that number
+  // is alarming — and a call site that forgot the flag would show a calm plate beside a
+  // flashing beam. Same URGENT_FRACTION as §6.1's bar, so there is one threshold, not two.
+  const hpBar = hp
+    ? meter(`${name} health`, hp.value, hp.max, { urgent: hp.value / hp.max < URGENT_FRACTION })
+    : '';
   return `<article class="poster tape poster--tilt-${tilt}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>
     <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
