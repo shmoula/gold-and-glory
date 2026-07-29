@@ -151,21 +151,22 @@ export function renderGameOver(state, config) {
 function renderMeter(state, config) {
   const eff = effectiveStats(state, config);
   const width = timingWindowWidth(eff.speed, config);
-  const zones = meterZones(state.combat.sweet ?? 0.5, width, config, eff.critWindowMult);
+  const zones = meterZones(state.combat.sweet, width, config, eff.critWindowMult);
   const pct = (x) => `${(x * 100).toFixed(2)}%`;
   const zone = (name) =>
     `<div class="meter__zone meter__zone--${name}" ` +
     `style="left:${pct(zones[name].start)};width:${pct(zones[name].size)}"></div>`;
+  // Spec 6.4 puts the first-fight taunt above the track.
   return `
-      <div class="meter timing-meter" data-meter="1" role="application"
+      ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}
+      <div class="meter timing-meter" data-meter="1" tabindex="0" role="application"
         aria-label="Timing meter \u2014 press Space or click to strike">
         ${zone('graze')}
         ${zone('hit')}
         ${zone('crit')}
         <div class="meter-cursor"></div>
       </div>
-      <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>
-      ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}`;
+      <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
 }
 
 export function renderFight(state, config) {

@@ -6,7 +6,7 @@
 // asserted here therefore comes from the timestamp maths, not from a frame having run. If a
 // test in this file only passes when frames paint, the capture is reading the DOM instead of
 // the clock, which is exactly the bug spec §6.4 calls out.
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
@@ -18,10 +18,16 @@ let clock = 0; // the whole file's notion of performance.now()
 let t0 = 0; // clock reading at the last render, i.e. the sweep's origin
 let raf;
 let caf;
-let keydownListeners = [];
+// [type, listener, options] for every document-level listener the module under test binds.
+// Deliberately not filtered by type: the moment a later task binds anything else on the
+// document, a type filter would leave the previous module instance's listener attached and
+// two detached games would answer the same event.
+let docListeners = [];
 
 const PERIOD = CONFIG.combat.meterPeriodMs.base; // opponent 0 sweeps at the base duration
 const BAND = CONFIG.combat.sweetCenter;
+// What createCombat seeds before the run's rng gets a turn (src/combat.js).
+const DEFAULT_SWEET = (BAND.min + BAND.max) / 2;
 
 const app = () => document.getElementById('app');
 const q = (sel) => app().querySelector(sel);
@@ -50,6 +56,11 @@ function renderedCenter() {
   const style = q('.meter__zone--crit').getAttribute('style');
   const start = Number(style.match(/left:([\d.]+)%/)[1]) / 100;
   const size = Number(style.match(/width:([\d.]+)%/)[1]) / 100;
+  // meterZones trims each band to the track, and a trimmed band's midpoint is no longer the
+  // sweet spot. Every "capture at the centre" test below would then aim slightly off and the
+  // crit assertions would go quietly soft, so refuse to infer a centre from a clamped band.
+  expect(start).toBeGreaterThan(0);
+  expect(start + size).toBeLessThan(1);
   return start + size / 2;
 }
 
@@ -63,6 +74,13 @@ function captureAt(p) {
 const farFrom = (center) => (center > 0.5 ? center - 0.45 : center + 0.45);
 
 const logText = () => q('.log').textContent;
+// Where the cursor is actually drawn. jsdom lays nothing out, so tests that care about the
+// cursor pin clientWidth on the meter first (see WIDTH).
+const WIDTH = 400;
+const pinWidth = () =>
+  Object.defineProperty(q('[data-meter]'), 'clientWidth', { value: WIDTH, configurable: true });
+const cursorX = () =>
+  Number(q('.meter-cursor').style.transform.match(/translateX\(([-\d.e+]+)px\)/)[1]);
 
 function enterFight() {
   clock = 1000;
@@ -77,14 +95,16 @@ beforeAll(() => {
 
 afterAll(() => vi.restoreAllMocks());
 
+afterEach(() => vi.unstubAllGlobals());
+
 beforeEach(async () => {
-  // Each test gets a fresh module instance; the previous one's document-level keydown
-  // listener would otherwise keep driving its own detached game.
-  for (const fn of keydownListeners) document.removeEventListener('keydown', fn);
-  keydownListeners = [];
+  // Each test gets a fresh module instance; the previous one's document-level listeners
+  // would otherwise keep driving its own detached game.
+  for (const [type, fn, opts] of docListeners) document.removeEventListener(type, fn, opts);
+  docListeners = [];
   const realAdd = document.addEventListener;
   document.addEventListener = function collect(type, fn, opts) {
-    if (type === 'keydown') keydownListeners.push(fn);
+    docListeners.push([type, fn, opts]);
     return realAdd.call(this, type, fn, opts);
   };
 
@@ -109,12 +129,12 @@ describe('sweet-spot seeding', () => {
     expect(center).toBeLessThanOrEqual(BAND.max);
   });
 
-  // A first turn that is never seeded still renders a legal-looking meter — renderFight falls
-  // back to mid-track, which sits inside the band. Only pinning it to the run's own rng
-  // separates "seeded" from "defaulted".
-  it('takes the first turn from the run’s rng, not the mid-track fallback', () => {
+  // A first turn that is never re-seeded still renders a legal-looking meter — createCombat
+  // gives every fight a mid-band sweet spot, which sits inside the band. Only pinning it to
+  // the run's own rng separates "seeded" from "defaulted".
+  it('takes the first turn from the run’s rng, not the fight’s default centre', () => {
     const expected = sweetCenter(makeRng(SEED)(), CONFIG);
-    expect(expected).not.toBeCloseTo(0.5, 2); // the fallback cannot impersonate a seed
+    expect(expected).not.toBeCloseTo(DEFAULT_SWEET, 2); // the default cannot impersonate a seed
     enterFight();
     expect(renderedCenter()).toBeCloseTo(expected, 3);
   });
@@ -184,6 +204,25 @@ describe('capture and freeze', () => {
     const center = renderedCenter();
     captureAt(center);
     captureAt(farFrom(center)); // a would-be miss, much later in the sweep — must be ignored
+    act('1');
+    expect(logText()).toContain('You strike (crit)');
+  });
+
+  // The frozen cursor is the player's only readout of what the game judged. Leaving it at the
+  // last painted frame shows a position up to a frame's travel away from the one that resolved
+  // — and in a tab that paints no frames at all, leaves it at the origin while a crit lands.
+  it('parks the frozen cursor on the resolved position, not the last painted frame', () => {
+    const frames = driveFrames();
+    enterFight();
+    pinWidth();
+    const center = renderedCenter();
+    clock = t0 + 0.1 * PERIOD;
+    expect(frames.frame()).toBe(1); // the last frame paints the cursor early in the sweep…
+    const painted = cursorX();
+    expect(painted).toBeCloseTo(0.1 * WIDTH, 6);
+    captureAt(center); // …but the press lands later, on the sweet spot
+    expect(cursorX()).toBeCloseTo(center * WIDTH, 6);
+    expect(cursorX()).not.toBeCloseTo(painted, 3);
     act('1');
     expect(logText()).toContain('You strike (crit)');
   });
@@ -322,6 +361,23 @@ describe('keyboard parity (spec §8)', () => {
     document.body.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
     expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
+  });
+
+  // Spec 8 makes the meter a target in its own right and Enter the generic activation key.
+  // A role="application" widget nothing can focus is unreachable for assistive tech, so the
+  // tabindex and the Enter handler stand or fall together.
+  it('is focusable and captures on Enter when it holds focus', () => {
+    enterFight();
+    const bar = q('[data-meter]');
+    bar.focus();
+    expect(document.activeElement).toBe(bar);
+    clock = t0 + renderedCenter() * PERIOD;
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    bar.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(bar.classList.contains('is-captured')).toBe(true);
+    act('1');
+    expect(logText()).toContain('You strike (crit)');
   });
 
   it('claims the browser default only for the keys it owns', () => {

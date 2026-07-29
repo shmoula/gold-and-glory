@@ -561,7 +561,12 @@ describe('renderFight timing meter (spec §6.4)', () => {
 
   it('announces itself and draws the three nested zones plus a cursor', () => {
     const html = renderFight(fightState(), CONFIG);
+    // role="application" tells assistive tech to stop intercepting keys and hand them to the
+    // widget — which is only reachable, and only meaningful, if the widget can hold focus.
+    // Without tabindex the role is unreachable AND suppresses browse mode for nothing, and
+    // spec 8's focus-visible + 44px-target floor never applies to the meter at all.
     expect(meterTag(html)).toContain('role="application"');
+    expect(meterTag(html)).toContain('tabindex="0"');
     const label = meterTag(html).match(/aria-label="([^"]*)"/)[1];
     expect(label).toMatch(/^Timing meter .* press Space or click to strike$/);
     // Pinned by codepoint, never by comparison against a pasted glyph: an em dash flattened
@@ -624,15 +629,28 @@ describe('renderFight timing meter (spec §6.4)', () => {
     expect(resolveTiming(plainHalf * (1 + 1e-4), width, CONFIG, 1)).toBe('hit');
   });
 
-  it('centers on the mid-track only when no sweet spot has been seeded', () => {
-    const html = renderFight(fightState({ combat: { sweet: undefined } }), CONFIG);
-    const crit = zoneGeometry(html, 'crit');
-    expect(crit.start + crit.size / 2).toBeCloseTo(0.5, 4);
+  // createCombat seeds `sweet` at fight creation, so neither the renderer nor main.js's rAF
+  // loop carries a mid-track fallback. Two hand-written fallbacks are one edit away from
+  // disagreeing, and a disagreement paints the bright band somewhere the resolver does not pay.
+  it('takes its centre from the sweet spot every fight is born with', () => {
+    const s = fightState();
+    expect(s.combat.sweet).toBeGreaterThanOrEqual(CONFIG.combat.sweetCenter.min);
+    expect(s.combat.sweet).toBeLessThanOrEqual(CONFIG.combat.sweetCenter.max);
+    const crit = zoneGeometry(renderFight(s, CONFIG), 'crit');
+    expect(crit.start + crit.size / 2).toBeCloseTo(s.combat.sweet, 4);
   });
 
   it('shows the first-fight taunt once and never again (tutorial decay)', () => {
     expect(renderFight(fightState({ wins: 0 }), CONFIG)).toContain(CONFIG.snark.taunt);
     expect(renderFight(fightState({ wins: 1 }), CONFIG)).not.toContain(CONFIG.snark.taunt);
+  });
+
+  // Spec 6.4 hangs the first-fight helper line above the track. Below it, the sentence the
+  // player is meant to read before their first swing sits under the thing it is explaining.
+  it('places the taunt above the meter', () => {
+    const html = renderFight(fightState({ wins: 0 }), CONFIG);
+    expect(html.indexOf('meter__taunt')).toBeGreaterThan(-1);
+    expect(html.indexOf('meter__taunt')).toBeLessThan(html.indexOf('data-meter'));
   });
 });
 

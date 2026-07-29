@@ -17,7 +17,16 @@ const app = document.getElementById('app');
 
 let state;
 let rng;
-let meter = { running: false, pos: 0, t0: 0, period: 0, sweet: 0.5, captured: null, raf: 0 };
+// The live sweep. Named `sweep`, not `meter`, because `meter()` is the mandated bar helper in
+// ui/components.js and a module-scope shadow of it invites a call site to render a bar from this.
+const sweep = { running: false, t0: 0, period: 0, sweet: 0, captured: null, raf: 0 };
+
+// The cursor is the only thing that moves, and it moves the same way from the rAF loop and from
+// the freeze, so both go through here — otherwise the frozen cursor sits at the last painted
+// frame while the fight resolves a position up to a frame away from it.
+function paintCursor(bar, cursor, p) {
+  cursor.style.transform = `translateX(${p * bar.clientWidth}px)`;
+}
 
 function newRun() {
   const seed = Math.floor(Math.random() * 1e9);
@@ -35,43 +44,52 @@ function render() {
 function startMeter() {
   // Kill the outgoing loop before starting a new one. Every render during FIGHT lands here, so
   // without this each turn leaves another rAF chain alive; they all share this one mutable
-  // meter object and stomp meter.raf, leaving captureMeter's cancel able to reach only the
+  // sweep object and stomp sweep.raf, leaving captureMeter's cancel able to reach only the
   // last writer while the rest keep stepping.
-  cancelAnimationFrame(meter.raf);
+  cancelAnimationFrame(sweep.raf);
   const bar = app.querySelector('[data-meter]');
   if (!bar) return;
-  meter.running = true;
-  meter.pos = 0;
-  meter.t0 = performance.now();
-  meter.period = meterPeriod(state.currentOpponentIndex, CONFIG);
+  sweep.running = true;
+  sweep.t0 = performance.now();
+  sweep.period = meterPeriod(state.currentOpponentIndex, CONFIG);
   // The zones are drawn from this same field (renderFight), so the bright band and the
   // resolver can never disagree about where the sweet spot is this turn.
-  meter.sweet = state.combat.sweet ?? 0.5;
-  meter.captured = null;
+  sweep.sweet = state.combat.sweet;
+  sweep.captured = null;
   bar.addEventListener('click', captureMeter, { once: false });
+  // Spec §8: the meter is a keyboard target in its own right. Space is claimed document-wide,
+  // but a focused meter must also answer Enter, the generic activation key.
+  bar.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.repeat) return;
+    e.preventDefault();
+    captureMeter();
+  });
 
   const cursor = bar.querySelector('.meter-cursor');
   function step() {
-    if (!meter.running) return;
-    meter.pos = meterPosition(performance.now() - meter.t0, meter.period);
-    cursor.style.transform = `translateX(${meter.pos * bar.clientWidth}px)`;
-    meter.raf = requestAnimationFrame(step);
+    if (!sweep.running) return;
+    paintCursor(bar, cursor, meterPosition(performance.now() - sweep.t0, sweep.period));
+    sweep.raf = requestAnimationFrame(step);
   }
-  meter.raf = requestAnimationFrame(step);
+  sweep.raf = requestAnimationFrame(step);
 }
 
 function captureMeter() {
   // The freeze: once the sweep stops, later time must not leak into the captured position.
-  if (!meter.running) return;
-  meter.running = false;
-  cancelAnimationFrame(meter.raf);
+  if (!sweep.running) return;
+  sweep.running = false;
+  cancelAnimationFrame(sweep.raf);
   // Spec §6.4 step 1: derive p from the capture timestamp, never from the last painted
-  // frame. Reading back meter.pos throws away the click's sub-frame timing, and returns 0
-  // outright in any environment that paints no frames.
-  meter.captured = meterPosition(performance.now() - meter.t0, meter.period);
-  meter.pos = meter.captured;
+  // frame. Reading back the last painted position throws away the click's sub-frame timing,
+  // and returns 0 outright in any environment that paints no frames.
+  sweep.captured = meterPosition(performance.now() - sweep.t0, sweep.period);
   const bar = app.querySelector('[data-meter]');
-  if (bar) bar.classList.add('is-captured'); // cursor stays put — the freeze IS the feedback
+  if (!bar) return;
+  // Park the cursor on the position that actually resolved, not on the last frame painted
+  // before the click. The freeze IS the feedback, so it has to show what the game judged.
+  const cursor = bar.querySelector('.meter-cursor');
+  if (cursor) paintCursor(bar, cursor, sweep.captured);
+  bar.classList.add('is-captured');
 }
 
 // The run's seeded generator drives the sweet spot, so a replayed seed replays the same fight.
@@ -81,10 +99,10 @@ function seedSweet() {
 
 function currentTiming() {
   // If the player never clicked the meter, treat it as a miss.
-  if (meter.captured == null) return 'miss';
+  if (sweep.captured == null) return 'miss';
   const eff = effectiveStats(state, CONFIG);
   const width = timingWindowWidth(eff.speed, CONFIG);
-  const dist = meterDistance(meter.captured, meter.sweet);
+  const dist = meterDistance(sweep.captured, sweep.sweet);
   return resolveTiming(dist, width, CONFIG, eff.critWindowMult);
 }
 
@@ -161,7 +179,16 @@ wire(app, handlers);
 
 // Keyboard parity, spec §8: Space works the meter, 1-4 pick the action. Bound once, on the
 // document, because the fight markup is replaced wholesale on every render.
-const KEYS = { ' ': 'meter', 1: 'strike', 2: 'heavy', 3: 'block', 4: 'feint' };
+const METER_KEY = ' ';
+// Null-prototype: the lookup is keyed by an untrusted `event.key`, and a plain literal would
+// answer 'constructor' or 'toString' with an inherited function this then calls.
+const KEYS = Object.assign(Object.create(null), {
+  [METER_KEY]: captureMeter,
+  1: handlers.strike,
+  2: handlers.heavy,
+  3: handlers.block,
+  4: handlers.feint,
+});
 // Space is also a focused button's own activation key. Claiming it for the meter regardless of
 // focus leaves a keyboard user parked on Strike unable to strike, which fails spec §8's floor,
 // so when focus is on something that answers to Space, the meter stands down. The digits are
@@ -172,12 +199,11 @@ const inInteractive = (target) =>
 
 document.addEventListener('keydown', (e) => {
   if (state.phase !== PHASE.FIGHT || e.repeat) return;
-  const k = KEYS[e.key];
-  if (!k) return;
-  if (k === 'meter' && inInteractive(e.target)) return;
+  const run = KEYS[e.key];
+  if (!run) return;
+  if (e.key === METER_KEY && inInteractive(e.target)) return;
   e.preventDefault();
-  if (k === 'meter') captureMeter();
-  else handlers[k]?.();
+  run();
 });
 
 newRun();

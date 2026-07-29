@@ -53,6 +53,12 @@ export function createCombat(playerStats, opponent, config) {
     blockedThisFight: false,
     canPress: false, // set by markPressable after a landed player hit
     pendingBonus: 0, // follow-up bonus from a feint, applied to next attack
+    // This turn's timing sweet spot (spec §6.4). Re-seeded from the run's rng before every
+    // player turn; born at the centre of the configured band so the field always holds a
+    // number. Without it both the renderer and the rAF loop need their own `?? 0.5` fallback,
+    // and two independently-written fallbacks are one edit away from disagreeing about where
+    // the bright band is.
+    sweet: (config.combat.sweetCenter.min + config.combat.sweetCenter.max) / 2,
     log: [],
   };
 }
