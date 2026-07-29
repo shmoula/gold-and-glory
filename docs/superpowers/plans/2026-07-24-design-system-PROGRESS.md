@@ -15,7 +15,7 @@ then spec-compliance review, then code-quality review, then next task.
 | 3 — HUD beam | **done, both reviews passed** | `b42f8b6` + `f0e3fb7` + `3595343` |
 | 4 — Button system + snark | **done, both reviews passed** | `5e42184` + `9b0f859` |
 | 5 — Hub screen | **done, both reviews passed** | `16ffa9c` + `8a3cde7` + `741afd0` + `c80fd17` |
-| 6 — Timing meter | pending | — |
+| 6 — Timing meter | **done, both reviews passed** | `078b8a1` + `616d6b3` + `b112433` |
 | 7 — Fight screen | pending | — |
 | 8 — Result screen + effects | pending | — |
 | 9 — Game Over | pending | — |
@@ -24,16 +24,47 @@ then spec-compliance review, then code-quality review, then next task.
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 6 (Timing meter: zones, sweet spot, freeze, keyboard)
+## RESUME HERE — Task 7 (Fight screen layout + combat log)
 
-Tasks 3, 4 and 5 are **fully closed**, each with spec review + code-quality review + at least one
-fix round + an independent re-review. Suite is **146 tests green**, build clean. Every fix
+Tasks 3, 4, 5 and 6 are **fully closed**, each with spec review + code-quality review + at least
+one fix round + an independent re-review. Suite is **183 tests green**, build clean. Every fix
 assertion was mutation-verified twice — once by the implementer, once independently by a reviewer.
 
 - Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
 - Task 4: `5e42184` → `9b0f859` (9 quality fixes).
 - Task 5: `16ffa9c` → `8a3cde7` (file split + 2 quality fixes) → `741afd0` (7 fixes + the player
   poster) → `c80fd17` (mobile grid-area overlap fix).
+- Task 6: `078b8a1` → `616d6b3` (4 correctness bugs) → `b112433` (7 polish fixes).
+
+### What Task 6 leaves you
+
+`src/ui/timing.js` holds all meter maths, pure and clock-injectable. `src/main.js` holds the
+orchestration: the rAF sweep, the freeze, and the document-level key bindings.
+
+Four correctness bugs were found *after* the meter passed spec review — worth knowing, because
+Task 7 touches the same fight screen:
+1. **`meterZones` did not take `critWindowMult`.** With the Lucky Charm the drawn crit band was
+   13.80% of the track while `resolveTiming`'s window was 20.70% — 6.9% of the track paid crit
+   while painted as plain HIT, and the 150 g Charm changed **not one pixel** of the meter. The
+   multiplier is now threaded through, and the guard test **derives** both sides (band from the
+   rendered geometry, tier by bisecting `resolveTiming`) rather than restating a ratio, so it
+   cannot rot into agreement with a future bug. Drawn == resolved at speed 5 and 11, charmed and
+   not. **Spec §6.4's zone formulae still omit the multiplier — Task 10 must reconcile.**
+2. The `canPress` re-render path did not re-seed the sweet spot, so a press turn reused the
+   previous turn's zones.
+3. `startMeter` never cancelled the outgoing rAF loop — four concurrent loops after four
+   uncaptured turns, all stomping one shared `raf` handle.
+4. Space was `preventDefault`ed unconditionally in FIGHT, so a keyboard user focused on
+   Strike/Heavy/Block/Feint could not activate them. It now stands down over interactive elements.
+
+Rules Task 7 inherits:
+- **The Browser pane fires 0 rAF frames**, so the sweep cannot be observed there. Keep timing
+  maths pure and clock-injectable; tests stub `requestAnimationFrame` to a no-op and assert zero
+  frames painted. Do not add anything only a human can verify.
+- Capture derives position from `performance.now() - t0`, never from a painted frame.
+- `sweep` in `main.js` is deliberately not named `meter` — that name belongs to the bar helper.
+- `combat.sweet` is seeded in `createCombat`, so there is no `?? 0.5` fallback to reintroduce.
+- `poster()` still has **no `urgent` passthrough**. Task 7 wants one for the fight-screen posters.
 
 ### Architecture as it now stands — read before writing any UI code
 
@@ -128,6 +159,27 @@ Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task'
 14. One CSS rule is unguarded: no test matches CSS selectors against markup, so dropping the
     `.shop-item` arm of the merged shortfall selector survives mutation. Pre-existing, low value
     to fix on its own, but worth knowing the stylesheet has no selector-coverage net.
+15. **Spec §6.4's zone formulae omit `critWindowMult`** while demanding the drawn zones match
+    `resolveTiming`. The code now threads it through; the spec text has not been updated.
+16. Spec §6.4's normative HTML mandates `role="application"` on the meter but shows **no
+    `tabindex`**, which makes the role unreachable — §8 then requires focus-visible, a ≥44×44
+    target ("the meter itself") and Enter-to-activate. `tabindex="0"` plus an Enter handler was
+    added to satisfy §8. A re-reviewer noted **`role="button"` would read better** ("button", free
+    activation semantics) and recommends it; changing the mandated role is a spec decision.
+17. Spec §6.4's freeze also specifies a 250ms hold, chicken squash, zone flash and `.meter__stamp`;
+    the plan shipped only the `is-captured` class and a colour change, so the freeze feedback is
+    thinner than §6.4's "never skip it". The chicken is omitted entirely (no asset); §6.4 names the
+    ink cursor as the functional fallback.
+18. `.meter__labels`, `.meter__taunt` and `is-captured` are not in spec §6.0's **closed class
+    index** — though §6.4's own HTML fence uses `meter__labels`, so the index is internally
+    inconsistent. Also §6.4 wants MISS/GRAZE/HIT/CRIT ticks aligned to zone edges; the plan's six
+    evenly-spaced word spans never line up with a random centre, so the label row can mislead.
+19. The seeded default sweet-spot value is unpinned — a test asserts only that it lands inside the
+    band, so mutating the seed to 0.5 survives. Zero production impact: the default is re-seeded
+    before it can ever render.
+
+**Task 8's `legacy.css` trim list has grown again:** `:where(.meter-sweet)` is now dead too, since
+Task 6 deleted its markup.
 
 ## Dispatch pattern that actually works in this environment
 
