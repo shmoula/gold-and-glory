@@ -43,14 +43,29 @@
 .fight__stage { grid-area: stage; align-self: center; }
 .fight__foe { grid-area: foe; }
 .fight__log { grid-area: log; }
-.fight__actions { grid-area: actions; }
+/* Placement *and* inner layout, stated once: the slot stacks the optional Press button above
+   the action grid, and the grid is the 2×2 the spec §7 comment above describes. Both were
+   filed under components.css §6.9 by mistake — they are this screen's layout, not §6 catalog
+   entries, and `.fight__actions` had rules in two sheets. Nothing else in any sheet declares
+   `display`/`flex-*`/`gap`/`align-items`/`grid-template-columns` on either element, so the
+   merge is cascade-neutral (verified element-by-element at every declared breakpoint). */
+.fight__actions { grid-area: actions; display: flex; flex-direction: column;
+  gap: var(--space-3); align-items: stretch; }
+.fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 
 @media (max-width: 900px) {
   .screen--hub { grid-template-columns: 1fr 1fr;
     grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
   /* The posters pair up, the stage spans, and the actions come before the commentary: at this
      width the log is history and the buttons are the thing you reach for. */
-  .screen--fight { grid-template-columns: 1fr 1fr;
+  /* Rows must be reset with the areas. The base rule's `auto 1fr auto` is written for the
+     three-row desktop grid where row 2 *is* the stage; this grid has five rows and row 2 is
+     the poster pair, so the leftover `1fr` would hand the free space to the posters and leave
+     the stage at auto. Inert while `.screen` is auto-height (free space is 0), but it is a
+     trap the moment Tasks 8/9 give a screen a definite height. `none` rather than
+     `auto auto 1fr auto auto`: at this width the stage is one band in a stack, not a
+     centrepiece competing for slack, and every row should size to its content. */
+  .screen--fight { grid-template-columns: 1fr 1fr; grid-template-rows: none;
     grid-template-areas: "hud hud" "you foe" "stage stage" "actions actions" "log log"; }
 }
 @media (max-width: 640px) {

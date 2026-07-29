@@ -16,6 +16,20 @@ import { resolveTiming, timingWindowWidth } from '../src/combat.js';
 const classesOf = (tag) => tag.match(/class="([^"]*)"/)[1].trim().split(/\s+/);
 // Articles never nest, so each match is exactly one whole poster.
 const posterCards = (html) => html.match(/<article[\s\S]*?<\/article>/g) || [];
+// Parse to DOM rather than matching markup: an added class, a reordered attribute or a
+// reformatted tag is a no-op refactor and must not turn the suite red. Structure and text are
+// the behaviour; the byte layout of the tag is not.
+const dom = (html) => {
+  const host = document.createElement('div');
+  host.innerHTML = html;
+  return host;
+};
+// A log strip's entries as { turn, text }: the turn stamp read from `.log__turn`, and the rest
+// of the entry's text with that stamp removed. Fails loudly if an entry has no stamp.
+const logRows = (html) => [...dom(html).querySelectorAll('.log__entry')].map((li) => {
+  const stamp = li.querySelector('.log__turn');
+  return { turn: stamp?.textContent ?? null, text: li.textContent.replace(stamp?.textContent ?? '', '').trim() };
+});
 
 describe('btn', () => {
   it('throws when a priced button is built without the purse', () => {
@@ -566,9 +580,11 @@ describe('logEntry (spec §6.9)', () => {
 
   it('wraps the clause in a numbered log entry', () => {
     const html = logEntry(entry({ turn: 7 }));
-    expect(html).toContain('<li class="log__entry">');
-    expect(html).toContain('<span class="log__turn">T7</span>');
-    expect(html).toContain('You swing.');
+    const li = dom(html).firstElementChild;
+    expect(li.tagName).toBe('LI');
+    expect(classesOf(html)).toContain('log__entry');
+    expect(li.querySelector('.log__turn').textContent).toBe('T7');
+    expect(li.textContent).toContain('You swing.');
   });
 
   it('paints damage dealt as a bold value (--blood-ink via .log__entry b)', () => {
@@ -682,28 +698,36 @@ describe('renderFight', () => {
       { turn: 2, kind: 'status', text: 'You raise your guard.' },
     ];
     const html = renderFight(s, CONFIG);
-    expect((html.match(/class="poster tape/g) || []).length).toBe(2);
-    expect(html).toContain('log__turn');
-    expect(html).toContain('screen--fight');
-    // Spec 6.9: turn numbers, not fake timestamps, and the newest entry sits at the bottom.
-    expect(html).toContain('>T1</span> You strike.');
-    expect(html).toContain('>T1</span> The Brute hits back.');
-    expect(html).toContain('>T2</span> <em>You raise your guard.</em>');
-    expect(html.indexOf('You strike.')).toBeLessThan(html.indexOf('The Brute hits back.'));
+    const cards = posterCards(html);
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(classesOf(card)).toEqual(expect.arrayContaining(['poster', 'tape']));
+    }
+    expect(classesOf(html.match(/<section [^>]*>/)[0])).toContain('screen--fight');
+    // Spec 6.9: turn numbers, not fake timestamps, and the newest entry sits at the bottom —
+    // so source order is the assertion, not a substring index.
+    expect(logRows(html)).toEqual([
+      { turn: 'T1', text: 'You strike.' },
+      { turn: 'T1', text: 'The Brute hits back.' },
+      { turn: 'T2', text: 'You raise your guard.' },
+    ]);
+    // …and the status clause is the italic one (spec 6.9's fourth typographic channel).
+    const entries = [...dom(html).querySelectorAll('.log__entry')];
+    expect(entries.map((li) => li.querySelector('em')?.textContent ?? null))
+      .toEqual([null, null, 'You raise your guard.']);
   });
 
-  // The strip is a fixed-height parchment (spec 6.9), so it shows a tail — but the numbers are
-  // the entries' own turn stamps, so windowing cannot renumber anything.
-  it('windows the log to the last eight entries, keeping their own turn numbers', () => {
+  // Spec 6.9's strip is a fixed-height *scroller*, and that CSS is the only truncation: the
+  // renderer emits the whole bout so the player can scroll back through it, and each entry
+  // keeps its own turn stamp. A second, entry-count truncation here would silently discard
+  // history that the strip's scrollbar implies is still reachable.
+  it('renders the whole history in order, keeping each entry its own turn number', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
     // Ten entries over five exchanges: two lines per turn, exactly as a real fight pushes them.
     s.combat.log = Array.from({ length: 10 }, (_, i) => (
       { turn: Math.floor(i / 2) + 1, kind: 'attack', text: `line ${i + 1}` }));
-    const entries = [...renderFight(s, CONFIG).matchAll(
-      /<li class="log__entry"><span class="log__turn">T(\d+)<\/span> ([^<]*)<\/li>/g)];
-    expect(entries.map((m) => Number(m[1]))).toEqual([2, 2, 3, 3, 4, 4, 5, 5]);
-    expect(entries.map((m) => m[2])).toEqual([
-      'line 3', 'line 4', 'line 5', 'line 6', 'line 7', 'line 8', 'line 9', 'line 10']);
+    expect(logRows(renderFight(s, CONFIG))).toEqual(
+      s.combat.log.map((e, i) => ({ turn: `T${e.turn}`, text: `line ${i + 1}` })));
   });
 
   // Log lines interpolate the opponent's name, which comes from config and one day from a mod.
@@ -724,7 +748,10 @@ describe('renderFight', () => {
   // tests/main.test.js asserts that a turn is actually spoken. This is the markup marker only.
   it('marks the log strip as a polite live region (spec 6.9/8)', () => {
     const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
-    expect(html).toMatch(/<ul class="log" aria-live="polite">/);
+    const strips = [...dom(html).querySelectorAll('.log')];
+    expect(strips).toHaveLength(1);
+    expect(strips[0].tagName).toBe('UL'); // a list of entries, not a blob of text
+    expect(strips[0].getAttribute('aria-live')).toBe('polite');
   });
 
   it('flanks the stage with one HP-plated poster per fighter, on opposite tilts', () => {

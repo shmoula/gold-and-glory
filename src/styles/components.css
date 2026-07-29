@@ -142,7 +142,10 @@
 /* `color` is not in the plan's block: legacy.css's zero-specificity `:where(.log)` still paints
    the strip in muted ink, which would leave `.log__turn` the same colour as the clause it is
    supposed to stand out from. Stating the ink here makes the component self-contained before
-   Task 9 deletes that file. */
+   Task 9 deletes that file.
+   `max-height` + `overflow-y` are spec §6.9's strip and the *sole* truncation of the log:
+   ui/render.js renders every entry and main.js scrolls to the bottom, so this rule decides
+   how much is visible and how far back the player can scroll. Do not re-add a slice(). */
 .log { list-style: none; margin: 0; padding: var(--space-3);
   background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2); box-shadow: var(--shadow-paper); color: var(--color-text);
@@ -159,5 +162,5 @@
 .log__entry em { font-style: italic; }
 .log .amount { color: var(--color-money); }
 .log__entry .snark { font-size: var(--text-xs); }
-.fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.fight__actions { display: flex; flex-direction: column; gap: var(--space-3); align-items: stretch; }
+/* `.fight__grid` and `.fight__actions` are screen layout, not §6 catalog entries — they live
+   with the rest of the `.fight__*` placement in screens.css. */

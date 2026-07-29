@@ -13,9 +13,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { CONFIG } from '../src/config.js';
-import { createGameState } from '../src/state.js';
-import { startFight } from '../src/game.js';
-import { renderHub, renderFight } from '../src/ui/render.js';
+import { createGameState, PHASE } from '../src/state.js';
+import { startFight, resolveFightOutcome, retire } from '../src/game.js';
+import { makeRng } from '../src/rng.js';
+import { mount } from '../src/ui/screens.js';
 
 // Cascade order = the entry point's @import order, then anything not imported yet.
 const ENTRY = 'src/styles.css';
@@ -175,7 +176,22 @@ for (const rule of RULES) {
   for (const sel of rule.selectors) if (!CLAIMS.some((c) => c.sel === sel && c.area === area)) CLAIMS.push({ sel, area });
 }
 
+// One representative state per phase, so the markup walk below can be driven off `PHASE`
+// rather than a hand-kept list of renderers. Built through the real transitions, so an
+// illegal one throws here instead of producing a screen the game can never reach.
+const HUB_STATE = createGameState(1, CONFIG);
+const STATES = {
+  [PHASE.HUB]: HUB_STATE,
+  [PHASE.FIGHT]: startFight(HUB_STATE, CONFIG),
+  [PHASE.RESULT]: resolveFightOutcome(startFight(HUB_STATE, CONFIG), true, makeRng(1), CONFIG),
+  [PHASE.GAMEOVER]: retire(HUB_STATE),
+};
+
 describe('screen grid areas', () => {
+  it('has a state for every phase mount() can be handed', () => {
+    expect(Object.keys(STATES).sort()).toEqual(Object.values(PHASE).sort());
+  });
+
   it('has claims to check and breakpoints to check them at', () => {
     expect(CLAIMS.length).toBeGreaterThan(0);
     expect(WIDTHS.length).toBeGreaterThan(1);
@@ -225,6 +241,31 @@ describe('screen grid areas', () => {
     expect(stuck).toEqual([]);
   });
 
+  // A breakpoint that re-lays a screen must re-lay its rows too. `grid-template-areas` and
+  // `grid-template-rows` are separate properties, so a media query that swaps a 3-row desktop
+  // grid for a 5-row stacked one inherits the desktop's row list — and the `1fr` meant for
+  // the stage lands on whatever row 2 happens to be now. It is silent while `.screen` is
+  // auto-height (there is no free space to misallocate), which is exactly why it needs a test
+  // rather than an eye: it only becomes visible once some later screen has a definite height.
+  it('sizes as many rows as it names at every breakpoint', () => {
+    const mismatched = [];
+    for (const variant of VARIANTS) {
+      const el = container(variant);
+      for (const width of WIDTHS) {
+        const areas = winner(el, 'grid-template-areas', width);
+        const rows = winner(el, 'grid-template-rows', width);
+        if (!rows || rows === 'none' || !areas || areas === 'none') continue;
+        const named = [...areas.matchAll(/"[^"]*"/g)].length;
+        const tracks = rows.trim().split(/\s+/).length;
+        if (named !== tracks) {
+          mismatched.push(`${width}px: .${variant} names ${named} area rows but sizes ${tracks} (${rows})`);
+        }
+      }
+      el.remove();
+    }
+    expect(mismatched).toEqual([]);
+  });
+
   // Everything above reads rules only, so a wrapper the renderer emits but the sheet never
   // places is invisible to it: the child falls into auto-placement and the grid it was written
   // for quietly ignores it. This walks the real markup instead - every direct child of a
@@ -232,17 +273,23 @@ describe('screen grid areas', () => {
   // that variant still has areas. (Below that, the ≤640px reset stacks them, which the test
   // above owns.)
   it('places every direct child the screens actually render', () => {
-    const hub = createGameState(1, CONFIG);
-    const rendered = [renderHub(hub, CONFIG), renderFight(startFight(hub, CONFIG), CONFIG)];
     const misplaced = [];
     let checked = 0;
-    for (const html of rendered) {
+    const seen = [];
+    // Derived from PHASE, not hand-listed: `mount()` is the single door every screen goes
+    // through, so a phase whose renderer is promoted to a `.screen` (Tasks 8/9) is picked up
+    // here the day it lands. A hand-maintained array would have let it walk straight past
+    // this guard while `checked > 0` stayed happily true.
+    for (const phase of Object.values(PHASE)) {
       const host = document.createElement('div');
-      host.innerHTML = html;
+      mount(host, STATES[phase], CONFIG);
       document.body.appendChild(host);
       const section = host.querySelector('.screen');
+      // Not yet a §7 grid screen (result/gameover until Tasks 8/9). Nothing to place.
+      if (!section) { host.remove(); continue; }
       const variant = [...section.classList].find((c) => c.startsWith('screen--'));
-      expect(variant, 'a rendered .screen with no --variant').toBeDefined();
+      expect(variant, `${phase} renders a .screen with no --variant`).toBeDefined();
+      seen.push(variant);
       for (const child of section.children) {
         for (const width of WIDTHS) {
           if (areasOf[variant][width].size === 0) continue; // stacked here, not placed
@@ -257,6 +304,11 @@ describe('screen grid areas', () => {
     }
     expect(misplaced).toEqual([]);
     expect(checked).toBeGreaterThan(0);
+    // `checked > 0` on its own is satisfied by the hub alone, so it would not notice a new
+    // screen slipping past. Assert the wiring in both directions instead: every `.screen--*`
+    // the sheets lay out must be one some phase actually mounts, and every variant a phase
+    // mounts must be one the sheets lay out. Task 8/9 cannot land half of either.
+    expect(seen.sort()).toEqual(VARIANTS.filter((v) => v !== 'screen').sort());
   });
 
   // grid-area has longhand spellings this checker does not read. If one ever appears with a

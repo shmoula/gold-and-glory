@@ -182,17 +182,23 @@ function renderMeter(state, config) {
       <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
 }
 
-// Spec §6.9: the parchment strip is a fixed-height tail of the fight, newest at the bottom.
-// Each entry carries its own turn stamp from combat.js, so the number survives windowing and
-// counts exchanges rather than lines — an exchange pushes two entries, or three with a press.
-const LOG_WINDOW = 8;
-
+// Spec §6.9: the strip is a fixed-height parchment scroller — `max-height: ~160px` plus
+// `overflow-y: auto`, newest appended at the bottom and auto-scrolled to (main.js does the
+// scroll; the renderer only emits strings). That CSS is the *only* truncation. The renderer
+// used to also `slice(-8)`, which made two mechanisms clip the same history independently:
+// at `--text-sm` the 160px strip shows about six entries, so entries 7 and 8 were reachable
+// by scrolling and everything older was **discarded**, not scrolled past. The spec names the
+// scroller and never names an entry count, and the scroller is the mechanism the auto-scroll
+// was built for — the newest line is always in view and the strip is the player's full record
+// of the bout. A fight is tens of entries, so rendering all of them costs nothing.
+// Each entry still carries its own turn stamp from combat.js, so the number counts exchanges
+// rather than lines — an exchange pushes two entries, or three with a press.
 export function renderFight(state, config) {
   const c = state.combat;
   // The bout being fought is still the current one: resolveFightOutcome advances the index
   // only after the fight is over, so the poster bills the right tier, purse and aside.
   const opponent = config.opponents[state.currentOpponentIndex];
-  const logHtml = c.log.slice(-LOG_WINDOW).map(logEntry).join('');
+  const logHtml = c.log.map(logEntry).join('');
   // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
   // at the shared urgency threshold — the fight screen states no number by hand.
   return `
