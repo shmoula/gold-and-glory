@@ -92,6 +92,12 @@ function render() {
   // rows. Cheap and idempotent when there was no theater running.
   ledgerTheater();
   ledgerTheater = () => {};
+  // The third animation handle, retired on the same seam and for the same reason. A bout that
+  // ends with the meter never captured leaves the sweep still running, and mount() below is
+  // about to detach the bar it paints: without this the loop reschedules itself forever on the
+  // result or game-over screen, and only the *next* startMeter() would ever reach it. FIGHT
+  // renders start it again a few lines down, so stopping it unconditionally costs nothing.
+  stopSweep();
   mount(app, state, CONFIG);
   lastGold = state.gold;
   // Spec §6.9: the newest entry is appended at the bottom and auto-scrolled to. mount() has
@@ -151,12 +157,21 @@ function announceLedger() {
 }
 
 // --- Timing meter animation ---
+// The one way the loop is retired. `running` is what stops a step already in flight from
+// rescheduling; the cancel is what takes the frame that is already queued. Clearing only one of
+// them leaves either an orphan frame or a chain that revives itself, which is why both live here
+// rather than being spelled out at each of the three call sites.
+function stopSweep() {
+  sweep.running = false;
+  cancelAnimationFrame(sweep.raf);
+}
+
 function startMeter() {
   // Kill the outgoing loop before starting a new one. Every render during FIGHT lands here, so
   // without this each turn leaves another rAF chain alive; they all share this one mutable
   // sweep object and stomp sweep.raf, leaving captureMeter's cancel able to reach only the
   // last writer while the rest keep stepping.
-  cancelAnimationFrame(sweep.raf);
+  stopSweep();
   const bar = app.querySelector('[data-meter]');
   if (!bar) return;
   sweep.running = true;
@@ -187,8 +202,7 @@ function startMeter() {
 function captureMeter() {
   // The freeze: once the sweep stops, later time must not leak into the captured position.
   if (!sweep.running) return;
-  sweep.running = false;
-  cancelAnimationFrame(sweep.raf);
+  stopSweep();
   // Spec §6.4 step 1: derive p from the capture timestamp, never from the last painted
   // frame. Reading back the last painted position throws away the click's sub-frame timing,
   // and returns 0 outright in any environment that paints no frames.

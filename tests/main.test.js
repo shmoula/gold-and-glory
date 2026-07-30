@@ -296,6 +296,24 @@ describe('the sweep loop (one at a time)', () => {
     }
   });
 
+  // The other two animation handles — purseTicker and ledgerTheater — are retired at the top of
+  // render(), because their timers outlive the DOM they were aimed at. The sweep is the third,
+  // and it was the one that did not: end a bout without ever capturing the meter (every press a
+  // miss, so the enemy answers until the player drops) and the loop is still queued on the screen
+  // that replaced the fight, rescheduling itself forever and painting a cursor nothing can see.
+  // Only the *next* startMeter() ever killed it, so a run that ends on the game-over screen keeps
+  // it alive for good. Asserted on the queue rather than on painted frames: the pane paints none.
+  it('retires the sweep when the screen leaves the fight', () => {
+    const frames = driveFrames();
+    enterFight();
+    expect(frames.queued).toBe(1);
+    // No capture on any turn, so every strike misses and the enemy answers until the bout ends.
+    for (let turn = 0; turn < 30 && q('[data-meter]'); turn += 1) act('1');
+    expect(q('[data-meter]'), 'the fight never ended').toBeNull();
+    expect(frames.queued, 'the sweep is still scheduled after the fight').toBe(0);
+    expect(frames.frame()).toBe(0); // …and nothing revives it on the next frame
+  });
+
   it('stops every loop on capture, leaving nothing scheduled', () => {
     const frames = driveFrames();
     enterFight();
