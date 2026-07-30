@@ -12,6 +12,30 @@ const BUTTON_SNARK_KEYS = ['repair', 'heal', 'bribe', ...GEAR_KEYS];
 const OPPONENT_KEYS = CONFIG.opponents.map((o) => o.id);
 const POSTER_SNARK_KEYS = ['player', ...OPPONENT_KEYS];
 
+// §9's stamp punctuation, one entry per §6.13 variant: a win earns its exclamation
+// ("VICTORY!"), a defeat takes a deadpan period ("DEFEAT."), and death gets neither irony nor
+// softening ("YOU DIED"). The mark each variant owns is the whole rule, so it is a table rather
+// than a branch — and the table doubles as the allowlist of variants, so the two cannot drift.
+const STAMP_MARK = { victory: '!', defeat: '.', death: '' };
+
+// The §9 guard for one stamp, factored out so the same code runs over `CONFIG.endings` and over
+// the fixtures below. `endings` carries no defeat ending today, so read over config alone the
+// defeat rule is never exercised — which is exactly how this guard came to demand that "DEFEAT."
+// give up its period, an assertion that would have failed the first spec-correct defeat added.
+function checkStamp(key, ending) {
+  expect(ending.stamp, `${key} needs a §6.13 stamp`).toBeTruthy();
+  const { variant, text } = ending.stamp;
+  expect(Object.keys(STAMP_MARK), `${key} stamp variant`).toContain(variant);
+  // `?? ''` so that an unknown variant is rejected by the line above and reported as a bad
+  // variant — not swallowed into an `undefined` inside the punctuation message below.
+  const mark = STAMP_MARK[variant] ?? '';
+  // The words alone: display case, no terminal mark. Then the text must be exactly those words
+  // plus this variant's mark — which rejects a missing mark, a borrowed one, and a doubled one.
+  const body = String(text).replace(/[!.?]+$/, '');
+  expect(body, `${key} stamp copy must be display-case words`).toMatch(/^[A-Z][A-Z' ]*[A-Z]$/);
+  expect(text, `${key}: §9 punctuates a ${variant} stamp "${body}${mark}"`).toBe(`${body}${mark}`);
+}
+
 describe('CONFIG', () => {
   it('has starting wallet and player vitals', () => {
     expect(CONFIG.startingGold).toBe(100);
@@ -120,16 +144,41 @@ describe('CONFIG', () => {
   it('gives every ending its §6.13 stamp copy, punctuated per §9', () => {
     const entries = Object.entries(CONFIG.endings);
     expect(entries.length).toBeGreaterThan(0); // guard against a vacuous loop
-    for (const [key, ending] of entries) {
-      expect(ending.stamp, `${key} needs a §6.13 stamp`).toBeTruthy();
-      expect(['victory', 'defeat', 'death'], `${key} stamp variant`)
-        .toContain(ending.stamp.variant);
-      expect(ending.stamp.text, `${key} stamp copy`).toMatch(/^[A-Z][A-Z' ]*[A-Z]!?$/);
-      if (ending.stamp.variant === 'victory') {
-        expect(ending.stamp.text, `${key}: §9 gives victory an exclamation`).toMatch(/!$/);
-      } else {
-        expect(ending.stamp.text, `${key}: §9 gives death no softening`).not.toMatch(/[!.?]$/);
-      }
+    for (const [key, ending] of entries) checkStamp(key, ending);
+  });
+
+  // …and the guard is run over fixtures as well as over config, because config can only exercise
+  // the variants it happens to use. `endings` has no defeat entry, so the accepted/rejected pairs
+  // below are the only thing holding `defeat` to its period until one is added.
+  it('accepts each variant punctuated as §9 writes it', () => {
+    for (const stamp of [
+      { variant: 'victory', text: 'VICTORY!' }, // §9's own three examples…
+      { variant: 'defeat', text: 'DEFEAT.' },
+      { variant: 'death', text: 'YOU DIED' },
+      { variant: 'victory', text: 'CHAMPION!' }, // …and copy that is not the example
+      { variant: 'defeat', text: "THE LION'S SHARE." },
+      { variant: 'death', text: 'CARRIED OUT' },
+    ]) {
+      expect(() => checkStamp(stamp.variant, { stamp }), `${stamp.text} is §9-correct`)
+        .not.toThrow();
+    }
+  });
+
+  it('rejects a stamp wearing the wrong terminal mark', () => {
+    for (const stamp of [
+      { variant: 'victory', text: 'VICTORY' }, // no mark where §9 demands one
+      { variant: 'defeat', text: 'DEFEAT' },
+      { variant: 'victory', text: 'VICTORY.' }, // the mark another variant owns
+      { variant: 'defeat', text: 'DEFEAT!' },
+      { variant: 'death', text: 'YOU DIED!' }, // irony and softening, both barred
+      { variant: 'death', text: 'YOU DIED.' },
+      { variant: 'defeat', text: 'DEFEAT?' }, // a mark §9 gives nobody
+      { variant: 'defeat', text: 'DEFEAT!.' }, // and no smuggling one in ahead of the right one
+      { variant: 'triumph', text: 'TRIUMPH' }, // a variant §6.13 has no stamp for
+      { variant: 'defeat', text: 'Defeat.' }, // display case is not optional
+    ]) {
+      expect(() => checkStamp(stamp.variant, { stamp }), `${stamp.variant}/${stamp.text}`)
+        .toThrow();
     }
   });
 
