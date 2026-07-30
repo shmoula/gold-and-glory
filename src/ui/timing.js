@@ -25,7 +25,7 @@ export function meterPeriod(tierIndex, config) {
 // `critWindowMult` (the Lucky Charm) widens the crit test in resolveTiming, so it has to widen
 // the drawn crit band by the same factor. Otherwise the charm pays 2.0x over a slice of track
 // that paints as plain HIT, and 150g of gear changes nothing the player can see. resolveTiming
-// is the authority; spec §6.4's zone formulae omit the multiplier and are wrong (Task 10).
+// is the authority, and spec §6.4's zone formulae now carry the multiplier too (backlog item 15).
 export function meterZones(center, windowWidth, config, critWindowMult = 1) {
   const r = config.combat.timingTierRatios;
   const zone = (mult) => {

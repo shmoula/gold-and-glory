@@ -439,17 +439,25 @@ meterPeriodMs: { base: 1400, perTier: -60, min: 900 }, // one-way sweep duration
 sweetCenter: { min: 0.35, max: 0.75 },                 // seeded per player turn
 ```
 
-With `W = baseTimingWidth + speedTimingBonus × effectiveSpeed` and per-turn center `c`,
-zones are nested windows (matching `resolveTiming`):
+With `W = baseTimingWidth + speedTimingBonus × effectiveSpeed`, per-turn center `c`, and the
+player's `critWindowMult` (1 by default, raised by the Lucky Charm), zones are nested windows
+(matching `resolveTiming`):
 
 ```
-|p − c| ≤ W × ratios.crit    → CRIT
-|p − c| ≤ W × ratios.hit     → HIT
-|p − c| ≤ W × ratios.graze   → GRAZE
-otherwise                    → MISS
+|p − c| ≤ W × ratios.crit × critWindowMult  → CRIT
+|p − c| ≤ W × ratios.hit                    → HIT
+|p − c| ≤ W × ratios.graze                  → GRAZE
+otherwise                                   → MISS
 ```
 
 Speed widens every window (readable risk: training Speed visibly widens the bright zones).
+
+**`critWindowMult` is part of the geometry, not a resolution-time bonus.** `resolveTiming` is
+the authority on what a click pays, and the drawn crit band must be the same number: with the
+Charm equipped and the multiplier left out of the drawing, 6.9% of the track paid crit while
+painted as plain HIT, and a 150 G purchase changed not one pixel of the meter. The guard test
+derives the band from the rendered geometry and the tier by bisecting `resolveTiming`, so
+"drawn == resolved" is checked rather than restated.
 
 **Math for the cursor (implement exactly):** track is normalized `[0,1]`. Position derives
 from timestamps — never from per-frame increments and never read back from the DOM:
