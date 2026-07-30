@@ -28,8 +28,15 @@ export function shortfallAttr(cost, gold) {
 // via `.btn__snark::after { content: … attr(data-missing) … }`, and attr() resolves against
 // the pseudo-element's own originating element — so the span, not just the enclosing control,
 // has to carry it.
+// Which is why the span is emitted for a shortfall even with no snark to put in it (backlog
+// item 3): §6.2 hangs the shortfall off this *optional* slot, so the three Train buttons — the
+// only priced controls in the game with no aside — rendered a red price and no "(need 50 more)"
+// at all, and §6.2 is explicit that the game tells you you are broke rather than hiding it.
+// An empty slot carries no parentheses of its own; the pseudo-element brings its own.
 export function snarkAside(snark, missing = '') {
-  return snark ? `<span class="btn__snark snark"${missing}>(${escapeHtml(snark)})</span>` : '';
+  if (!snark && !missing) return '';
+  const body = snark ? `(${escapeHtml(snark)})` : '';
+  return `<span class="btn__snark snark"${missing}>${body}</span>`;
 }
 
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?].

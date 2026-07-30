@@ -302,6 +302,27 @@ describe('renderHub', () => {
     expect(span[1].split(/\s+/)).toEqual(expect.arrayContaining(['btn__snark', 'snark']));
   });
 
+  // Backlog item 3. Spec §6.2 renders the shortfall through `.btn__snark::after`, an *optional*
+  // slot — so a priced button with no aside used to show a red price and no shortfall text at
+  // all. The three Train buttons are the game's only such controls, so they were the three
+  // buttons that never told you how short you were. Derived from the rendered markup rather
+  // than asserted per action, so a fourth snark-less priced button is covered on arrival.
+  it('gives even a snark-less priced button somewhere to state the shortfall', () => {
+    const s = createGameState(1, CONFIG);
+    s.gold = 0; // short on everything, Train included
+    const html = renderHub(s, CONFIG);
+    const unaffordable = [...html.matchAll(/<button[^>]*\bis-unaffordable\b[\s\S]*?<\/button>/g)]
+      .map((m) => m[0]);
+    expect(unaffordable.length, 'nothing rendered unaffordable').toBeGreaterThan(0);
+    const trainButtons = unaffordable.filter((b) => /data-action="train-/.test(b));
+    expect(trainButtons.length, 'no unaffordable Train button').toBe(3);
+    for (const button of unaffordable) {
+      const action = button.match(/data-action="([^"]*)"/)?.[1];
+      expect(button, `${action} states no shortfall`)
+        .toMatch(/<span class="btn__snark snark"[^>]*\sdata-missing="[^"]+"/);
+    }
+  });
+
   it('keeps true no-ops disabled rather than unaffordable', () => {
     const s = createGameState(1, CONFIG);
     s.gold = 100000;
