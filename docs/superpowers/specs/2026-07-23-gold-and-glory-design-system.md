@@ -300,13 +300,13 @@ Contents in order: purse, Health bar, Durability bar, Injuries pips.
 <header class="hud">
   <span class="hud__purse"><i class="coin"></i>GOLD: <span class="ticker" data-value="2450">2,450</span></span>
   <span class="hud__stat"><span class="hud__label">HEALTH</span>
-    <span class="bar" role="meter" aria-label="Health" aria-valuenow="65" aria-valuemax="100">
+    <span class="bar" role="meter" aria-label="Health" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
       <span class="bar__fill" style="width:65%"></span><span class="bar__num">65/100</span>
     </span></span>
   <span class="hud__stat"><span class="hud__label">DURABILITY</span>
     <span class="bar"><span class="bar__fill bar__fill--dur" style="width:58%"></span><span class="bar__num">58/100</span></span></span>
   <span class="hud__stat"><span class="hud__label">INJURIES</span>
-    <span class="pips" aria-label="3 injuries">
+    <span class="pips" role="img" aria-label="3 injuries">
       <i class="pip pip--filled"></i><i class="pip pip--filled"></i><i class="pip pip--filled"></i><i class="pip"></i><i class="pip"></i>
     </span></span>
 </header>
@@ -322,17 +322,31 @@ Contents in order: purse, Health bar, Durability bar, Injuries pips.
   color: var(--color-text-inverse);
   font-family: var(--font-body); font-weight: 700; font-size: var(--text-sm);
 }
+/* `position: relative` is §6.7's delta-chip anchor: the chip is spawned into the purse and
+   positioned against it. `text-transform` is why the markup above may spell the label in
+   sentence case. */
 .hud__purse { color: var(--color-money-on-dark); display: inline-flex; align-items: center;
-  gap: var(--space-2); font-variant-numeric: tabular-nums; }
+  gap: var(--space-2); font-variant-numeric: tabular-nums; text-transform: uppercase;
+  position: relative; }
 .coin { width: 15px; height: 15px; border-radius: 50%; display: inline-block;
   background: var(--grad-coin); border: 1.5px solid var(--border-ink); }
-.bar { position: relative; width: 108px; height: 16px; background: var(--track);
+/* `display: block` is load-bearing: the track is a <span> whose two children are both
+   absolutely positioned, so it carries no in-flow content and its whole size comes from
+   `width`/`height` — neither of which applies to a non-replaced inline box (CSS2 §10.2). It
+   only ever looked right inside `.hud__stat` (inline-flex) and the training row (grid), both
+   of which blockify their items; a poster is plain block flow, and every poster HP plate
+   collapsed to ~5px without this. */
+.bar { display: block; position: relative; width: 108px; height: 16px; background: var(--track);
   border: 2px solid var(--border-ink); border-radius: var(--wobble-bar); overflow: hidden; }
 .bar__fill { position: absolute; inset: 0 auto 0 0; background: var(--blood);
   transition: width 150ms ease-out; }
 .bar__fill--dur { background: var(--gold-deep); }
+/* The numeral is `--text-xs`, not 11px: §8's floor ("all text >= --text-xs") is ship-blocking
+   and wins over an earlier draft of this block. It still fits — the narrowest numbered track is
+   this bar's own 104px padding box, and the widest string a bar renders ("170/170") is 48.2px
+   of Nunito tabular digits at 12.5px. */
 .bar__num { position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: 11px; color: var(--bone); font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs); color: var(--bone); font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 0 rgba(31,22,12,0.9); }
 .pips { display: inline-flex; gap: 3px; }
 .pip { width: 11px; height: 14px; border: 1.5px solid var(--border-ink);
@@ -362,9 +376,9 @@ Three variants. All: `min-height 44px`, `font-family var(--font-body) 700` (plan
 .btn:active { transform: translateY(2.5px); box-shadow: var(--shadow-plank-pressed); }
 .btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .btn__price { color: var(--color-money-on-dark); font-variant-numeric: tabular-nums; font-size: var(--text-lg); }
-.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: #cdb98e; }
+.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: var(--bone-dim); }
 
-.btn--commit { font: 400 21px/1 var(--font-display); letter-spacing: 0.05em;
+.btn--commit { font: 400 var(--text-commit)/1 var(--font-display); letter-spacing: 0.05em;
   color: var(--bone-bright); background: var(--grad-commit); border-radius: var(--wobble-1);
   padding: var(--space-2) var(--space-5); text-shadow: 0 1.5px 0 rgba(20,30,50,0.55); }
 .btn--commit:focus-visible { outline-color: var(--bone-bright); }
@@ -372,9 +386,13 @@ Three variants. All: `min-height 44px`, `font-family var(--font-body) 700` (plan
 .btn--danger { background: linear-gradient(var(--blood-hi), var(--blood)); }
 
 .btn.is-disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
-.btn.is-unaffordable { /* stays full-strength EXCEPT the price */ }
-.btn.is-unaffordable .btn__price { color: var(--blood-hi); }
-.btn.is-unaffordable .btn__snark::after { content: " (need " attr(data-missing) " more)"; }
+/* `.is-unaffordable` stays full-strength EXCEPT the price — which is prose, not a rule: an
+   empty rule declares nothing. The `.shop-item` comma-mates are §6.12 asking for the same
+   treatment on the gear card, which is not a `.btn` and which the selector above never reached. */
+.btn.is-unaffordable .btn__price,
+.shop-item.is-unaffordable .btn__price { color: var(--blood-hi); }
+.btn.is-unaffordable .btn__snark::after,
+.shop-item.is-unaffordable .btn__snark::after { content: " (need " attr(data-missing) " more)"; }
 .btn.is-urgent { animation: urgent-pulse 1.2s var(--ease-drop) infinite; }
 @keyframes urgent-pulse { 50% { box-shadow: var(--shadow-plank), 0 0 0 3px var(--gold-deep); } }
 ```
@@ -387,7 +405,13 @@ Semantics:
   Next Fight, Press the Attack, Retire Rich, Fight Again, Return to Ludus.
 - `.is-unaffordable`: button remains enabled-looking but click is rejected with a purse-shake
   (§6.7) — the game *tells* you you're broke rather than hiding the option. `data-missing`
-  carries the formatted shortfall.
+  carries the formatted shortfall, on the control **and** on its `.btn__snark` span, because
+  `attr()` resolves against the pseudo-element's own originating element. The snark slot is
+  optional copy but not an optional *slot*: a priced control with no aside (the Train buttons)
+  still emits an empty one, or the shortfall it carries has nowhere to render.
+- A true no-op — nothing to repair, nobody to heal — is not "unaffordable": it emits the native
+  `disabled` attribute, which the rule above deliberately does not match. `button:disabled` in
+  base.css dims it to the same 0.45, and only that one number dims a dead button.
 - `.is-urgent` (state-driven glow): applied by JS when durability < 50% (Repair) or
   injuries ≥ 1 (Heal).
 - Keyboard: hub actions get `accesskey`-free numeric hints; fight actions bind 1–4, Space = strike
