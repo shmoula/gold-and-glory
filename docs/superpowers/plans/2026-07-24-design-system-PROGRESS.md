@@ -19,22 +19,45 @@ then spec-compliance review, then code-quality review, then next task.
 | 7 — Fight screen | **done, both reviews passed** | `fc5a1dd` + `982f36b` + `6205a85` + `aebe210` |
 | 8 — Result screen + effects | **done, both reviews passed** | `993ce07` + `8373bf3` + `959f9e5` |
 | 9 — Game Over | **done, both reviews passed** | `0330985` + `c2faac3` + `0d382e5` |
-| 10 — Verification pass | pending | — |
+| 10 — Verification pass | **done; 15 open decisions handed back** | `a4ea0d1` … `52ae069` |
 
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 10 (Verification pass: spec §8 floor + §0 laws)
+## THE PLAN IS COMPLETE
 
-**All nine feature tasks are closed.** Each went through spec review + code-quality review + at
-least one fix round + an independent re-review. Suite is **325 tests green**, build clean, and
-`src/styles/legacy.css` is gone. Every fix assertion was mutation-verified twice — once by the
-implementer, once independently by a reviewer.
+**All ten tasks are closed.** Each feature task went through spec review + code-quality review + at
+least one fix round + an independent re-review, and every fix assertion was mutation-verified twice
+— once by the implementer, once independently by a reviewer.
 
-Task 10 is the last task. Its own plan section is the work order, but the **deferred backlog below
-is now the bulk of the job** — it has grown to 33 items across nine tasks, and most are
-**spec/code contradictions that need a decision, not a patch**. Read it in full before starting,
-and expect to be editing the spec as often as the code.
+Final state: **384 tests green**, `npm run build` clean, `src/styles/legacy.css` gone, no literal hex
+outside `tokens.css`, and each font family shipping its real upstream OFL.
+
+**What is left is not work — it is 15 decisions.** They are collected under **"Open decisions"** at
+the end of this file, each with the conflict stated and a recommendation. One of them (item 24, a
+non-terminating fight) is a genuine game-logic bug predating the design system; the rest are spec
+reconciliations, asset-dependent visual features, and accessibility policy.
+
+### Task 10 in summary
+
+Its plan steps: Step 1 promoted every stray hex literal to a token; Step 1b lifted `.bar__num` to
+§8's type floor; Steps 2 and 5 became `tests/a11y.test.js`, which audits reachability, tab order,
+44px targets and Laws 2/3/4 from the sheets and the rendered markup; Step 3 pinned the
+reduced-motion landing state; Step 4 resolved the §7 grids at 1280/900/640/375; Step 4b replaced the
+unfilled OFL template with each family's real upstream license.
+
+Then a **real browser pass** found two defects that the whole review chain and a 376-test suite had
+missed, because jsdom has no layout engine:
+- **every poster HP plate was collapsed.** `meter()` emits `<span class="bar">`, and a `span` is
+  `display: inline`, so its `width` was ignored — the bar measured **5px** with its numeral spilling
+  outside the poster. It worked in the HUD only because `.hud` is flex, which blockifies its
+  children. Fixed with `display: block` on `.bar` (`41d525a`).
+- **the ≤640 sticky commit bar was a floating chip.** It kept `justify-self: end`, so it measured
+  **173px at left 170** on a 375px viewport and floated over the Gear Shop card with its border-top
+  spanning a third of the screen. Fixed with `justify-self: stretch` (`2f28a0d`).
+
+The lesson is recorded in the operational notes: **do a real browser pass before believing a layout
+is done.**
 
 - Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
 - Task 4: `5e42184` → `9b0f859` (9 quality fixes).
@@ -232,15 +255,34 @@ Other things a later task needs to know:
   `.hub` arm of the button-skin group, and `:where(.sponsor)` (jsdom: 0 matches each). **Task 8's
   trim list is bigger than the two entries originally recorded below.**
 
-## Deferred backlog — do NOT re-report these as new findings
+## Deferred backlog — STATUS MAP
 
-Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task's remit.
+This list accumulated across all nine feature tasks. **It has now been worked.** Read this header
+before reading any item below, because most items are closed and the numbered text is left in place
+only so old review reports still resolve.
+
+**Closed — do not reopen.** Items **1, 2, 3, 5, 6, 7, 11, 12, 13, 14, 15, 19, 20, 22, 25, 29, 32.**
+Commits: `a4ea0d1` (hex→tokens, `.bar__num`), `270126c` (disabled dim), `3947168` (commit face on the
+type scale), `08fb8fa` (shortfall on snark-less buttons), `acb85bd` (seeded sweet spot, selector net),
+`4fee4d5` (one `bannerStamp()`), `576f155` / `d2ac4e1` / `e6c01f0` / `a7b3da9` (spec §6.1 / §6.2 /
+§6.4 / §5 / §6.9 / §6.12 reconciled to the shipped code), `52ae069` (spec §7's two stacking resets),
+plus Task 9's `0330985` (items 7 and 25).
+
+**Item 2 was never real.** `--ease-drop` *is* defined as `steps(2, end)` in `tokens.css`, so the
+prose and the token always agreed. Nothing to reconcile.
+
+**Awaiting a human decision — 12 items.** These are design, product or spec-policy calls, not
+patches, and no agent should decide them unilaterally. They are collected with recommendations in
+the section **"Open decisions"** at the end of this file: items **4, 8, 9, 10, 16, 17, 18, 21, 23,
+24, 26/28, 27, 30, 31, 33**, plus the hub training row's 45px meter at 375px.
+
+Original text follows.
 
 **Task 8** trims `src/styles/legacy.css`: the `:where(.hud)` `margin-bottom` leak and the now-dead
 `:where(.hud .gold)`. **Task 9** deletes the file and moves `#app` / `button:disabled` into
-`base.css`.
+`base.css`. *(Both done; `legacy.css` no longer exists.)*
 
-**Task 10** must reconcile:
+**Task 10 must reconcile:**
 1. `.bar__num { font-size: 11px }` is below spec §8's type floor (Step 1b, already in the plan).
 2. `components.css` urgency pulse uses `var(--ease-drop)`; spec §6.1 prose says `steps(2)`.
    Inherited verbatim from the plan's Task 3 Step 5.
@@ -445,5 +487,79 @@ coordinator's own `Edit` calls when trying to fix it.
 - Never dispatch two *implementers* in parallel. An implementer + a read-only reviewer on disjoint
   files is fine.
 - The Browser pane reports `visibilityState: "hidden"` and fires **0 rAF frames**, so the timing
-  meter's sweep cannot be observed there. Not a regression — don't chase it.
+  meter's sweep cannot be observed there. Not a regression — don't chase it. Re-confirmed at the end
+  of Task 10: 0 frames in 400ms. **No automated check anywhere can show the sweep running.**
+- **jsdom has no layout engine, and that blind spot is real.** Two defects survived every review and
+  a 376-test suite because no assertion could measure a used width: every poster HP plate was
+  collapsed to 5px with its numeral spilling outside the poster, and the ≤640 sticky commit bar
+  rendered as a 173px chip floating over the card beneath it. **A real browser pass found both in
+  minutes.** Do one before believing a layout is done.
 - `.claude/` is intentionally untracked.
+
+---
+
+## Open decisions — need a human, not an agent
+
+Everything else in this plan is done. These are the calls no agent should make alone. Each line is
+the conflict, then a recommendation.
+
+**Accessibility policy (one decision covers several items)**
+
+- **33 + the systemic pattern.** Is text at `opacity: .7` decorative-and-exempt, or must it meet
+  §8's 4.5:1? Measured: `.wordmark` `--ink-soft` @ .7 is **2.79:1** on `--paper-3`; locked ending
+  cards are **4.19:1** (title) and **2.72:1** (snark); `is-owned` and disabled states sit lower.
+  *Recommendation:* exempt the wordmark as a logotype (WCAG 1.4.3 allows it) and raise the rest —
+  the locked-card snark is real text a player is meant to read.
+- **16.** §6.4 mandates `role="application"` on the meter; a reviewer preferred `role="button"`
+  ("button" reads better, activation semantics are free). *Recommendation:* switch to `button`, and
+  amend §6.4 — `application` suppresses browse mode for a control whose only children are four
+  presentational divs.
+- **23.** Two live regions cover the same content: `aria-live` remains on `<ul class="log">`
+  alongside `#log-announcer`. *Recommendation:* drop it from the `<ul>` — it is inside `#app`, so
+  it is re-created already-populated every render and cannot speak anyway.
+- **26 + 28.** `banner-stamp`'s `role="status"` is the same mute-region defect, on both the result
+  and game-over stamps. §8 mandates the role, so fixing it means moving the announcement out to a
+  persistent region. *Recommendation:* do that, reusing `liveRegion()`.
+- **18 + 21.** `.meter__labels`, `.meter__taunt`, `is-captured`, `fight__*`, `result__*`,
+  `gameover__*`, `is-hidden`, `is-shaking` are not in §6.0's **closed** class index — though §6.4's
+  own fence already uses `meter__labels`, so the index is internally inconsistent.
+  *Recommendation:* add the families to §6.0; the index is stale, not the code.
+
+**Visual features the spec asks for and the code does not have**
+
+- **8** `.sponsor-card`'s dog-eared folded-triangle pseudo-element (§6.10). **9** `.shop-item`'s icon
+  well (§6.12). **10** `.poster__portrait` is a fixed 104px, not §6.5's 4:3 well — this is why the
+  portraits look letterboxed at desktop width. **17** §6.4's freeze extras: the 250ms hold, chicken
+  squash, zone flash and `.meter__stamp`; the chicken is omitted entirely for want of an asset.
+  **27** §6.13's giant Roman sandal behind the death stamp, likewise.
+  *Recommendation:* do **10** (it is a visible layout flaw, and cheap), then decide whether the
+  asset-dependent ones are worth commissioning art for or should be cut from the spec.
+
+**Copy and layout judgement**
+
+- **4.** §9 shows title-case button labels ("Repair Weapon"); the code is sentence-case ("Repair
+  weapon"). *Recommendation:* pick one and make §9 and the call sites agree — it is pure style.
+- **20.** §7's comment puts the fight's action grid inside `.commit-bar` when stacked; the markup
+  does not. *Recommendation:* drop the comment; the hub already covers the stacked-commit case.
+- **The hub training row at 375px.** The `1fr` meter gets only **45px**, because the `auto` Train
+  button takes max-content. No one-line fix: a `minmax()` floor would also require extending
+  `fixedTrackPx()` in `tests/grid-areas.test.js`, which refuses `minmax(` by design. Mitigating —
+  the meter is `decorative: true` and the real number sits in the label beside it ("Power 24"), so
+  no information is lost. *Recommendation:* leave it, or let the button shrink and accept a wrapped
+  label.
+
+**Structural debt**
+
+- **30.** `main.js` should stay whole — 340 lines, sole owner of the mutable `state`. Two reviewers
+  agreed. If a seam is ever taken, take `src/ui/announce.js`.
+- **31.** The M2 parchment quartet (`--grad-paper` / `--border-ink` / `--shadow-paper` / radius) is
+  copy-pasted into nine rules. *Recommendation:* one `.parchment` class or a `@mixin`-style shared
+  rule, once the §6.0 index question above is settled.
+
+**Game logic, not design**
+
+- **24.** A **non-terminating fight** is reachable: a player whose guard ≥ the enemy's max crit
+  damage who blocks every turn never finishes (measured 5000 exchanges, enemy still at 40 HP). This
+  **predates the design system** and is the only item here that is a genuine bug rather than a
+  reconciliation. *Recommendation:* fix it first — add a damage floor or a turn cap. It also has no
+  log cap in front of it now, so a stalled fight grows the DOM without bound.
