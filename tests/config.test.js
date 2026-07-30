@@ -112,6 +112,27 @@ describe('CONFIG', () => {
     }
   });
 
+  // §6.13's stamp copy travels *with the ending*, in config, not in a hand-listed table inside
+  // the renderer: a table the renderer keeps to itself is a second list of the same keys, and a
+  // fourth ending added to `endings` alone used to render a stampless screen with no test
+  // noticing. §9 sets the punctuation, so it is asserted per variant rather than per key —
+  // a win earns its exclamation, death gets neither irony nor softening.
+  it('gives every ending its §6.13 stamp copy, punctuated per §9', () => {
+    const entries = Object.entries(CONFIG.endings);
+    expect(entries.length).toBeGreaterThan(0); // guard against a vacuous loop
+    for (const [key, ending] of entries) {
+      expect(ending.stamp, `${key} needs a §6.13 stamp`).toBeTruthy();
+      expect(['victory', 'defeat', 'death'], `${key} stamp variant`)
+        .toContain(ending.stamp.variant);
+      expect(ending.stamp.text, `${key} stamp copy`).toMatch(/^[A-Z][A-Z' ]*[A-Z]!?$/);
+      if (ending.stamp.variant === 'victory') {
+        expect(ending.stamp.text, `${key}: §9 gives victory an exclamation`).toMatch(/!$/);
+      } else {
+        expect(ending.stamp.text, `${key}: §9 gives death no softening`).not.toMatch(/[!.?]$/);
+      }
+    }
+  });
+
   // The epitaph is a §6.8 aside like any other: the renderer adds the parentheses, so the
   // string must not carry its own, and an aside never states a number.
   it('keeps ending epitaphs inside the §6.8 aside grammar', () => {

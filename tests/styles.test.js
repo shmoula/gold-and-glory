@@ -3,6 +3,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS } from '../src/ui/effects.js';
+import { CONFIG } from '../src/config.js';
+import { createGameState } from '../src/state.js';
+import { startFight, resolveFightOutcome } from '../src/game.js';
+import { renderResult, renderGameOver } from '../src/ui/render.js';
 
 const SHEETS = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)];
 const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
@@ -34,11 +38,106 @@ describe('rules inherited from the deleted legacy sheet', () => {
     expect(app.length, 'exactly one #app rule').toBe(1);
     expect(app[0]).toMatch(/max-width:\s*1180px/);
     expect(app[0]).toMatch(/margin:\s*0 auto/);
-    expect(app[0]).toMatch(/padding:/);
+    // Pinned to the token, not merely to the property's presence: `padding:` on its own is
+    // satisfied by `padding: 0`, so the gutter could be mutated away with the suite still green.
+    expect(app[0]).toMatch(/padding:\s*var\(--space-4\)/);
     const disabled = bare.match(/button:disabled\s*\{[^}]*\}/g) ?? [];
     expect(disabled.length, 'exactly one button:disabled rule').toBe(1);
     expect(disabled[0]).toMatch(/opacity:/);
     expect(disabled[0]).toMatch(/cursor:\s*not-allowed/);
+  });
+});
+
+// --- Spec Law 4: "Text only sits on paper or wood. Never directly on stone." ---
+// The wordmark is the case that broke it: `.wordmark` is `--ink-soft` at `opacity: .7`, which
+// on `--surface-page` stone computes to 1.54:1 against §8's 4.5:1 floor. Neither half of the
+// codebase can catch that alone — the sheet does not know where the markup puts the span, and
+// jsdom resolves no cascade — so both are read here. The grounds are *derived* from the sheets
+// (every plain-class rule that paints a paper or wood background), and every `.wordmark` any
+// screen renders must have one of them as an ancestor. Deriving them is the point: a new card
+// that grows its own parchment is accepted automatically, while a wordmark dropped straight
+// onto the page fails no matter which screen drops it.
+//
+// It asserts a *ground*, not a contrast ratio, and that is deliberate. `--ink-soft` at .7 over
+// parchment (`--paper-3`, the darker gradient stop) is 2.80:1 — the wordmark does not clear
+// §8's 4.5:1 floor on paper either. Pinning 4.5 here would fail the shipped result screen as
+// well, so it would be a claim this code does not make. Law 4 is the line this fix is about.
+describe('Law 4 — the wordmark never sits on stone', () => {
+  const PAPER_OR_WOOD = /background(-color|-image)?\s*:[^;]*var\(--(grad-paper|grad-wood[\w-]*|grad-commit|paper-\d|wood-\d|surface-paper|surface-wood)\)/;
+  // Only the plain class-chain spelling: those are the material rules, and anything else
+  // (pseudo-elements, `50%` keyframe stops, at-rule preludes) is not an element to stand on.
+  const PLAIN_CLASS = /^\.[\w-]+(\.[\w-]+)*$/;
+  const grounds = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, , body]) => PAPER_OR_WOOD.test(body))
+    .flatMap(([, prelude]) => prelude.split(',').map((s) => s.trim()))
+    .filter((s) => PLAIN_CLASS.test(s));
+
+  // The two screens that render a wordmark, from the state the game really writes.
+  const start = createGameState(1, CONFIG);
+  const fought = resolveFightOutcome(startFight(start, CONFIG), true, () => 1, CONFIG);
+  const dead = {
+    ...start, phase: 'GAMEOVER', ended: 'dead', health: 0,
+    lastResult: { died: true, won: false, opponentName: 'The Brute', causeOfDeath: 'A turnip.' },
+  };
+  const SCREENS = {
+    result: renderResult(fought, CONFIG),
+    gameover: renderGameOver(dead, CONFIG),
+  };
+
+  it('derives the paper and wood grounds from the sheets', () => {
+    // Guard against a vacuous pass: an empty ground list would make every wordmark below fail,
+    // but a regex that accidentally matched everything would make them all pass.
+    expect(grounds.length).toBeGreaterThan(3);
+    expect(grounds).toContain('.ledger');
+    expect(grounds).not.toContain('.screen');
+  });
+
+  it('gives every rendered wordmark a paper or wood ancestor', () => {
+    const orphans = [];
+    let checked = 0;
+    for (const [name, html] of Object.entries(SCREENS)) {
+      const host = document.createElement('div');
+      host.innerHTML = html;
+      const marks = [...host.querySelectorAll('.wordmark')];
+      expect(marks.length, `${name} renders no wordmark`).toBeGreaterThan(0);
+      for (const mark of marks) {
+        checked += 1;
+        const grounded = grounds.some((sel) => mark.closest(sel) !== null);
+        if (!grounded) orphans.push(`${name}: .${[...mark.parentElement.classList].join('.')}`);
+      }
+    }
+    expect(orphans).toEqual([]);
+    expect(checked).toBe(2);
+  });
+});
+
+// Spec §6.14 is normative about the locked card's treatment ("grayscale filter, 55% opacity"),
+// and it is the only signal that separates the two endings you did not reach from the one you
+// did. Text-level, deliberately: the sheet has no selector-coverage net (see the progress
+// file's deferred item 14), so this guards the declarations' presence and their values.
+describe('endings gallery (spec §6.14)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const ruleFor = (selector) => {
+    const rule = bare.match(new RegExp(`\\${selector}\\s*\\{[^}]*\\}`));
+    expect(rule, `no rule for ${selector}`).not.toBeNull();
+    return rule[0];
+  };
+
+  it('greys out and fades the endings you did not reach', () => {
+    const locked = ruleFor('.ending-card--locked');
+    expect(locked).toMatch(/filter:\s*grayscale\(0\.8\)/);
+    expect(locked).toMatch(/opacity:\s*0\.55/);
+  });
+
+  // The card owns its own transform and the slot only names the angle. A screen that overrode
+  // `transform` outright would silently drop whatever else the component ever puts in it.
+  it('lets the slot pick the tilt through a variable, not by overriding transform', () => {
+    expect(ruleFor('.ending-card')).toMatch(/transform:\s*rotate\(var\(--card-tilt/);
+    const screens = readFileSync('src/styles/screens.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(screens, 'a screen must not override a component transform')
+      .not.toMatch(/\.ending-card\s*\{[^}]*transform:/);
+    expect(screens).toMatch(/\.gameover__stamp\s*\{[^}]*--card-tilt:/);
+    expect(screens).toMatch(/\.gameover__right\s*\{[^}]*--card-tilt:/);
   });
 });
 

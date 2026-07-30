@@ -862,8 +862,11 @@ describe('renderGameOver (spec §6.14)', () => {
   const gameOver = (ended, over = {}) => renderGameOver(overOf(ended, over), CONFIG);
   const cardsIn = (html) => [...dom(html).querySelectorAll('.ending-card')];
   const titleOf = (card) => card.querySelector('.poster__name').textContent;
-  // Derived from game.js in tests/config.test.js; restated here as the render-side list.
-  const ENDINGS = ['win-circuit', 'retired', 'dead'];
+  // Derived, never restated: tests/config.test.js already proves these keys are exactly the
+  // terminal states game.js can write, so reading them back off the config makes every
+  // assertion below scale with the gallery. A hand-listed trio let a fourth ending render two
+  // cards, no stamp and no failure.
+  const ENDINGS = Object.keys(CONFIG.endings);
 
   it('shows the death cause when dead', () => {
     const s = createGameState(1, CONFIG);
@@ -883,14 +886,14 @@ describe('renderGameOver (spec §6.14)', () => {
   // The gallery, from every ending. Locked-ness is read off the cards rather than counted in
   // the markup: `ending-card--locked` contains the string `ending-card`, so a regex tally of
   // the two class names passes just as happily with two cards as with three.
-  it('shows all three endings, only the achieved one unlocked and centred', () => {
+  it('shows every ending, only the achieved one unlocked and centred', () => {
     for (const ended of ENDINGS) {
       // One parse: `dom()` builds a fresh tree per call, so node identity below needs one host.
       const host = dom(gameOver(ended));
       const cards = [...host.querySelectorAll('.ending-card')];
-      expect(cards.length, `${ended} gallery`).toBe(3);
+      expect(cards.length, `${ended} gallery`).toBe(ENDINGS.length);
       const locked = cards.filter((c) => c.classList.contains('ending-card--locked'));
-      expect(locked.length, `${ended} locked count`).toBe(2);
+      expect(locked.length, `${ended} locked count`).toBe(ENDINGS.length - 1);
       const open = cards.find((c) => !c.classList.contains('ending-card--locked'));
       expect(titleOf(open)).toBe(CONFIG.endings[ended].title);
       // …and it is the middle cell, not one of the flanks (spec §7's `stamp` area).
@@ -924,14 +927,14 @@ describe('renderGameOver (spec §6.14)', () => {
   // screen can pair "YOU DIED" with the victory colour. §9: death gets neither irony nor
   // softening, a win gets its exclamation.
   it('stamps the verdict with the §6.13 modifier that matches its copy', () => {
-    for (const [ended, cls, text] of [
-      ['dead', 'banner-stamp--death', 'YOU DIED'],
-      ['win-circuit', 'banner-stamp--victory', 'CHAMPION!'],
-      ['retired', 'banner-stamp--victory', 'RETIRED RICH'],
-    ]) {
+    for (const ended of ENDINGS) {
+      // Read off the ending, not off a second table: the copy and the modifier live together
+      // in config.endings, so no screen can pair "YOU DIED" with the victory colour and no
+      // ending can reach this screen without copy (tests/config.test.js pins the punctuation).
+      const { variant, text } = CONFIG.endings[ended].stamp;
       const stamps = [...dom(gameOver(ended)).querySelectorAll('.banner-stamp')];
       expect(stamps.length, `${ended} stamp count`).toBe(1);
-      expect([...stamps[0].classList], ended).toContain(cls);
+      expect([...stamps[0].classList], ended).toContain(`banner-stamp--${variant}`);
       expect(stamps[0].textContent, ended).toBe(text);
     }
   });
@@ -953,9 +956,28 @@ describe('renderGameOver (spec §6.14)', () => {
   // §6.14: below the trio, the lead-in and the absurd line, with the wordmark in frame.
   it('prints the cause of death below the trio, with the wordmark in frame', () => {
     const cause = dom(gameOver('dead')).querySelector('.cause-of-death');
-    expect(cause.querySelector('strong').textContent).toBe('Cause of death:');
+    // §6.14's fence spells the lead-in "Cause of Death:".
+    expect(cause.querySelector('strong').textContent).toBe('Cause of Death:');
     expect(cause.textContent).toContain('Tripped on a turnip.');
+    // Law 4: the wordmark is text, so it stands on the parchment the cause line carries rather
+    // than on the bare stone slot. tests/styles.test.js proves the ground; this proves it is
+    // still in frame for the screenshot (§6.14).
+    expect(cause.querySelector('.wordmark')).not.toBeNull();
     expect(cause.closest('.gameover__cause').querySelector('.wordmark')).not.toBeNull();
+  });
+
+  // §5: "nothing exceeds 400ms". `bar-urgent` is an `infinite` pulse, so the corpse's 0/100
+  // beam would throb for as long as the screen is up — exactly why `poster()` takes
+  // `urgent: false` for the defeated plate on the result screen. The run is over here; a
+  // flashing alarm points at nothing the player can still do.
+  it('does not pulse the HUD beam once the run is over (§5)', () => {
+    const fatal = overOf('dead');
+    const live = dom(renderHud(fatal, CONFIG)).querySelector('[aria-label="Health"]');
+    expect([...live.classList], 'the fixture is urgent while the run is live').toContain('is-urgent');
+    for (const ended of ENDINGS) {
+      const beam = dom(gameOver(ended)).querySelector('[aria-label="Health"]');
+      expect([...beam.classList], ended).not.toContain('is-urgent');
+    }
   });
 
   // Spec §2: nothing formats money by hand. Both survivor endings used to print `${gold}g`.
@@ -984,6 +1006,69 @@ describe('renderGameOver (spec §6.14)', () => {
     const card = dom(html).querySelector('.gameover__stamp .ending-card');
     expect(titleOf(card)).toBe('<b>Rich</b>');
     expect(card.querySelector('.snark').textContent).toBe('("&" <i>gone</i>)');
+  });
+
+  // A new ending must either reach the screen or fail a test — it must never just vanish. The
+  // renderer used to hold its own hand-written trio and lift the flanks out of it with
+  // `const [left, right] = …`, so a fourth ending rendered two cards of four, no stamp, and
+  // never appeared at all, with the whole suite green.
+  //
+  // Five, not four, and deliberately: with four endings the achieved one leaves three, the
+  // flanks split 2/1, and a truncation of the one-card flank is a no-op that no assertion can
+  // see. Five leaves four, both flanks hold two, and dropping a card from *either* side fails.
+  it('renders new endings rather than silently dropping one', () => {
+    const extra = {
+      exiled: {
+        title: 'Exiled', epitaph: 'The gate shut behind you.',
+        stamp: { variant: 'defeat', text: 'EXILED.' },
+      },
+      enslaved: {
+        title: 'Sold On', epitaph: 'A new owner. Same sand.',
+        stamp: { variant: 'defeat', text: 'SOLD ON.' },
+      },
+    };
+    const five = { ...CONFIG, endings: { ...CONFIG.endings, ...extra } };
+    const host = dom(renderGameOver(overOf('exiled'), five));
+    const cards = [...host.querySelectorAll('.ending-card')];
+    expect(cards.length).toBe(5);
+    expect(cards.map(titleOf).map((t) => t.replace(/\?$/, '')).sort())
+      .toEqual(Object.values(five.endings).map((e) => e.title).sort());
+    // Both flanks carry cards, so neither slice can be truncated unnoticed.
+    expect(host.querySelectorAll('.gameover__left .ending-card').length).toBe(2);
+    expect(host.querySelectorAll('.gameover__right .ending-card').length).toBe(2);
+    const open = cards.filter((c) => !c.classList.contains('ending-card--locked'));
+    expect(open.length).toBe(1);
+    expect(host.querySelector('.gameover__stamp .ending-card')).toBe(open[0]);
+    expect(host.querySelector('.banner-stamp').textContent).toBe('EXILED.');
+  });
+
+  // One validated value decides the whole screen. `achieved` is checked against
+  // `config.endings`; the cause line used to branch on the raw `state.ended` instead, so a
+  // config that does not know 'dead' produced a half-recognised screen — every card locked and
+  // no stamp, with a cause of death printed underneath them anyway.
+  it('tells one story when the ending is not one the config knows', () => {
+    const noDeath = { ...CONFIG, endings: { 'win-circuit': CONFIG.endings['win-circuit'] } };
+    const host = dom(renderGameOver(overOf('dead'), noDeath));
+    expect(host.querySelector('.banner-stamp')).toBeNull();
+    expect(host.querySelectorAll('.ending-card--locked').length)
+      .toBe(host.querySelectorAll('.ending-card').length);
+    const cause = host.querySelector('.cause-of-death');
+    expect(cause.querySelector('strong').textContent).toBe('Final purse:');
+    expect(cause.textContent).not.toContain('turnip');
+  });
+
+  // The renderer deliberately refuses to throw inside mount(): an ending it does not recognise
+  // empties the centre cell rather than taking the screen down. The cause line was the last
+  // place that still dereferenced `state.lastResult` unguarded, so a death carrying no recorded
+  // result threw on the way in — on the one path built not to.
+  it('survives a death with no recorded result', () => {
+    const s = { ...createGameState(1, CONFIG), phase: 'GAMEOVER', ended: 'dead', health: 0 };
+    expect(s.lastResult, 'the fixture must actually be missing its result').toBeNull();
+    let html;
+    expect(() => { html = renderGameOver(s, CONFIG); }).not.toThrow();
+    const cause = dom(html).querySelector('.cause-of-death');
+    expect(cause.querySelector('strong').textContent).toBe('Cause of Death:');
+    expect(cause.textContent).not.toContain('undefined');
   });
 
   // The cause line comes from `config.deathRecaps` today, but it is the one string on this

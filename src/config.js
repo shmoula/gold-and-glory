@@ -114,10 +114,28 @@ export const CONFIG = {
   // are `ended` values, not display names. The title is the card's heading (a locked card adds
   // its own "?"); the epitaph is a §6.8 aside — the renderer supplies the parentheses, so these
   // strings carry none, stay under 40 characters and state no number.
+  //
+  // `stamp` is §6.13's screen-level verdict: the modifier and the copy travel together, so no
+  // screen can pair "YOU DIED" with the victory colour. It lives here rather than in a table
+  // inside the renderer because a renderer-side table is a *second* list of these keys, and the
+  // two drift silently — a fourth ending added below used to render a stampless gallery with
+  // the whole suite green. Order matters too: the gallery is drawn in the order these keys are
+  // declared. §9 sets the punctuation — a win earns its exclamation (retiring is a win you
+  // chose, so it takes --victory with its own copy: "VICTORY!" is already spent on the result
+  // screen), death gets neither irony nor softening.
   endings: {
-    'win-circuit': { title: 'Champion of the Circuit', epitaph: "You got a belt. It doesn't fit." },
-    retired: { title: 'Retired Rich', epitaph: 'You have all the gold. And no friends.' },
-    dead: { title: 'You Died', epitaph: 'The crowd loved it.' },
+    'win-circuit': {
+      title: 'Champion of the Circuit', epitaph: "You got a belt. It doesn't fit.",
+      stamp: { variant: 'victory', text: 'CHAMPION!' },
+    },
+    retired: {
+      title: 'Retired Rich', epitaph: 'You have all the gold. And no friends.',
+      stamp: { variant: 'victory', text: 'RETIRED RICH!' },
+    },
+    dead: {
+      title: 'You Died', epitaph: 'The crowd loved it.',
+      stamp: { variant: 'death', text: 'YOU DIED' },
+    },
   },
 
   deathRecaps: [

@@ -294,6 +294,40 @@ Carried out of Tasks 3 and 4. Each is a plan/spec contradiction or a later task'
     the spec with the only arrangement that actually speaks: a persistent region outside `#app`,
     written after insertion (`liveRegion()` in `src/main.js`).
 
+Carried out of Task 9's review-fix round. All are Task 10's, and none were touched by it.
+
+27. **§6.13's giant Roman sandal** — a content image descending behind the death stamp — is not
+    rendered. Same call as the §6.4 chicken: no asset exists, and spec §10 requires the UI to
+    look complete with zero content assets present. Reconcile the spec text with the asset-free
+    cover, or commission the asset.
+28. **Backlog item 26 needs extending to game over.** It reasons about the *result* stamps only,
+    but `renderGameOver` now emits a `.banner-stamp` too, with no `role="status"` at all. The
+    fix is the same persistent-region-outside-`#app` arrangement, and it should be decided once
+    for both screens rather than twice.
+29. **`.banner-stamp` is built two ways.** `renderResult` inlines its two variants with the copy
+    written in the renderer; `renderGameOver` reads `{variant, text}` off `config.endings`. One
+    `bannerStamp(variant, text)` helper plus the result screen's copy moved into `config` would
+    leave the game with one spelling of a stamp and one home for stamp copy. (Task 9's fix round
+    moved the game-over half; the result half is still inline.)
+30. **`main.js` should stay whole.** 340 lines and the sole owner of the mutable `state`; a
+    reviewer recommended leaving it. If a seam is ever taken it should be `src/ui/announce.js`
+    (the `liveRegion` builders and the two announcers), not a phase-by-phase split.
+31. **The M2 parchment quartet is copy-pasted into eight rules.** `.poster`, `.shop-item`,
+    `.sponsor-card`, `.log`, `.ledger`, `.banner-stamp`, `.ending-card` and `.cause-of-death`
+    each restate `background: var(--grad-paper)` + the ink border + a wobble radius +
+    `--shadow-paper`. It is spec §6's own shape (each entry states its own block), so this is a
+    spec-and-code decision, not a tidy-up.
+32. **`button:disabled` in `base.css` sits a file away from §6.2's `.btn[aria-disabled]`** in
+    `components.css`, and the two dim to different opacities (0.4 vs 0.45). This is deferred
+    item 5 seen from the other side; reconcile them together.
+33. **`.wordmark` fails §8's contrast floor even on parchment.** `--ink-soft` at `opacity: .7`
+    over `--paper-3` (the darker gradient stop) is **2.80:1**, against a 4.5:1 floor — on the
+    result screen as much as on game over. Task 9's fix round moved the game-over wordmark off
+    the stone slot (1.54:1) and onto the cause card, which is Law 4, and added a Law-4 ground
+    test; it did **not** raise the wordmark's own contrast, because doing so would restyle the
+    already-reviewed result screen. Decide whether the wordmark is decorative branding (and say
+    so in §8) or text (and drop the `opacity: .7`).
+
 **Task 8's `legacy.css` trim list keeps growing.** Dead as of now: `:where(.hud .gold)`,
 `:where(.hub .row)`, the `.hub` arm of the button-skin group, `:where(.sponsor)`,
 `:where(.meter-sweet)`, `:where(.timing-meter)`, `:where(.combatants)`, `:where(.press)`,

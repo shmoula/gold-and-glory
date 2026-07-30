@@ -93,15 +93,17 @@
     "cta   cta    cta";
 }
 .gameover__left { grid-area: endL; }
-.gameover__stamp { grid-area: stamp; text-align: center; }
-.gameover__right { grid-area: endR; }
-.gameover__cause { grid-area: cause; }
-.gameover__cta { grid-area: cta; justify-self: center; }
 /* M2 gives every parchment card one `--tilt-*`, and neighbours must never share one. The centre
    card also sits directly under the banner stamp, which is already `--tilt-3`, so it takes
-   `--tilt-2` and the right-hand card takes the third. Left keeps the `--tilt-1` default. */
-.gameover__stamp .ending-card { transform: rotate(var(--tilt-2)); }
-.gameover__right .ending-card { transform: rotate(var(--tilt-3)); }
+   `--tilt-2` and the right-hand column takes the third. Left keeps the `--tilt-1` default.
+   The slot names the angle; `.ending-card` still owns the `transform` that spends it (see
+   components.css §6.14). A screen that set `transform` here instead would be the sheet's only
+   override of a component's own transform, and would drop whatever else the card ever puts
+   in that property. */
+.gameover__stamp { grid-area: stamp; text-align: center; --card-tilt: var(--tilt-2); }
+.gameover__right { grid-area: endR; --card-tilt: var(--tilt-3); }
+.gameover__cause { grid-area: cause; }
+.gameover__cta { grid-area: cta; justify-self: center; }
 
 @media (max-width: 900px) {
   .screen--hub { grid-template-columns: 1fr 1fr;

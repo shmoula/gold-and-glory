@@ -39,7 +39,11 @@ const opponentSub = (opponent) =>
 const playerSub = (state) =>
   `Wins: ${state.wins} ${MIDDOT} Purse: <span class="amount">${formatGold(state.gold)}</span>`;
 
-export function renderHud(state, config) {
+// `urgent` is an overridable default, exactly as `poster()`'s is: supply `false` and the beam
+// stops flashing. Spec §5 caps every motion at 400ms, but `bar-urgent` is an `infinite` pulse,
+// so a screen that is the end of the run would throb at 0/100 for as long as it is up. An alarm
+// is only an alarm while there is something to do about it.
+export function renderHud(state, config, { urgent } = {}) {
   // Spec 6.5: the beam and the player poster read the same field. During a fight that field is
   // the live combat one, so the beam falls with the fighter - and, crucially, its URGENT_FRACTION
   // flash fires on the one screen where being nearly dead is actionable. Reading `state.health`
@@ -51,7 +55,7 @@ export function renderHud(state, config) {
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
-      ${bar('Health', hp.value, hp.max, { urgent: hp.value / hp.max < URGENT_FRACTION })}
+      ${bar('Health', hp.value, hp.max, { urgent: urgent ?? (hp.value / hp.max < URGENT_FRACTION) })}
       ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
       <span class="hud__stat"><span class="hud__label">Injuries</span>
         <span class="pips" role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}">${pips}</span></span>
@@ -249,19 +253,17 @@ export function renderResult(state, config) {
 }
 
 // ---- Game over (spec §6.13 / §6.14 / §7) ----
-// The gallery order, fixed so the trio reads the same every run. The achieved ending is lifted
-// out of it into the centre cell, which leaves the two you did not reach flanking it — so the
-// side slots are never hardcoded and never show the ending you just got.
-const ENDING_ORDER = ['win-circuit', 'retired', 'dead'];
-// §6.13 has exactly three stamps, and the copy travels with the modifier so no screen can pair
-// "YOU DIED" with the victory colour. §9 sets the punctuation: a win gets its exclamation,
-// death gets neither irony nor softening. Retiring is a win you chose, so it shares --victory
-// (its own copy, not "VICTORY!" — a bout win already spends that on the result screen).
-const GAMEOVER_STAMP = {
-  'win-circuit': { variant: 'victory', text: 'CHAMPION!' },
-  retired: { variant: 'victory', text: 'RETIRED RICH' },
-  dead: { variant: 'death', text: 'YOU DIED' },
-};
+// The gallery order is `config.endings`'s own key order, so the endings, their copy, their
+// stamps and the order they hang in are one list with one owner. A renderer-side order (or a
+// renderer-side stamp table) is a second list of the same keys, and the two drift in silence:
+// a fourth ending added to the config alone used to render two cards of four, no stamp, and
+// never appear — with nothing in the suite failing.
+const endingOrder = (config) => Object.keys(config.endings);
+
+// The cause line when a death arrived with no recorded result. renderGameOver is on the one
+// path that deliberately refuses to throw inside mount() (see below), so it must not throw
+// here either — and printing "undefined" as a cause of death is worse than saying nothing.
+const UNRECORDED_CAUSE = 'Unrecorded.';
 
 // One ending's card. Locked cards are info cards, never buttons (§6.14) — `aria-disabled` on an
 // <article> is what the spec asks for, and there is nothing here to focus or activate.
@@ -280,33 +282,45 @@ function endingCard(key, config, achieved) {
 }
 
 export function renderGameOver(state, config) {
-  // Every route into GAMEOVER sets one of the three (game.js: resolveFightOutcome, retire), but
-  // the renderer refuses to index config.endings with whatever it is handed: an unknown value
-  // leaves the centre cell empty and every card locked, rather than throwing inside mount() and
-  // taking the whole screen down with it.
-  const achieved = ENDING_ORDER.includes(state.ended) ? state.ended : null;
-  const [left, right] = ENDING_ORDER.filter((key) => key !== achieved);
-  const stamp = GAMEOVER_STAMP[achieved];
-  // §6.14's screenshot payload. Death states the cause; the two survivor endings state what the
-  // run was worth — through formatGold, because nothing formats money by hand (§2).
-  const payload = state.ended === 'dead'
-    ? `<strong>Cause of death:</strong> ${escapeHtml(state.lastResult.causeOfDeath)}`
+  // Every route into GAMEOVER sets one of the declared endings (game.js: resolveFightOutcome,
+  // retire), but the renderer refuses to index config.endings with whatever it is handed: an
+  // unknown value leaves the centre cell empty and every card locked, rather than throwing
+  // inside mount() and taking the whole screen down with it.
+  const order = endingOrder(config);
+  const achieved = order.includes(state.ended) ? state.ended : null;
+  // The achieved ending is lifted out into the centre cell and the rest flank it, split down
+  // the middle — so the side slots are never hardcoded, never show the ending you just got, and
+  // never quietly drop the ones that do not fit two named variables.
+  const others = order.filter((key) => key !== achieved);
+  const half = Math.ceil(others.length / 2);
+  const gallery = (keys) => keys.map((key) => endingCard(key, config, achieved)).join('');
+  const stamp = achieved ? config.endings[achieved].stamp : null;
+  // §6.14's screenshot payload. Death states the cause; every surviving ending states what the
+  // run was worth — through formatGold, because nothing formats money by hand (§2). It branches
+  // on `achieved`, not on the raw `state.ended`, so the whole screen tells one story: an ending
+  // the config does not know is not half-recognised into a cause of death under a locked
+  // gallery with no stamp.
+  const payload = achieved === 'dead'
+    ? `<strong>Cause of Death:</strong> ${escapeHtml(state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE)}`
     : `<strong>Final purse:</strong> <span class="amount">${formatGold(state.gold)}</span>`;
   // §6.1: "On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate
   // storytelling." It reads the same playerHealth() selector as every other screen, so the
-  // corpse's beam states the number the fight left behind rather than a fresh one.
+  // corpse's beam states the number the fight left behind rather than a fresh one — but not
+  // urgently: §5 caps motion at 400ms and `bar-urgent` is infinite, so a 0/100 beam would pulse
+  // for as long as the screen is up. Same reasoning as the result screen's `urgent: false`
+  // poster plate: the run is over, and an alarm that points at nothing is noise.
   return `
-    ${renderHud(state, config)}
+    ${renderHud(state, config, { urgent: false })}
     <section class="screen screen--gameover">
-      <div class="gameover__left">${endingCard(left, config, achieved)}</div>
+      <div class="gameover__left">${gallery(others.slice(0, half))}</div>
       <div class="gameover__stamp">
-        ${stamp ? `<p class="banner-stamp banner-stamp--${stamp.variant}">${stamp.text}</p>` : ''}
+        ${stamp ? `<p class="banner-stamp banner-stamp--${stamp.variant}">${escapeHtml(stamp.text)}</p>` : ''}
         ${achieved ? endingCard(achieved, config, achieved) : ''}
       </div>
-      <div class="gameover__right">${endingCard(right, config, achieved)}</div>
+      <div class="gameover__right">${gallery(others.slice(half))}</div>
       <div class="gameover__cause">
-        <p class="cause-of-death">${payload}</p>
-        <span class="wordmark">GOLD &amp; GLORY</span>
+        <p class="cause-of-death">${payload}
+          <span class="wordmark">GOLD &amp; GLORY</span></p>
       </div>
       <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
     </section>`;
