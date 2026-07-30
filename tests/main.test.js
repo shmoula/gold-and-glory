@@ -11,6 +11,7 @@ import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
 import { formatGold } from '../src/ui/format.js';
+import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS } from '../src/ui/effects.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
 const SEED = Math.floor(SEED_ROLL * 1e9); // …and the run seed main.js derives from it
@@ -821,6 +822,125 @@ describe('money theater (spec §6.6 / §6.7)', () => {
       expect(cells.map((c) => c.textContent)).toEqual(posted);
       expect(hiddenRows()).toEqual([]);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Plan Task 10 Step 3, the wiring half. tests/effects.test.js already holds each animation to
+// its reduced-motion contract in isolation, and tests/styles.test.js holds the stylesheet to
+// its half; neither sees the assembled screen. What is asserted here is the thing a
+// reduced-motion player actually gets: the *final* numbers, on the real markup, reached through
+// main.js's own render — and nothing left ticking that could still move them afterwards.
+//
+// The distinction that matters is not "is the text right immediately" — the renderer writes
+// every posted figure into the markup before any theater starts, so it is right immediately
+// either way. It is whether the rows are *revealed* and whether the figures survive the beats
+// that a counting reveal would have spent at zero.
+describe('reduced motion, end to end (spec §5, plan Step 3)', () => {
+  const purse = () => q('.hud__purse');
+  const ticker = () => q('.hud__purse .ticker');
+  const chips = () => [...app().querySelectorAll('.delta-chip')];
+  const rows = () => [...app().querySelectorAll('.ledger__row')];
+  const hiddenRows = () => rows().filter((r) => r.classList.contains('is-hidden'));
+  const cells = () => [...app().querySelectorAll('.amount[data-unit]')];
+
+  const reduceMotion = () =>
+    vi.stubGlobal('matchMedia', vi.fn((media) => ({ media, matches: true })));
+
+  function withTimers(body) {
+    vi.useFakeTimers();
+    try { body(); } finally { vi.useRealTimers(); }
+  }
+  const tick = (ms) => { clock += ms; vi.advanceTimersByTime(ms); };
+
+  const TRAIN_COST = 80; // config: training.baseCost at level 0
+  const START = CONFIG.startingGold;
+
+  // Win the opening bout, which is what puts a ledger on screen.
+  function winTheBout() {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1');
+    captureAt(renderedCenter());
+    act('2');
+  }
+
+  it('opens the result ledger pre-tallied, with every figure already posted', () => {
+    reduceMotion();
+    withTimers(() => {
+      winTheBout();
+      expect(rows().length).toBeGreaterThan(3);
+      // No counting reveal: every row is visible on the first frame of the screen.
+      expect(hiddenRows()).toEqual([]);
+      const posted = cells().map((c) => c.textContent);
+      expect(posted.length).toBeGreaterThan(2);
+      // Every cell agrees with the value it carries, so nothing is a frozen mid-count.
+      for (const cell of cells()) expect(cell.getAttribute('data-value')).toBeTruthy();
+      // A counting theater would be at or near zero here, and would still be moving at 2.5s.
+      tick(350);
+      expect(cells().map((c) => c.textContent)).toEqual(posted);
+      tick(5000);
+      expect(cells().map((c) => c.textContent)).toEqual(posted);
+      expect(hiddenRows()).toEqual([]);
+    });
+  });
+
+  it('writes the purse straight to its new value instead of counting toward it', () => {
+    reduceMotion();
+    withTimers(() => {
+      click('[data-action="train-power"]');
+      // Without the preference this opens on the *old* number and counts down over 600ms.
+      expect(ticker().textContent).toBe(formatGold(START - TRAIN_COST));
+      expect(ticker().getAttribute('data-value')).toBe(String(START - TRAIN_COST));
+      tick(5000); // nothing is left scheduled that could move it again
+      expect(ticker().textContent).toBe(formatGold(START - TRAIN_COST));
+    });
+  });
+
+  // The regression 2883bd8 fixed, seen from the assembled screen: the chip must not travel, but
+  // it must still be *there*. Its whole extended life was being spent on an invisible node.
+  it('keeps the delta chip on screen past its travelling lifetime', () => {
+    reduceMotion();
+    withTimers(() => {
+      click('[data-action="train-power"]');
+      expect(chips().map((c) => c.textContent))
+        .toEqual([formatGold(-TRAIN_COST, { signed: true })]);
+      tick(CHIP_LIFE_MS + 10);
+      expect(chips().length, 'the chip is gone before it could be read').toBe(1);
+      tick(REDUCED_CHIP_LIFE_MS - CHIP_LIFE_MS);
+      expect(chips()).toEqual([]);
+    });
+  });
+
+  // A rejection loses its motion channel, so the channel that carries no motion has to survive:
+  // the shortfall chip is the only thing left telling the player why nothing happened.
+  it('drops the rejection shake but still states the shortfall', () => {
+    reduceMotion();
+    withTimers(() => {
+      click('[data-action="train-power"]'); // 100 -> 20, next level costs 128
+      tick(REDUCED_CHIP_LIFE_MS + 10); // let the successful purchase's chip expire
+      expect(chips()).toEqual([]);
+      const button = q('[data-action="train-power"]');
+      button.click();
+      expect(purse().classList.contains('is-shaking')).toBe(false);
+      expect(chips().length).toBe(1);
+      expect(chips()[0].textContent)
+        .toContain(`need ${button.getAttribute('data-missing')} more`);
+      expect(chips()[0].textContent.codePointAt(0)).toBe(0x2212);
+    });
+  });
+
+  // "…but the meter still sweeps." The sweep is gameplay, not decoration: it is the only way to
+  // aim, so a reduced-motion run that froze it would be unplayable. Nothing in the capture path
+  // consults the preference, and this is what would notice if something started to.
+  it('still sweeps and still resolves a capture', () => {
+    reduceMotion();
+    enterFight();
+    expect(raf).toHaveBeenCalled(); // the loop was started under the preference
+    captureAt(renderedCenter());
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
+    act('1');
+    expect(logText()).toContain('You strike (crit)');
   });
 });
 
