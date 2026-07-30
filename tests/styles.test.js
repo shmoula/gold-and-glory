@@ -321,6 +321,27 @@ describe('type floor (spec §8)', () => {
     expect(tooSmall).toEqual([]);
   });
 
+  // Law 5: "Component CSS may reference only var(--*) custom properties." Sizes are the half of
+  // that law nothing enforced — the hexes were promoted in a4ea0d1, but `.btn--commit` still
+  // carried spec §6.2's literal `21px` in the `font:` shorthand, off the scale entirely. Every
+  // font size in every sheet now names a `--text-*` step, so a new component cannot invent a
+  // seventh size by writing a number, and the scale stays the one place sizes are decided.
+  it('states every font size as a --text-* token, never as a number', () => {
+    const literals = [];
+    for (const [, prelude, body] of bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (prelude.trim().startsWith('@')) continue;
+      for (const [, size] of body.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)px/g)) {
+        literals.push(`${prelude.trim()}: font-size ${size}px`);
+      }
+      // The `font:` shorthand's size slot: the first length before the `/line-height` or the
+      // family. `--text-*` in that slot is a var() and matches no number here.
+      for (const [, size] of body.matchAll(/font\s*:\s*[^;}]*?(\d+(?:\.\d+)?)px\s*[/ ]/g)) {
+        literals.push(`${prelude.trim()}: font ${size}px`);
+      }
+    }
+    expect(literals).toEqual([]);
+  });
+
   // Step 1b's own follow-up question, which its comment promises this file answers: the numeral
   // grew from 11px to 12.5px, so it has to still fit the narrowest track that carries one.
   // Both sides are read out of the sheets, so narrowing the bar or raising the token fails here.

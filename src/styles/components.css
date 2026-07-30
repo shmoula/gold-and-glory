@@ -68,7 +68,10 @@
    (backlog item 6). */
 .btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: var(--bone-dim); }
 
-.btn--commit { font: 400 21px/1 var(--font-display); letter-spacing: 0.05em;
+/* The display face's size is `--text-commit`, not the 21px literal spec §6.2's block carries:
+   Law 5 gives a component tokens only, and 21px is a real step of the scale (§6.2 is the only
+   place that uses it) rather than a nudge of --text-lg. Same pixels (backlog item 6). */
+.btn--commit { font: 400 var(--text-commit)/1 var(--font-display); letter-spacing: 0.05em;
   color: var(--bone-bright); background: var(--grad-commit); border-radius: var(--wobble-1);
   padding: var(--space-2) var(--space-5); text-shadow: 0 1.5px 0 rgba(20,30,50,0.55); }
 .btn--commit:focus-visible { outline-color: var(--bone-bright); }
@@ -76,7 +79,9 @@
 .btn--danger { background: linear-gradient(var(--blood-hi), var(--blood)); }
 
 .btn.is-disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
-.btn.is-unaffordable { /* stays full-strength EXCEPT the price */ }
+/* `.is-unaffordable` stays full-strength EXCEPT the price: §6.2 spells that as an empty rule,
+   which declares nothing and is therefore a rule the sheet does not need. Kept as prose
+   (backlog item 6) — the two rules below are the whole treatment. */
 /* One spelling of "you are short" for every commerce surface. `.shop-item` is not a `.btn`,
    so §6.2's own selector never reached it and §6.12 asks for the same treatment; a third
    surface (Task 7/8) joins the list here instead of copying the declarations again.

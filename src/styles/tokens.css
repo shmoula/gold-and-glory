@@ -69,6 +69,9 @@
   --text-sm: 14px;    /* HUD labels, log */
   --text-md: 16px;    /* body, buttons */
   --text-lg: 19px;    /* prices, emphasized rows */
+  --text-commit: 21px;/* the commit button's display face (§6.2) — a step of its own, between
+                         --text-lg and --text-xl. Spec §6.2's block spelled it as a literal;
+                         Law 5 allows a component only tokens, so the scale states it here. */
   --text-xl: 24px;    /* section headings (display) */
   --text-2xl: 32px;   /* poster names (display) */
   --text-3xl: 44px;   /* screen banners: VICTORY! (display) */
