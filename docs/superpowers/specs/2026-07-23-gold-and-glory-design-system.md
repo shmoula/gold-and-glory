@@ -269,8 +269,18 @@ Everything moves like a Gilliam cutout: few frames, hard stops, pivot from an ed
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;   /* an infinite pulse at 1ms is a strobe */
+    transition-duration: 1ms !important;
+  }
   .meter-cursor { transition: none !important; } /* sweep stays JS-driven */
+  /* Shortening is not the same as cancelling. `chip-fall` ends at `opacity: 0` and runs
+     `forwards`, so at 1ms it applies its final keyframe immediately and keeps it — the chip is
+     hidden a millisecond after it is spawned, and "appears/disappears without travel" above
+     becomes "never appears". Any `forwards` animation whose last keyframe hides the element has
+     to be cancelled outright here; the JS timer still removes the node. */
+  .delta-chip { animation: none !important; }
 }
 ```
 
@@ -601,7 +611,13 @@ Parchment strip, max-height ~160px, `overflow-y: auto`, newest entry appended at
 auto-scrolled. Entry format: `.log__turn` ("T4") + mechanics clause (body, 14px) + optional
 `.snark`. Turn numbers, not fake timestamps. Damage dealt = `--blood-ink` bold value; damage
 taken = plain ink with sword glyph; money = `--gold-ink`; status (stagger, feint) = italic body.
-`aria-live="polite"` on the container, ≤ 1 entry announced per turn.
+Announced politely, **≤ 1 utterance per turn** — not ≤ 1 entry: an exchange pushes two entries
+(three with a press), and speaking only one of them tells a screen-reader player either what they
+dealt or what they took, never both. One turn is one announcement carrying the whole exchange.
+The announcement does **not** come from the strip itself: `mount()` replaces `#app` wholesale, a
+live region inserted already-populated announces nothing, and the counting/streaming rewrites
+inside one would each be their own utterance. Announce from a persistent `.sr-only`
+`aria-live="polite"` region outside `#app`, written after insertion.
 
 ### 6.10 Sponsor notice
 
@@ -626,9 +642,15 @@ Three mutually exclusive states — structural, not just tonal:
 |---|---|---|
 | Available | — | Full color; price in `--gold-ink`; hover lifts (`translateY(-2px)`) |
 | Unaffordable | `.is-unaffordable` | Full color; price in `--blood-hi`; shortfall snark; click → purse shake |
-| Owned | `.is-owned` | Desaturated to ~60% opacity; price row **replaced** by ink checkmark + "OWNED"; no hover; `aria-disabled` |
+| Owned | `.is-owned` | Desaturated to ~60% opacity; price row **replaced** by ink checkmark + "OWNED"; no hover; not a control |
 
 Never render unaffordable and owned with the same visual weight (this was the mockup's bug).
+
+An owned card is a `<div>`, not a disabled button: there is nothing to click, so it carries no
+action and no `aria-disabled` — the attribute is ignored on a role-less element, and the visible
+"✓ Owned" already states the case. (An inert *button* — an option already taken, such as
+`Bribed ✓` — is different: it stays a `<button>` and does use `aria-disabled`, so it is announced
+rather than dropped out of the tab order.)
 
 ### 6.13 Banner stamps (`.banner-stamp`)
 
