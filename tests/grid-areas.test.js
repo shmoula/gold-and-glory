@@ -17,6 +17,7 @@ import { createGameState, PHASE } from '../src/state.js';
 import { startFight, resolveFightOutcome, retire } from '../src/game.js';
 import { makeRng } from '../src/rng.js';
 import { mount } from '../src/ui/screens.js';
+import { mountAll } from './support/screens.js';
 
 // Cascade order = the entry point's @import order, then anything not imported yet.
 const ENTRY = 'src/styles.css';
@@ -324,5 +325,160 @@ describe('screen grid areas', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Plan Task 10 Step 4 — the responsive pass, at the four widths the plan names. Same resolver,
+// same `winner()`, driven off tests/support/screens.js's state matrix so every screen in every
+// state that renders a different set of controls is covered.
+//
+// **What this file cannot check, and why.** jsdom implements no layout, so "no horizontal
+// scroll" is not observable here at any width: nothing has a used width, a line box, or an
+// intrinsic minimum, and `scrollWidth` is 0 on every element. Everything below is therefore a
+// *rule-level* fact — a declaration that must or must not win at a given width — chosen so that
+// each one is a necessary condition for the visual claim the plan makes. The claims that need a
+// real engine are listed in the browser-pass checklist in the Task 10 handoff, not faked here.
+const STEP4_WIDTHS = [1280, 900, 640, 375];
+const MOBILE_WIDTHS = [640, 375];
+const DESKTOP_WIDTHS = [1280, 900];
+// The page gutter: `#app` pads by --space-4 on each side (base.css). Read from the token rather
+// than restated, so lowering the token cannot leave the budget below silently generous.
+const SPACE_4 = Number(/--space-4:\s*(\d+)px/.exec(readFileSync('src/styles/tokens.css', 'utf8'))[1]);
+
+// Track lists this reader can size. Anything else is refused rather than silently measured as
+// 0px, which is how a `repeat()` or a `var()` would sneak an overflowing track past the check.
+const OPAQUE_TRACK = /(repeat|minmax|clamp|calc|fit-content|var|min|max)\(/;
+function fixedTrackPx(value) {
+  if (!value || value === 'none') return 0;
+  if (OPAQUE_TRACK.test(value)) {
+    throw new Error(`grid-areas.test.js cannot size "grid-template-columns: ${value}" - extend fixedTrackPx()`);
+  }
+  return [...value.matchAll(/(-?[\d.]+)px/g)].reduce((sum, m) => sum + Number(m[1]), 0);
+}
+const trackCount = (value) => (!value || value === 'none' ? 0 : value.trim().split(/\s+/).length);
+
+const MOUNTED = mountAll();
+// Only elements a rule could give a column list to are worth resolving, and there are eight such
+// selectors against ~100 elements per screen — the filter is what keeps this from being 4 × 10 ×
+// 100 full cascade resolutions.
+const GRID_COL_SELS = [...new Set(RULES
+  .filter((r) => r.decls.some((d) => d.prop === 'grid-template-columns'))
+  .flatMap((r) => r.selectors))];
+
+describe('responsive pass (spec §7, plan Step 4)', () => {
+  it('has a screen matrix and column-declaring selectors to walk', () => {
+    expect(Object.keys(MOUNTED).length).toBeGreaterThan(3);
+    expect(GRID_COL_SELS.length).toBeGreaterThan(0);
+    expect(SPACE_4).toBeGreaterThan(0);
+  });
+
+  // "Posters stack." The hub's two posters share one grid area, so what stacks them is that
+  // area's own flex direction — at every width, not just the narrow ones, because the area is a
+  // 300px column on desktop and a half-width one at 900. A `row` here would put two rotated
+  // posters side by side in 150px each.
+  it('stacks the hub posters in their shared slot at every width', () => {
+    const el = container('screen--hub');
+    const slot = document.createElement('div');
+    slot.className = 'hub__fight';
+    el.appendChild(slot);
+    for (const width of STEP4_WIDTHS) {
+      expect(winner(slot, 'flex-direction', width), `.hub__fight @${width}px`).toBe('column');
+    }
+    el.remove();
+  });
+
+  // "Posters stack" at the screen level too: below 640 every screen is one column with no named
+  // areas, which is what hands its children — posters, ledger, ending cards — to auto-placement
+  // one per row. The child half of that reset is asserted further up this file; this is the
+  // container half, and it is the precondition for it.
+  it('collapses every screen to a single column with no areas below 640px', () => {
+    const wrong = [];
+    for (const variant of VARIANTS.filter((v) => v !== 'screen')) {
+      const el = container(variant);
+      for (const width of MOBILE_WIDTHS) {
+        const areas = winner(el, 'grid-template-areas', width);
+        const cols = winner(el, 'grid-template-columns', width);
+        if (areas !== 'none') wrong.push(`${width}px: .${variant} still names areas (${areas})`);
+        if (trackCount(cols) !== 1) wrong.push(`${width}px: .${variant} keeps ${trackCount(cols)} columns (${cols})`);
+      }
+      el.remove();
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  // "At ≤640 the commit bar is sticky-bottom." Checked on the elements the renderers actually
+  // emit rather than on the selector, because a sticky rule matching nothing is the failure mode
+  // that reads as a pass. Note the fight screen emits no `.commit-bar` at all — deferred
+  // backlog item 20, spec §7's line about it is a comment, not a rule — so this walks whatever
+  // is emitted instead of asserting a fixed set of screens, which would fail the day item 20 is
+  // decided either way.
+  it('lifts every rendered commit bar into a sticky footer below 640px, and only there', () => {
+    const bars = Object.entries(MOUNTED)
+      .flatMap(([name, host]) => [...host.querySelectorAll('.commit-bar')].map((el) => [name, el]));
+    expect(bars.length, 'no .commit-bar is rendered anywhere - the sticky rule is dead').toBeGreaterThan(0);
+    const wrong = [];
+    for (const [name, bar] of bars) {
+      for (const width of DESKTOP_WIDTHS) {
+        const pos = winner(bar, 'position', width);
+        if (pos) wrong.push(`${width}px: ${name} commit bar is already "${pos}"`);
+      }
+      for (const width of MOBILE_WIDTHS) {
+        const pos = winner(bar, 'position', width);
+        const bottom = winner(bar, 'bottom', width);
+        if (pos !== 'sticky') wrong.push(`${width}px: ${name} commit bar is "${pos}", not sticky`);
+        if (bottom !== '0') wrong.push(`${width}px: ${name} commit bar sticks at bottom "${bottom}"`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  // "The HUD wraps without clipping." Two halves, and the second is the one worth a test: the
+  // beam is a flex row of five stats, and the only reason a narrow viewport does not cut the
+  // last one off is that it wraps rather than being clipped. A `height` or an `overflow: hidden`
+  // arriving on `.hud` would turn the wrap into exactly the clipping this forbids, and no unit
+  // test elsewhere resolves either property.
+  it('wraps the HUD rather than clipping it, on every screen at every width', () => {
+    const wrong = [];
+    for (const [name, host] of Object.entries(MOUNTED)) {
+      const hud = host.querySelector('.hud');
+      expect(hud, `${name} renders no .hud`).not.toBeNull();
+      for (const width of STEP4_WIDTHS) {
+        if (winner(hud, 'flex-wrap', width) !== 'wrap') wrong.push(`${width}px: ${name} .hud does not wrap`);
+        for (const prop of ['overflow', 'overflow-x', 'overflow-y', 'height', 'max-height']) {
+          const value = winner(hud, prop, width);
+          if (value) wrong.push(`${width}px: ${name} .hud sets ${prop}: ${value}, which clips a wrapped row`);
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  // The one overflow condition that *is* decidable without layout: a grid whose fixed px tracks
+  // already exceed `#app`'s own content box overflows the page wherever it sits, because every
+  // grid in the game is inside `#app` and most are inside a `.screen` that pads further. This is
+  // a necessary, not a sufficient, condition — a percentage width, a long unbreakable string or
+  // an intrinsic minimum can still overflow, and only a browser sees those. What it does catch
+  // is the common form: a desktop track list that a breakpoint forgot to relax.
+  it('declares no fixed grid track wider than the page it must fit inside', () => {
+    const overflowing = [];
+    let checked = 0;
+    for (const [name, host] of Object.entries(MOUNTED)) {
+      for (const el of host.querySelectorAll(GRID_COL_SELS.join(','))) {
+        for (const width of STEP4_WIDTHS) {
+          const px = fixedTrackPx(winner(el, 'grid-template-columns', width));
+          if (px === 0) continue;
+          checked += 1;
+          const budget = width - 2 * SPACE_4;
+          if (px > budget) {
+            overflowing.push(`${width}px: ${name} .${[...el.classList].join('.')} fixes ${px}px of track in a ${budget}px page`);
+          }
+        }
+      }
+    }
+    expect(overflowing).toEqual([]);
+    // Vacuity guard: if no rendered grid declares a fixed track any more, this test is measuring
+    // nothing and should be deleted rather than left green.
+    expect(checked).toBeGreaterThan(0);
   });
 });
