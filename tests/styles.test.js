@@ -420,6 +420,24 @@ describe('rules inherited from the deleted legacy sheet', () => {
     expect(disabled[0]).toMatch(/opacity:/);
     expect(disabled[0]).toMatch(/cursor:\s*not-allowed/);
   });
+
+  // Two rules dim a dead button, and the game emits both: `btn({ disabled: true })` writes the
+  // native attribute for a true no-op (nothing to repair) while `owned` writes `aria-disabled`.
+  // They used to fade by different amounts (0.4 in the moved legacy rule, §6.2's 0.45 in the
+  // component), so one Repair plank had two dim states. Derived from each other rather than
+  // restated, so raising §6.2's number carries the native rule with it or fails here.
+  it('dims a natively-disabled button by exactly as much as an aria-disabled one', () => {
+    const opacityOf = (re, what) => {
+      const rule = bare.match(re)?.[0];
+      expect(rule, `no ${what} rule`).toBeTruthy();
+      const value = rule.match(/opacity:\s*([\d.]+)/)?.[1];
+      expect(value, `${what} declares no opacity`).toBeTruthy();
+      return Number(value);
+    };
+    const native = opacityOf(/button:disabled\s*\{[^}]*\}/, 'button:disabled');
+    const aria = opacityOf(/\.btn\[aria-disabled="true"\]\s*\{[^}]*\}/, '.btn[aria-disabled]');
+    expect(native).toBe(aria);
+  });
 });
 
 // --- Spec Law 4: "Text only sits on paper or wood. Never directly on stone." ---

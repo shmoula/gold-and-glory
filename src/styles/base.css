@@ -22,8 +22,12 @@ button { font: inherit; cursor: pointer; }
    .btn[aria-disabled="true"]` selector deliberately does not match. Also moved out of
    legacy.css — where `:where()` had zeroed its specificity, so `button { cursor: pointer }`
    above beat the `not-allowed` and every dead button still advertised itself as clickable.
-   (§6.2 dims to 0.45; this is 0.4. Reconciling the two numbers is Task 10's, item 5.) */
-button:disabled { opacity: 0.4; cursor: not-allowed; }
+   The opacity is §6.2's own 0.45, not the 0.4 legacy.css happened to carry: a dead button is a
+   dead button, and two dim values for one state meant the *same* Repair plank faded by a
+   different amount depending on whether nothing needed repairing (native `disabled`) or the
+   option was already taken (`aria-disabled`). tests/styles.test.js now derives one number from
+   the other rather than restating it. */
+button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
    wood (blue-on-stone is 1.12:1 — invisible). Spec §8 is ship-blocking, so the
