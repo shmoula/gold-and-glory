@@ -22,8 +22,16 @@
 .bar__fill { position: absolute; inset: 0 auto 0 0; background: var(--blood);
   transition: width 150ms ease-out; }
 .bar__fill--dur { background: var(--gold-deep); }
+/* §8 over §6.1. Spec §6.1's verbatim block sets `font-size: 11px`, which is below §8's own
+   floor ("all text >= --text-xs (12.5px)"). The spec contradicts itself; §8 is ship-blocking,
+   so §8 wins and the numeral takes the token (backlog item 1). It still fits: the narrowest
+   track that carries a numeral is the HUD beam's fixed `.bar { width: 108px }`, whose padding
+   box — the containing block for this `inset: 0` — is 104px, and the widest string any bar
+   renders ("100/100" in the HUD, "170/170" on the toughest opponent's poster) is six Nunito
+   digits at 0.6em plus a solidus at 0.256em = 3.856em = 48.2px at 12.5px. 55.8px of slack;
+   tests/styles.test.js recomputes it. */
 .bar__num { position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: 11px; color: var(--bone); font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs); color: var(--bone); font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 0 rgba(31,22,12,0.9); }
 .pips { display: inline-flex; gap: 3px; }
 .pip { width: 11px; height: 14px; border: 1.5px solid var(--border-ink);
@@ -45,7 +53,10 @@
 .btn:active { transform: translateY(2.5px); box-shadow: var(--shadow-plank-pressed); }
 .btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .btn__price { color: var(--color-money-on-dark); font-variant-numeric: tabular-nums; font-size: var(--text-lg); }
-.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: #cdb98e; }
+/* Law 5 forbids a literal hex in a component rule, but spec §6.2's own block spelled this one
+   `#cdb98e` and Task 4 kept the block byte-exact to the fence. Same colour, now a token
+   (backlog item 6). */
+.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: var(--bone-dim); }
 
 .btn--commit { font: 400 21px/1 var(--font-display); letter-spacing: 0.05em;
   color: var(--bone-bright); background: var(--grad-commit); border-radius: var(--wobble-1);
@@ -78,10 +89,10 @@
 .poster--tilt-3 { transform: rotate(var(--tilt-3)); }
 .poster__name { font-size: var(--text-2xl); text-align: center; margin-bottom: var(--space-3); }
 .poster__portrait { position: relative; height: 104px; margin: 0 var(--space-1);
-  background: radial-gradient(circle at 50% 42%, var(--paper-4), #c9b384);
+  background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
   border: 2px solid var(--border-ink); border-radius: 10px 13px 11px 14px; overflow: hidden; }
 .poster__silhouette { position: absolute; left: 50%; top: 30px; width: 54px; height: 60px;
-  transform: translateX(-50%); background: #443019; border-radius: 46% 46% 40% 40%; }
+  transform: translateX(-50%); background: var(--silhouette); border-radius: 46% 46% 40% 40%; }
 .poster__sub { font-size: var(--text-sm); font-weight: 700; text-align: center;
   margin: var(--space-2) 0 0; }
 /* §6.5: the fight purse on a poster is a gold-ink amount. */
@@ -125,7 +136,7 @@
   border: var(--border-w) solid var(--border-ink); border-radius: var(--wobble-bar);
   cursor: crosshair; }
 .meter__zone { position: absolute; top: 0; bottom: 0; }
-.meter__zone--graze { background: #b98a3a; }
+.meter__zone--graze { background: var(--gold-mid); }
 .meter__zone--hit   { background: var(--gold); }
 .meter__zone--crit  { background: var(--gold-hi);
   border-inline: 2px solid var(--border-ink);            /* notches: not color-only */
