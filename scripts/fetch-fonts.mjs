@@ -3,11 +3,18 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// `ofl` is the family's directory in github.com/google/fonts, whose OFL.txt carries the real
+// copyright line. `license` is what it is vendored as. One per family, never shared: the three
+// families have three different copyright holders, and a single file can only name one of them.
 const FAMILIES = [
-  { spec: 'Bangers', out: { 400: 'Bangers-400.woff2' } },
-  { spec: 'Nunito:wght@400;700', out: { 400: 'Nunito-400.woff2', 700: 'Nunito-700.woff2' } },
-  { spec: 'Patrick+Hand', out: { 400: 'PatrickHand-400.woff2' } },
+  { spec: 'Bangers', ofl: 'bangers', license: 'OFL-Bangers.txt',
+    out: { 400: 'Bangers-400.woff2' } },
+  { spec: 'Nunito:wght@400;700', ofl: 'nunito', license: 'OFL-Nunito.txt',
+    out: { 400: 'Nunito-400.woff2', 700: 'Nunito-700.woff2' } },
+  { spec: 'Patrick+Hand', ofl: 'patrickhand', license: 'OFL-PatrickHand.txt',
+    out: { 400: 'PatrickHand-400.woff2' } },
 ];
+const GF_RAW = 'https://raw.githubusercontent.com/google/fonts/main/ofl';
 
 const get = async (url, init) => {
   const res = await fetch(url, init);
@@ -37,8 +44,20 @@ const expected = FAMILIES.flatMap(({ out }) => Object.values(out));
 const missing = expected.filter((f) => !written.includes(f));
 if (missing.length) throw new Error(`never written: ${missing.join(', ')}`);
 
-// The OFL requires the license travel with redistributed font software, and these
-// woff2 files are redistributed in both git and dist/.
-const ofl = await (await get('https://openfontlicense.org/documents/OFL.txt')).text();
-await writeFile('src/assets/fonts/OFL.txt', ofl);
-console.log(`fetched OFL.txt (${(ofl.length / 1024) | 0} KB)`);
+// The OFL requires the license to travel with redistributed font software, and these woff2
+// files are redistributed in both git and dist/. It must be each family's *own* OFL.txt, not
+// the canonical template: the template's copyright line is the unfilled placeholder
+// `Copyright (c) <dates>, <Copyright Holder>`, which satisfies "a license accompanies the
+// software" while attributing nobody. Upstream's copy is the only one that names the authors,
+// so it is fetched rather than hand-written — a copyright line written from memory is a
+// guess about somebody else's legal notice.
+for (const { ofl, license } of FAMILIES) {
+  const text = await (await get(`${GF_RAW}/${ofl}/OFL.txt`)).text();
+  // A 404 on raw.githubusercontent is a 404, but a renamed directory could still serve some
+  // other document; the placeholder must be gone and a real holder present.
+  if (/<Copyright Holder>/.test(text) || !/^Copyright /m.test(text)) {
+    throw new Error(`${ofl}/OFL.txt names no copyright holder`);
+  }
+  await writeFile(`src/assets/fonts/${license}`, text);
+  console.log(`fetched ${license} (${(text.length / 1024) | 0} KB) — ${text.split('\n')[0]}`);
+}

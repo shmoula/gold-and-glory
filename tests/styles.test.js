@@ -1,7 +1,7 @@
 // tests/styles.test.js — every var(--x) the sheets use must be a token they define, and every
 // duration a JS animation restates must be the token the CSS animates on.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS } from '../src/ui/effects.js';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
@@ -10,6 +10,43 @@ import { renderResult, renderGameOver } from '../src/ui/render.js';
 
 const SHEETS = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)];
 const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
+
+// Plan Task 10 Step 4b. The vendored woff2 files are redistributed font software, in git and in
+// dist/, so the OFL requires the license to travel with them — and to *attribute* somebody. The
+// file that used to sit here was the canonical OFL 1.1 template, whose copyright line is still
+// the unfilled `Copyright (c) <dates>, <Copyright Holder>`: a license, naming no one. Derived
+// from the `@font-face` rules rather than from a hand-kept list, so a fourth family cannot be
+// vendored without its own upstream OFL.txt arriving beside it (scripts/fetch-fonts.mjs).
+describe('font attribution (OFL)', () => {
+  const faces = [...readFileSync('src/styles/tokens.css', 'utf8')
+    .matchAll(/@font-face\s*\{[^}]*font-family:\s*'([^']+)'[^}]*url\('\.\.\/assets\/([^']+)'/g)];
+
+  it('finds every declared face', () => {
+    expect(faces.length).toBe(4);
+  });
+
+  it('ships each family its own upstream license, naming a real holder', () => {
+    const families = new Set(faces.map((m) => m[1]));
+    expect(families.size).toBe(3);
+    for (const family of families) {
+      const path = `src/assets/fonts/OFL-${family.replace(/\s+/g, '')}.txt`;
+      const text = readFileSync(path, 'utf8');
+      expect(text, `${path} is not OFL 1.1`).toContain('SIL OPEN FONT LICENSE Version 1.1');
+      // The placeholder is the whole point of the step: its absence is what separates an
+      // attribution from a template that merely looks like one.
+      expect(text, `${path} still carries the template placeholder`)
+        .not.toMatch(/<Copyright Holder>|<dates>/);
+      expect(text, `${path} names no copyright holder`).toMatch(/^Copyright \S+/m);
+    }
+    // The template must be gone, not merely joined: leaving it means the tree still ships a
+    // notice attributing nobody, and a reader has no way to tell which file governs.
+    expect(existsSync('src/assets/fonts/OFL.txt')).toBe(false);
+  });
+
+  it('ships every font file the sheet asks the browser to load', () => {
+    for (const [, , asset] of faces) expect(existsSync(`src/assets/${asset}`), asset).toBe(true);
+  });
+});
 
 describe('css custom properties', () => {
   it('references only tokens that are defined', () => {
