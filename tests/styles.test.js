@@ -3,10 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS } from '../src/ui/effects.js';
-import { CONFIG } from '../src/config.js';
-import { createGameState } from '../src/state.js';
-import { startFight, resolveFightOutcome } from '../src/game.js';
-import { renderResult, renderGameOver } from '../src/ui/render.js';
+import { mountAll } from './support/screens.js';
 
 const SHEETS = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)];
 const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
@@ -385,7 +382,7 @@ describe('rules inherited from the deleted legacy sheet', () => {
 // parchment (`--paper-3`, the darker gradient stop) is 2.80:1 — the wordmark does not clear
 // §8's 4.5:1 floor on paper either. Pinning 4.5 here would fail the shipped result screen as
 // well, so it would be a claim this code does not make. Law 4 is the line this fix is about.
-describe('Law 4 — the wordmark never sits on stone', () => {
+describe('Law 4 — text never sits on stone', () => {
   const PAPER_OR_WOOD = /background(-color|-image)?\s*:[^;]*var\(--(grad-paper|grad-wood[\w-]*|grad-commit|paper-\d|wood-\d|surface-paper|surface-wood)\)/;
   // Only the plain class-chain spelling: those are the material rules, and anything else
   // (pseudo-elements, `50%` keyframe stops, at-rule preludes) is not an element to stand on.
@@ -394,21 +391,10 @@ describe('Law 4 — the wordmark never sits on stone', () => {
     .filter(([, , body]) => PAPER_OR_WOOD.test(body))
     .flatMap(([, prelude]) => prelude.split(',').map((s) => s.trim()))
     .filter((s) => PLAIN_CLASS.test(s));
-
-  // The two screens that render a wordmark, from the state the game really writes.
-  const start = createGameState(1, CONFIG);
-  const fought = resolveFightOutcome(startFight(start, CONFIG), true, () => 1, CONFIG);
-  const dead = {
-    ...start, phase: 'GAMEOVER', ended: 'dead', health: 0,
-    lastResult: { died: true, won: false, opponentName: 'The Brute', causeOfDeath: 'A turnip.' },
-  };
-  const SCREENS = {
-    result: renderResult(fought, CONFIG),
-    gameover: renderGameOver(dead, CONFIG),
-  };
+  const SCREENS = mountAll();
 
   it('derives the paper and wood grounds from the sheets', () => {
-    // Guard against a vacuous pass: an empty ground list would make every wordmark below fail,
+    // Guard against a vacuous pass: an empty ground list would make every element below fail,
     // but a regex that accidentally matched everything would make them all pass.
     expect(grounds.length).toBeGreaterThan(3);
     expect(grounds).toContain('.ledger');
@@ -418,19 +404,145 @@ describe('Law 4 — the wordmark never sits on stone', () => {
   it('gives every rendered wordmark a paper or wood ancestor', () => {
     const orphans = [];
     let checked = 0;
-    for (const [name, html] of Object.entries(SCREENS)) {
-      const host = document.createElement('div');
-      host.innerHTML = html;
+    for (const [name, host] of Object.entries(SCREENS)) {
       const marks = [...host.querySelectorAll('.wordmark')];
-      expect(marks.length, `${name} renders no wordmark`).toBeGreaterThan(0);
+      if (!marks.length) continue;
       for (const mark of marks) {
         checked += 1;
-        const grounded = grounds.some((sel) => mark.closest(sel) !== null);
-        if (!grounded) orphans.push(`${name}: .${[...mark.parentElement.classList].join('.')}`);
+        if (!grounds.some((sel) => mark.closest(sel))) {
+          orphans.push(`${name}: .${[...mark.parentElement.classList].join('.')}`);
+        }
       }
     }
     expect(orphans).toEqual([]);
-    expect(checked).toBe(2);
+    // The result and both game-over states carry one each; a matrix that stopped rendering them
+    // would make the loop above vacuously happy.
+    expect(checked).toBe(4);
+  });
+
+  // The wordmark was only ever the *first* case. Law 4 is about all text, so this walks every
+  // element in the matrix that owns a text node of its own and demands the same ground. It finds
+  // more than the wordmark did — see WAIVED below — and each of those is a live §8 contrast
+  // failure on the stone page, not a theoretical one:
+  //
+  //   `--ink` on `--stone-2`      4.15:1   hub h2 / "Wins: N" / training labels
+  //   `--bone` on `--stone-2`     2.99:1   "Next bout", meter zone labels, meter taunt
+  //   `--ink-soft` on `--stone-2` 1.89:1   the result screen's flavour line
+  //
+  // They are waived rather than fixed because fixing them means deciding what ground each screen
+  // band stands on — a §7 layout decision on three already-reviewed screens, not a touch-up. And
+  // it cannot be dodged by nudging `--surface-page`: ink wants a lighter stone and bone wants a
+  // darker one, so no single value clears 4.5:1 for both (stone-1 4.87/2.55, stone-3 3.14/3.96).
+  // Law 4 exists precisely because the page has no value that works, and the remedy is grounds.
+  //
+  // The waiver is a *closed list*, so it is the opposite of switching the check off: any new
+  // ungrounded text fails here, and an entry that gets a ground fails too and must be removed.
+  const WAIVED = [
+    'div.hub__sinks > h2',      // "The Ludus", --ink 4.15:1 (clears 3:1 as large text, not Law 4)
+    'div.hub__develop > h2',    // "Training" / "Gear shop", --ink 4.15:1
+    'div.fight__log > h2',      // "Commentary", --ink 4.15:1
+    'div.hub__sinks > p',       // hub "Wins: N", --ink 4.15:1
+    'span.train-row__label',    // --ink 4.15:1
+    'span.hub__next-label',     // --bone 2.99:1
+    'div.meter__labels > span',  // --bone 2.99:1
+    'p.meter__taunt.snark',     // --bone 2.99:1
+    'p.snark.result__flavor',   // --ink-soft 1.89:1
+  ];
+
+  const describeEl = (el) => {
+    const self = el.tagName.toLowerCase() + [...el.classList].map((c) => `.${c}`).join('');
+    const parent = el.parentElement;
+    // Bare `span`/`p` are ambiguous on their own, so an unclassed element is named by its parent.
+    if (el.classList.length || !parent || !parent.classList.length) return self;
+    return `${parent.tagName.toLowerCase()}${[...parent.classList].map((c) => `.${c}`).join('')} > ${self}`;
+  };
+
+  const ungrounded = () => {
+    const found = new Map();
+    for (const [name, host] of Object.entries(SCREENS)) {
+      for (const el of host.querySelectorAll('*')) {
+        const owns = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (!owns || grounds.some((sel) => el.closest(sel))) continue;
+        const key = describeEl(el);
+        if (!found.has(key)) found.set(key, new Set());
+        found.get(key).add(name);
+      }
+    }
+    return found;
+  };
+
+  it('has no ungrounded text beyond the waived set', () => {
+    const found = [...ungrounded().keys()].sort();
+    expect(found.filter((k) => !WAIVED.includes(k))).toEqual([]);
+  });
+
+  it('keeps the waiver list honest - every entry still violates Law 4', () => {
+    // Without this, a waiver outlives its violation and quietly stops guarding anything: the
+    // list would grow monotonically and a future ground-fix would never be noticed.
+    const found = new Set(ungrounded().keys());
+    expect(WAIVED.filter((w) => !found.has(w))).toEqual([]);
+  });
+});
+
+// --- Spec Law 2: "Gold means money." ---
+// The gold hues are the one palette in this design with a semantic monopoly, and a monopoly is
+// only checkable as a closed set. Both directions are pinned: every rule that paints gold *text*
+// must be a money surface, and every non-money use of a gold token must be one the spec itself
+// sanctions. A new `color: var(--gold-ink)` on a heading fails here; so does a gold fill nobody
+// has argued for.
+describe('Law 2 — gold appears only on money', () => {
+  const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map(([, prelude, body]) => ({ sel: prelude.trim(), body }))
+    .filter((r) => !r.sel.startsWith('@') && r.sel !== ':root');
+  // `--grad-coin` is a gold gradient under another name, so the coin cannot hide from Law 2.
+  const GOLD = /var\(--(gold[\w-]*|grad-coin|color-money[\w-]*)\)/;
+
+  it('paints gold text on money surfaces and nothing else', () => {
+    const asText = rules.filter((r) => new RegExp(`(^|[^-])color\\s*:[^;]*${GOLD.source}`).test(r.body))
+      .map((r) => r.sel);
+    // Every one of these is a currency figure: the HUD purse, a price slot, a poster's fight
+    // purse, the log's money clause, the ledger's closing balance, the final purse on game over.
+    expect(asText.sort()).toEqual([
+      '.btn__price', '.cause-of-death .amount', '.hud__purse',
+      '.ledger__row--balance .amount', '.log .amount', '.poster__sub .amount',
+    ]);
+  });
+
+  it('uses gold as a non-money fill only where the spec says to', () => {
+    const asText = new RegExp(`(^|[^-])color\\s*:[^;]*${GOLD.source}`);
+    const fills = rules.filter((r) => GOLD.test(r.body) && !asText.test(r.body)).map((r) => r.sel);
+    // `.coin` reaches gold through `--grad-coin`, which is money iconography and squarely Law 2.
+    // The other three are documented deviations, and naming them here is the point:
+    //  - `.bar__fill--dur` is spec §6.1's own verbatim block. Durability is not money, so §6.1
+    //    contradicts Law 2; the spec's CSS was followed (progress-file territory, not a bug).
+    //  - the three `.meter__zone--*` bands are §6.4's monochromatic gold ramp, where brighter
+    //    means closer to glory. Not money either, and argued for in components.css.
+    //  - `urgent-pulse`'s 50% stop rings a nagging button in `--gold-deep`.
+    expect(fills.sort()).toEqual([
+      '.bar__fill--dur', '.coin', '.meter__zone--crit', '.meter__zone--graze',
+      '.meter__zone--hit', '50%',
+    ].sort());
+  });
+});
+
+// --- Spec Law 3: "blue means commitment." ---
+// Blue is reserved for irreversible choices and for focus. The sheet side is a closed set of
+// selectors; tests/a11y.test.js checks the markup side (which buttons actually wear it).
+describe('Law 3 — commit blue only on commit controls and focus rings', () => {
+  const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map(([, prelude, body]) => ({ sel: prelude.trim(), body }))
+    .filter((r) => !r.sel.startsWith('@') && r.sel !== ':root');
+
+  it('spends the commit palette on four selectors, all of them commit or focus', () => {
+    const blue = rules
+      .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
+      .map((r) => r.sel);
+    expect(blue.sort()).toEqual([
+      ':focus-visible', '.btn--commit', '.btn:focus-visible',
+    ].sort());
+    // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
+    // rather than reaching for more blue. Named here so "three selectors" is not read as a gap.
+    expect(css).toMatch(/\.btn--commit:focus-visible \{ outline-color: var\(--bone-bright\); \}/);
   });
 });
 
