@@ -461,6 +461,54 @@ describe('rules inherited from the deleted legacy sheet', () => {
   });
 });
 
+// Backlog item 14: the stylesheet had no selector-coverage net at all, so §6.2's shortfall rules
+// could lose their `.shop-item` arm — the comma-mate Task 5 added because §6.12 asks the gear
+// card for the same treatment — and every test in the suite stayed green while an unaffordable
+// gear card rendered a gold price and no "(need 125 more)".
+//
+// Driven from the *markup*, which is the direction that catches a deleted arm: every element the
+// game actually renders as unaffordable must have its price and its shortfall slot claimed by
+// some arm of the rules. Deriving the arms from the sheet and checking those instead would pass
+// by simply having fewer arms to check.
+describe('selector coverage — every unaffordable surface is painted', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const arms = [...bare.matchAll(/([^{}]+)\{[^{}]*\}/g)]
+    .map((m) => m[1])
+    .filter((prelude) => /\.is-unaffordable/.test(prelude) && !prelude.trim().startsWith('@'))
+    .flatMap((prelude) => prelude.split(',').map((s) => s.trim()));
+  // `::after` is where the shortfall text lives; the element it hangs off is what must match.
+  const priceArms = arms.filter((a) => a.endsWith('.btn__price'));
+  const snarkArms = arms.filter((a) => /\.btn__snark::after$/.test(a))
+    .map((a) => a.replace(/::after$/, ''));
+
+  it('states both halves of the treatment', () => {
+    expect(priceArms.length, 'no unaffordable price rule').toBeGreaterThan(0);
+    expect(snarkArms.length, 'no shortfall ::after rule').toBeGreaterThan(0);
+  });
+
+  it('claims the price and the shortfall slot of every rendered unaffordable control', () => {
+    const seen = [];
+    for (const [screen, host] of Object.entries(mountAll())) {
+      for (const el of host.querySelectorAll('.is-unaffordable')) {
+        const where = `${screen}: .${[...el.classList].join('.')}`;
+        seen.push(where);
+        const price = el.querySelector('.btn__price');
+        expect(price, `${where} renders no price`).not.toBeNull();
+        expect(priceArms.some((a) => price.matches(a)), `${where}: price matched by no rule`)
+          .toBe(true);
+        const snark = el.querySelector('.btn__snark');
+        expect(snark, `${where} renders no shortfall slot`).not.toBeNull();
+        expect(snarkArms.some((a) => snark.matches(a)), `${where}: shortfall matched by no rule`)
+          .toBe(true);
+      }
+    }
+    // Both commerce surfaces must be in the matrix, or the net above has nothing to catch.
+    expect(seen.some((s) => /\.shop-item\b/.test(s)), 'no unaffordable gear card rendered')
+      .toBe(true);
+    expect(seen.some((s) => /\.btn\b/.test(s)), 'no unaffordable button rendered').toBe(true);
+  });
+});
+
 // --- Spec Law 4: "Text only sits on paper or wood. Never directly on stone." ---
 // The wordmark is the case that broke it: `.wordmark` is `--ink-soft` at `opacity: .7`, which
 // on `--surface-page` stone computes to 1.54:1 against §8's 4.5:1 floor. Neither half of the

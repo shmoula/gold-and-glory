@@ -92,6 +92,19 @@ describe('createCombat', () => {
     expect(c.blockedThisFight).toBe(false);
     expect(c.log).toEqual([]);
   });
+
+  // Backlog item 19. The seed exists so neither the renderer nor the rAF loop needs its own
+  // `?? 0.5` fallback, and until now nothing pinned its value: main.js re-seeds before the
+  // first player turn, so mutating this to a hardcoded 0.5 — outside the *centre* of the band
+  // though still inside it — changed no pixel any test looked at. Derived from the config band
+  // rather than restated as 0.55, so retuning the band carries the default with it.
+  it('is born at the centre of the configured sweet-spot band (§6.4)', () => {
+    const { min, max } = CONFIG.combat.sweetCenter;
+    const c = createCombat(playerStats, opponent, CONFIG);
+    expect(c.sweet).toBeCloseTo((min + max) / 2, 10);
+    expect(c.sweet).toBeGreaterThan(min);
+    expect(c.sweet).toBeLessThan(max);
+  });
 });
 
 describe('applyPlayerAction: strike', () => {
