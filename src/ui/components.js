@@ -195,6 +195,19 @@ export function logEntryText(entry) {
   return `${logClause(entry, 'text')}${entry.snark ? ` (${entry.snark})` : ''}`;
 }
 
+// One spelling of a banner stamp (spec §6.13). Two screens raise one — the result screen for
+// VICTORY!/DEFEAT., game over for the ending it reached — and they used to build it two
+// different ways, one inline per variant and one from `config.endings`. A component with two
+// spellings is a component that drifts: the `role` was already on one and not the other
+// (backlog item 29; whether that `role="status"` should exist at all is item 26/28).
+// `variant` reaches the class attribute, so it is escaped like everything else here: it comes
+// from config, and config is not markup.
+export function bannerStamp(variant, text, { status = false } = {}) {
+  const role = status ? ' role="status"' : '';
+  return `<p class="banner-stamp banner-stamp--${escapeHtml(variant)}"${role}>` +
+    `${escapeHtml(text)}</p>`;
+}
+
 // Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.
 // `sub` is markup — call sites embed `.amount` spans in it — so it is deliberately not
 // escaped; everything else here is. hp: {value, max} | null. tilt: 1|2|3, and neighbouring

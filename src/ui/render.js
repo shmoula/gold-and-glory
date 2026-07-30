@@ -7,14 +7,14 @@ import { timingWindowWidth } from '../combat.js';
 import { formatGold, MINUS } from './format.js';
 import {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
-  escapeHtml, btn, meter, bar, poster, shopItem, logEntry,
+  escapeHtml, btn, meter, bar, poster, shopItem, logEntry, bannerStamp,
 } from './components.js';
 import { meterZones } from './timing.js';
 
 export {
   URGENT_FRACTION, REPAIR_URGENT_FRACTION,
   escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster, shopItem,
-  logEntry, logEntryText,
+  logEntry, logEntryText, bannerStamp,
 } from './components.js';
 export { meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter } from './timing.js';
 
@@ -217,9 +217,10 @@ export function renderResult(state, config) {
 
   // §6.13 + §8: the screen-level stamp, announced as a status. Victory gets the exclamation,
   // defeat the deadpan period (§9) — death never reaches this screen, it goes to GAMEOVER.
+  // Through the shared component, so this screen's stamp and game over's are one thing (§6.13).
   const banner = r.won
-    ? '<p class="banner-stamp banner-stamp--victory" role="status">VICTORY!</p>'
-    : '<p class="banner-stamp banner-stamp--defeat" role="status">DEFEAT.</p>';
+    ? bannerStamp('victory', 'VICTORY!', { status: true })
+    : bannerStamp('defeat', 'DEFEAT.', { status: true });
 
   return `
     ${renderHud(state, config)}
@@ -314,7 +315,7 @@ export function renderGameOver(state, config) {
     <section class="screen screen--gameover">
       <div class="gameover__left">${gallery(others.slice(0, half))}</div>
       <div class="gameover__stamp">
-        ${stamp ? `<p class="banner-stamp banner-stamp--${stamp.variant}">${escapeHtml(stamp.text)}</p>` : ''}
+        ${stamp ? bannerStamp(stamp.variant, stamp.text) : ''}
         ${achieved ? endingCard(achieved, config, achieved) : ''}
       </div>
       <div class="gameover__right">${gallery(others.slice(half))}</div>

@@ -717,6 +717,38 @@ describe('endings gallery (spec §6.14)', () => {
   });
 });
 
+// Spec §6.13: three banner-stamp variants, and every stamp any screen raises must be one the
+// sheet paints. Both sides are derived — the variants out of the rendered markup, the rules out
+// of the sheets — so this catches the two ways a stamp can go unstyled: a renderer inventing a
+// variant, and `config.endings` naming one (the game-over stamp reads `stamp.variant` straight
+// out of config, which is content, and content is not checked by the type system either).
+// The two screens now build the stamp through one component (backlog item 29); this is the guard
+// that a second spelling cannot quietly reappear with a variant of its own.
+describe('banner stamps (spec §6.13)', () => {
+  const painted = new Set([...css.replace(/\/\*[\s\S]*?\*\//g, '')
+    .matchAll(/\.banner-stamp--([\w-]+)\s*\{/g)].map((m) => m[1]));
+
+  it('paints the three variants §6.13 names', () => {
+    expect([...painted].sort()).toEqual(['death', 'defeat', 'victory']);
+  });
+
+  it('raises no stamp the sheet does not paint', () => {
+    const seen = [];
+    for (const [screen, host] of Object.entries(mountAll())) {
+      for (const el of host.querySelectorAll('.banner-stamp')) {
+        const variants = [...el.classList].filter((c) => c.startsWith('banner-stamp--'))
+          .map((c) => c.replace('banner-stamp--', ''));
+        expect(variants.length, `${screen}: stamp names ${variants.length} variants`).toBe(1);
+        expect(painted.has(variants[0]), `${screen}: no rule paints --${variants[0]}`).toBe(true);
+        expect(el.textContent.trim(), `${screen}: empty stamp`).not.toBe('');
+        seen.push(variants[0]);
+      }
+    }
+    // Both stamp-raising screens are in the matrix, or there is nothing here to catch.
+    expect(seen.length, 'no screen in the matrix raises a stamp').toBeGreaterThan(1);
+  });
+});
+
 // Spec Law 6: one duration, one source. effects.js schedules the DOM work with a timer while the
 // stylesheet fades, drops and shakes on its own clock, so a token edited on one side and not the
 // other desynchronises the fade from the removal — silently, and only in a real browser. Read
