@@ -616,6 +616,20 @@ describe('money theater (spec §6.6 / §6.7)', () => {
     });
   });
 
+  // Spec §6.1: "On GAMEOVER the HUD persists showing the fatal state — deliberate
+  // storytelling." It rendered no HUD at all until Task 9, which also made `moveTheMoney`'s
+  // purse lookup return null on this screen; both halves are asserted here, because the
+  // renderer's own test cannot see the wiring that mounts it.
+  it('keeps the HUD on screen once the run has ended (§6.1)', () => {
+    withTimers(() => {
+      click('[data-action="retire"]');
+      expect(q('.screen--gameover')).not.toBeNull();
+      expect(purse(), 'the beam persists into GAMEOVER').not.toBeNull();
+      expect(ticker().textContent).toBe(formatGold(START));
+      expect(chips(), 'retiring moves no money').toEqual([]);
+    });
+  });
+
   it('drops a signed chip beside the purse on every gold change', () => {
     withTimers(() => {
       expect(chips()).toEqual([]); // …but not on the first render of a run

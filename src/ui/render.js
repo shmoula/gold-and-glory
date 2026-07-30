@@ -248,22 +248,67 @@ export function renderResult(state, config) {
     </section>`;
 }
 
+// ---- Game over (spec §6.13 / §6.14 / §7) ----
+// The gallery order, fixed so the trio reads the same every run. The achieved ending is lifted
+// out of it into the centre cell, which leaves the two you did not reach flanking it — so the
+// side slots are never hardcoded and never show the ending you just got.
+const ENDING_ORDER = ['win-circuit', 'retired', 'dead'];
+// §6.13 has exactly three stamps, and the copy travels with the modifier so no screen can pair
+// "YOU DIED" with the victory colour. §9 sets the punctuation: a win gets its exclamation,
+// death gets neither irony nor softening. Retiring is a win you chose, so it shares --victory
+// (its own copy, not "VICTORY!" — a bout win already spends that on the result screen).
+const GAMEOVER_STAMP = {
+  'win-circuit': { variant: 'victory', text: 'CHAMPION!' },
+  retired: { variant: 'victory', text: 'RETIRED RICH' },
+  dead: { variant: 'death', text: 'YOU DIED' },
+};
+
+// One ending's card. Locked cards are info cards, never buttons (§6.14) — `aria-disabled` on an
+// <article> is what the spec asks for, and there is nothing here to focus or activate.
+// `.poster__name`/`.poster__portrait` are reused rather than invented: §6.0's class index is
+// closed and names no `ending-card__*` parts. The portrait well shows the silhouette fallback,
+// which spec §10 requires to look complete with zero content assets present.
+function endingCard(key, config, achieved) {
+  const ending = config.endings[key];
+  const locked = key !== achieved;
+  return `<article class="ending-card tape${locked ? ' ending-card--locked' : ''}"${
+    locked ? ' aria-disabled="true"' : ''}>
+        <h3 class="poster__name">${escapeHtml(ending.title)}${locked ? '?' : ''}</h3>
+        <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
+        <span class="snark">(${escapeHtml(ending.epitaph)})</span>
+      </article>`;
+}
+
 export function renderGameOver(state, config) {
-  let body;
-  if (state.ended === 'dead') {
-    body = `<h2>YOU DIED</h2>
-      <p class="cause">Cause of death: ${escapeHtml(state.lastResult.causeOfDeath)}</p>`;
-  } else if (state.ended === 'win-circuit') {
-    body = `<h2>CHAMPION OF THE CIRCUIT</h2>
-      <p>You bribed, bled, and clawed your way to the top. Final purse: ${state.gold}g.</p>`;
-  } else {
-    body = `<h2>RETIRED RICH</h2>
-      <p>You walked away with ${state.gold}g and all your limbs. Wise.</p>`;
-  }
+  // Every route into GAMEOVER sets one of the three (game.js: resolveFightOutcome, retire), but
+  // the renderer refuses to index config.endings with whatever it is handed: an unknown value
+  // leaves the centre cell empty and every card locked, rather than throwing inside mount() and
+  // taking the whole screen down with it.
+  const achieved = ENDING_ORDER.includes(state.ended) ? state.ended : null;
+  const [left, right] = ENDING_ORDER.filter((key) => key !== achieved);
+  const stamp = GAMEOVER_STAMP[achieved];
+  // §6.14's screenshot payload. Death states the cause; the two survivor endings state what the
+  // run was worth — through formatGold, because nothing formats money by hand (§2).
+  const payload = state.ended === 'dead'
+    ? `<strong>Cause of death:</strong> ${escapeHtml(state.lastResult.causeOfDeath)}`
+    : `<strong>Final purse:</strong> <span class="amount">${formatGold(state.gold)}</span>`;
+  // §6.1: "On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate
+  // storytelling." It reads the same playerHealth() selector as every other screen, so the
+  // corpse's beam states the number the fight left behind rather than a fresh one.
   return `
-    <section class="gameover">
-      ${body}
-      <button data-action="restart">Fight again (new run)</button>
+    ${renderHud(state, config)}
+    <section class="screen screen--gameover">
+      <div class="gameover__left">${endingCard(left, config, achieved)}</div>
+      <div class="gameover__stamp">
+        ${stamp ? `<p class="banner-stamp banner-stamp--${stamp.variant}">${stamp.text}</p>` : ''}
+        ${achieved ? endingCard(achieved, config, achieved) : ''}
+      </div>
+      <div class="gameover__right">${endingCard(right, config, achieved)}</div>
+      <div class="gameover__cause">
+        <p class="cause-of-death">${payload}</p>
+        <span class="wordmark">GOLD &amp; GLORY</span>
+      </div>
+      <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
     </section>`;
 }
 

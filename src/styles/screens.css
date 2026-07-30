@@ -79,6 +79,30 @@
 .result__cross::after { transform: rotate(-18deg); }
 .result__flavor { display: block; text-align: center; margin: var(--space-3) 0 0; }
 
+/* GAMEOVER — the endings gallery: the ending you reached in the middle under its stamp, the two
+   you did not on either side, the screenshot payload beneath the trio. Areas are spec §7
+   verbatim; as on every other screen the `hud` row is reserved for the beam, which still
+   renders above the section. Must stay above the ≤640px block for the same reason the fight
+   and result grids do (see tests/grid-areas.test.js). */
+.screen--gameover {
+  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-areas:
+    "hud   hud    hud"
+    "endL  stamp  endR"
+    "cause cause  cause"
+    "cta   cta    cta";
+}
+.gameover__left { grid-area: endL; }
+.gameover__stamp { grid-area: stamp; text-align: center; }
+.gameover__right { grid-area: endR; }
+.gameover__cause { grid-area: cause; }
+.gameover__cta { grid-area: cta; justify-self: center; }
+/* M2 gives every parchment card one `--tilt-*`, and neighbours must never share one. The centre
+   card also sits directly under the banner stamp, which is already `--tilt-3`, so it takes
+   `--tilt-2` and the right-hand card takes the third. Left keeps the `--tilt-1` default. */
+.gameover__stamp .ending-card { transform: rotate(var(--tilt-2)); }
+.gameover__right .ending-card { transform: rotate(var(--tilt-3)); }
+
 @media (max-width: 900px) {
   .screen--hub { grid-template-columns: 1fr 1fr;
     grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
@@ -100,6 +124,11 @@
      placed, which is what tests/grid-areas.test.js checks in both directions. */
   .screen--result { grid-template-columns: 1fr;
     grid-template-areas: "hud" "recap" "ledger" "cta"; }
+  /* Same one-breakpoint-early overlap bug in spec §7, same fix: name the stack rather than
+     dropping the areas. Stacked in source order, so reading order, tab order and visual order
+     stay the same thing (§7) — the achieved ending does not jump the queue. */
+  .screen--gameover { grid-template-columns: 1fr;
+    grid-template-areas: "hud" "endL" "stamp" "endR" "cause" "cta"; }
 }
 @media (max-width: 640px) {
   /* One stack reset for every screen, present and future. Both halves are required:

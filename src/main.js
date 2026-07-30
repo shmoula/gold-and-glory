@@ -118,10 +118,13 @@ function render() {
 function moveTheMoney(previousGold) {
   // Retire the outgoing count first, whatever this render turns out to be: mount() has already
   // detached the node it was writing to. This used to sit below the guard, so a render that
-  // moved no gold — or a GAMEOVER screen with no HUD at all — left it counting into nothing.
+  // moved no gold left it counting into nothing.
   purseTicker();
   purseTicker = () => {};
-  const purse = app.querySelector('.hud__purse'); // GAMEOVER renders no HUD
+  // Every screen carries the beam now, GAMEOVER included (§6.1), so the purse that fattens on
+  // the winning blow of the last bout counts up on the ending screen like any other. The guard
+  // stays: a screen without a HUD must not take the ticker down with it.
+  const purse = app.querySelector('.hud__purse');
   if (!purse || previousGold == null || previousGold === state.gold) return;
   purseTicker = tickTo(purse.querySelector('.ticker'), previousGold, state.gold);
   spawnDeltaChip(purse, state.gold - previousGold);

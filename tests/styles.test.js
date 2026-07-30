@@ -15,6 +15,33 @@ describe('css custom properties', () => {
   });
 });
 
+// Task 9 deleted `src/styles/legacy.css`. Two of its rules were still the only declaration of
+// their kind anywhere in the game and were moved into base.css; nothing re-declares either, so
+// a careless tidy-up would silently unbound every screen on a wide monitor and hand every dead
+// button a live-looking pointer. Text-level, deliberately: this guards the *presence* of rules
+// no rendered-markup test in the suite covers (there is no selector-coverage net — see the
+// progress file's deferred item 14).
+describe('rules inherited from the deleted legacy sheet', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('has no legacy sheet left to import', () => {
+    expect(SHEETS).not.toContain('src/styles/legacy.css');
+    expect(readFileSync('src/styles.css', 'utf8')).not.toMatch(/legacy/);
+  });
+
+  it('still caps the #app column and dims natively disabled buttons', () => {
+    const app = bare.match(/#app\s*\{[^}]*\}/g) ?? [];
+    expect(app.length, 'exactly one #app rule').toBe(1);
+    expect(app[0]).toMatch(/max-width:\s*1180px/);
+    expect(app[0]).toMatch(/margin:\s*0 auto/);
+    expect(app[0]).toMatch(/padding:/);
+    const disabled = bare.match(/button:disabled\s*\{[^}]*\}/g) ?? [];
+    expect(disabled.length, 'exactly one button:disabled rule').toBe(1);
+    expect(disabled[0]).toMatch(/opacity:/);
+    expect(disabled[0]).toMatch(/cursor:\s*not-allowed/);
+  });
+});
+
 // Spec Law 6: one duration, one source. effects.js schedules the DOM work with a timer while the
 // stylesheet fades, drops and shakes on its own clock, so a token edited on one side and not the
 // other desynchronises the fade from the removal — silently, and only in a real browser. Read

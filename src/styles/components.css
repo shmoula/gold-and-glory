@@ -218,6 +218,28 @@
   50% { transform: scale(1) rotate(2deg); }
 }
 
+/* ---- 6.14 Endings gallery ----
+   Parchment M2 like every other card, tape intact even when locked (§6.14). Each card gets one
+   `--tilt-*`; the per-slot assignment lives with the gallery's placement in screens.css,
+   because "siblings must never share a tilt" is a fact about the row, not about the card.
+   §6.13's giant sandal — a content image descending behind the death stamp — is omitted along
+   with the chicken: the asset does not exist, and spec §10 requires the UI to look complete
+   with zero content assets present. */
+.ending-card { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-1); padding: var(--space-4); box-shadow: var(--shadow-paper);
+  text-align: center; transform: rotate(var(--tilt-1)); }
+.ending-card--locked { filter: grayscale(0.8); opacity: 0.55; }
+.ending-card .snark { display: block; margin-top: var(--space-2); }
+/* §6.14's screenshot payload, and the one line on this screen with no card under it — so it
+   carries its own parchment, exactly as §6.13's stamp does: Law 4 forbids text sitting
+   straight on the stone page (bone-on-stone is 2.99:1). */
+.cause-of-death { max-width: 40ch; margin: var(--space-3) auto;
+  padding: var(--space-3) var(--space-4); font-size: var(--text-lg); text-align: center;
+  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3); box-shadow: var(--shadow-paper); }
+/* Law 2: the final purse is money, so it is the one gold-ink figure on the screen. */
+.cause-of-death .amount { color: var(--color-money); }
+
 /* ---- 6.7 Delta chip & purse shake ----
    Spawned into `.hud__purse` (which is the positioning context) whenever the purse changes,
    and again — as a shortfall — when a purchase is rejected. Two can be alive at once, so the

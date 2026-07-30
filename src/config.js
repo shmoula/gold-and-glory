@@ -110,6 +110,16 @@ export const CONFIG = {
     logPress: 'Bold. The guard was optional',
   },
 
+  // Spec §6.14's endings gallery: one entry per terminal state game.js can write, so the keys
+  // are `ended` values, not display names. The title is the card's heading (a locked card adds
+  // its own "?"); the epitaph is a §6.8 aside — the renderer supplies the parentheses, so these
+  // strings carry none, stay under 40 characters and state no number.
+  endings: {
+    'win-circuit': { title: 'Champion of the Circuit', epitaph: "You got a belt. It doesn't fit." },
+    retired: { title: 'Retired Rich', epitaph: 'You have all the gold. And no friends.' },
+    dead: { title: 'You Died', epitaph: 'The crowd loved it.' },
+  },
+
   deathRecaps: [
     'Bled out while a sponsor banner unfurled overhead.',
     'Tripped on a discarded turnip, impaled on own blade.',

@@ -9,10 +9,21 @@ body {
   font: 400 var(--text-md)/var(--leading-body) var(--font-body);
   min-height: 100dvh;
 }
-#app { min-height: 100dvh; }
+/* The page's content column. `max-width`/`margin`/`padding` moved here verbatim when Task 9
+   deleted legacy.css; they were the last two live rules in it. The cap matches `.screen`'s own
+   1180px, so it bounds nothing a screen renders — it is the stone page's gutter, and the floor
+   under anything mounted that is not a `.screen` (an error state, a future modal host). */
+#app { min-height: 100dvh; max-width: 1180px; margin: 0 auto; padding: var(--space-4); }
 h1, h2, h3 { font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
   letter-spacing: 0.03em; margin: 0; }
 button { font: inherit; cursor: pointer; }
+/* A natively-disabled control: `btn({ disabled: true })` emits the real attribute for a true
+   no-op (nothing to repair, nobody to heal), which spec §6.2's `.btn.is-disabled,
+   .btn[aria-disabled="true"]` selector deliberately does not match. Also moved out of
+   legacy.css — where `:where()` had zeroed its specificity, so `button { cursor: pointer }`
+   above beat the `not-allowed` and every dead button still advertised itself as clickable.
+   (§6.2 dims to 0.45; this is 0.4. Reconciling the two numbers is Task 10's, item 5.) */
+button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
    wood (blue-on-stone is 1.12:1 — invisible). Spec §8 is ship-blocking, so the

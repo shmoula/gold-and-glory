@@ -4,7 +4,7 @@ import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
   btn, meter, poster, shopItem, renderHud, renderHub, renderResult, ledgerSummary,
-  renderGameOver, renderFight,
+  renderGameOver, renderFight, escapeHtml,
   meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter, URGENT_FRACTION,
   logEntry, logEntryText,
 } from '../src/ui/render.js';
@@ -842,7 +842,29 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   });
 });
 
-describe('renderGameOver', () => {
+// Spec §6.14: the endings gallery shows all three endings at once — the one you reached in the
+// centre, full colour, the two you did not greyed out and mocking you. §6.13 stamps the verdict,
+// §6.1 keeps the HUD on screen showing the fatal state, §7 lays the trio out, §2 formats the
+// purse. The screen is the screenshot payload, so every one of those has to be true at once.
+describe('renderGameOver (spec §6.14)', () => {
+  const DEATH = {
+    died: true, won: false, opponentName: 'The Champion',
+    causeOfDeath: 'Tripped on a turnip.',
+  };
+  // Ended states as the game actually leaves them: dead means health 0 (§6.1's fatal state).
+  const overOf = (ended, over = {}) => ({
+    ...createGameState(1, CONFIG),
+    phase: 'GAMEOVER',
+    ended,
+    ...(ended === 'dead' ? { health: 0, lastResult: DEATH } : {}),
+    ...over,
+  });
+  const gameOver = (ended, over = {}) => renderGameOver(overOf(ended, over), CONFIG);
+  const cardsIn = (html) => [...dom(html).querySelectorAll('.ending-card')];
+  const titleOf = (card) => card.querySelector('.poster__name').textContent;
+  // Derived from game.js in tests/config.test.js; restated here as the render-side list.
+  const ENDINGS = ['win-circuit', 'retired', 'dead'];
+
   it('shows the death cause when dead', () => {
     const s = createGameState(1, CONFIG);
     s.ended = 'dead';
@@ -856,6 +878,158 @@ describe('renderGameOver', () => {
     const s = createGameState(1, CONFIG);
     s.ended = 'win-circuit';
     expect(renderGameOver(s, CONFIG)).toMatch(/champion|circuit/i);
+  });
+
+  // The gallery, from every ending. Locked-ness is read off the cards rather than counted in
+  // the markup: `ending-card--locked` contains the string `ending-card`, so a regex tally of
+  // the two class names passes just as happily with two cards as with three.
+  it('shows all three endings, only the achieved one unlocked and centred', () => {
+    for (const ended of ENDINGS) {
+      // One parse: `dom()` builds a fresh tree per call, so node identity below needs one host.
+      const host = dom(gameOver(ended));
+      const cards = [...host.querySelectorAll('.ending-card')];
+      expect(cards.length, `${ended} gallery`).toBe(3);
+      const locked = cards.filter((c) => c.classList.contains('ending-card--locked'));
+      expect(locked.length, `${ended} locked count`).toBe(2);
+      const open = cards.find((c) => !c.classList.contains('ending-card--locked'));
+      expect(titleOf(open)).toBe(CONFIG.endings[ended].title);
+      // …and it is the middle cell, not one of the flanks (spec §7's `stamp` area).
+      expect(host.querySelector('.gameover__stamp .ending-card')).toBe(open);
+      // Every ending appears exactly once, whichever one was reached.
+      expect(cards.map(titleOf).map((t) => t.replace(/\?$/, '')).sort())
+        .toEqual(ENDINGS.map((k) => CONFIG.endings[k].title).sort());
+    }
+  });
+
+  it('locks the endings you did not reach as aria-disabled info cards', () => {
+    const html = gameOver('dead');
+    for (const card of cardsIn(html)) {
+      const locked = card.classList.contains('ending-card--locked');
+      expect(card.tagName, 'a locked ending is an info card, never a button').toBe('ARTICLE');
+      expect([...card.classList], 'tape stays intact when locked').toContain('tape');
+      expect(card.getAttribute('aria-disabled')).toBe(locked ? 'true' : null);
+      // The mocking question mark: "Champion? You got a belt. It doesn't fit."
+      expect(titleOf(card).endsWith('?'), `${titleOf(card)} lock mark`).toBe(locked);
+    }
+  });
+
+  it('gives every ending its own epitaph, parenthesised by the renderer (§6.8)', () => {
+    for (const ended of ENDINGS) {
+      const asides = cardsIn(gameOver(ended)).map((c) => c.querySelector('.snark').textContent);
+      expect(asides.sort()).toEqual(ENDINGS.map((k) => `(${CONFIG.endings[k].epitaph})`).sort());
+    }
+  });
+
+  // §6.13's three stamps and their copy: the modifier and the words travel together, so no
+  // screen can pair "YOU DIED" with the victory colour. §9: death gets neither irony nor
+  // softening, a win gets its exclamation.
+  it('stamps the verdict with the §6.13 modifier that matches its copy', () => {
+    for (const [ended, cls, text] of [
+      ['dead', 'banner-stamp--death', 'YOU DIED'],
+      ['win-circuit', 'banner-stamp--victory', 'CHAMPION!'],
+      ['retired', 'banner-stamp--victory', 'RETIRED RICH'],
+    ]) {
+      const stamps = [...dom(gameOver(ended)).querySelectorAll('.banner-stamp')];
+      expect(stamps.length, `${ended} stamp count`).toBe(1);
+      expect([...stamps[0].classList], ended).toContain(cls);
+      expect(stamps[0].textContent, ended).toBe(text);
+    }
+  });
+
+  // §6.1: "On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate
+  // storytelling." It used to render no HUD at all, so the run's final figures vanished with it.
+  it('keeps the HUD on screen showing the fatal state (§6.1)', () => {
+    const hud = dom(gameOver('dead')).querySelector('.hud');
+    expect(hud).not.toBeNull();
+    const health = hud.querySelector('[aria-label="Health"]');
+    expect(health.getAttribute('aria-valuenow')).toBe('0');
+    expect(health.getAttribute('aria-valuemax')).toBe(String(CONFIG.player.maxHealth));
+    expect(health.querySelector('.bar__num').textContent)
+      .toBe(`0/${CONFIG.player.maxHealth}`);
+    expect(hud.querySelector('.hud__purse').textContent)
+      .toContain(formatGold(CONFIG.startingGold));
+  });
+
+  // §6.14: below the trio, the lead-in and the absurd line, with the wordmark in frame.
+  it('prints the cause of death below the trio, with the wordmark in frame', () => {
+    const cause = dom(gameOver('dead')).querySelector('.cause-of-death');
+    expect(cause.querySelector('strong').textContent).toBe('Cause of death:');
+    expect(cause.textContent).toContain('Tripped on a turnip.');
+    expect(cause.closest('.gameover__cause').querySelector('.wordmark')).not.toBeNull();
+  });
+
+  // Spec §2: nothing formats money by hand. Both survivor endings used to print `${gold}g`.
+  it('formats the final purse through formatGold (§2)', () => {
+    for (const ended of ['win-circuit', 'retired']) {
+      const gold = 2450;
+      const html = gameOver(ended, { gold });
+      const line = dom(html).querySelector('.cause-of-death');
+      expect(line.querySelector('.amount').textContent, ended).toBe(formatGold(gold));
+      expect(html, `${ended} hand-formatted gold`).not.toContain(`${gold}g`);
+      expect(html, `${ended} hand-formatted gold`).not.toContain('2,450g');
+    }
+  });
+
+  it('escapes ending copy from config', () => {
+    const hostile = {
+      ...CONFIG,
+      endings: {
+        ...CONFIG.endings,
+        retired: { title: '<b>Rich</b>', epitaph: '"&" <i>gone</i>' },
+      },
+    };
+    const html = renderGameOver(overOf('retired'), hostile);
+    expect(html).not.toContain('<b>Rich</b>');
+    expect(html).not.toContain('<i>gone</i>');
+    const card = dom(html).querySelector('.gameover__stamp .ending-card');
+    expect(titleOf(card)).toBe('<b>Rich</b>');
+    expect(card.querySelector('.snark').textContent).toBe('("&" <i>gone</i>)');
+  });
+
+  // The cause line comes from `config.deathRecaps` today, but it is the one string on this
+  // screen that arrives through `state` rather than through `config` — the same channel a
+  // future recap keyed on an opponent's name would use. Escaped once, like everything else.
+  it('escapes the cause of death', () => {
+    const html = gameOver('dead', {
+      lastResult: { ...DEATH, causeOfDeath: 'Felled by <script>alert("x")</script>.' },
+    });
+    expect(html).not.toContain('<script>');
+    expect(dom(html).querySelector('.cause-of-death').textContent)
+      .toContain('Felled by <script>alert("x")</script>.');
+  });
+
+  // §6.14: "Fight Again is the lone .btn--commit". §9: prices live in the price slot, and this
+  // button has no price at all — a label carrying money would fail both.
+  it('offers Fight Again as the screen\'s lone commit button', () => {
+    const screen = dom(gameOver('dead')).querySelector('.screen--gameover');
+    const commits = [...screen.querySelectorAll('.btn--commit')];
+    expect(commits.length).toBe(1);
+    expect(commits[0].getAttribute('data-action')).toBe('restart');
+    expect(commits[0].textContent).not.toMatch(/\d/);
+    expect(commits[0].querySelector('.btn__price')).toBeNull();
+    expect(commits[0].closest('.commit-bar')).not.toBeNull();
+  });
+
+  // §7 gives the screen five placed children in reading order. Asserted as regions plus their
+  // contents: adding a class is a harmless refactor, putting the CTA in the cause slot is not.
+  it('lays the screen out as spec §7 endL / stamp / endR / cause / cta', () => {
+    const section = dom(gameOver('dead')).querySelector('section.screen');
+    expect([...section.classList]).toContain('screen--gameover');
+    expect([...section.children].map((c) => c.className.split(' ')[0])).toEqual([
+      'gameover__left', 'gameover__stamp', 'gameover__right', 'gameover__cause', 'gameover__cta',
+    ]);
+  });
+
+  // The whole screen, driven off a real death instead of a fixture: the cause line comes from
+  // config.deathRecaps and the HUD reads the state game.js actually wrote.
+  it('renders a game over the game really produced', () => {
+    const champion = { ...createGameState(1, CONFIG), currentOpponentIndex: 3 };
+    const dead = resolveFightOutcome(startFight(champion, CONFIG), false, () => 0, CONFIG);
+    expect(dead.ended).toBe('dead');
+    const html = renderGameOver(dead, CONFIG);
+    expect(html).toContain(escapeHtml(dead.lastResult.causeOfDeath));
+    expect(dom(html).querySelector('[aria-label="Health"]').getAttribute('aria-valuenow'))
+      .toBe('0');
   });
 });
 

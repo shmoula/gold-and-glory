@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
+import { createGameState } from '../src/state.js';
+import { startFight, resolveFightOutcome, retire } from '../src/game.js';
 
 // Derived, never hand-listed: a fourth gear item must fail these until it has snark,
 // because the hub renders `config.snark[g.id] ?? ''`, which swallows a missing entry.
@@ -87,6 +89,38 @@ describe('CONFIG', () => {
     // not carry their own. (`taunt` is a standalone hint, not an aside — exempt.)
     for (const key of [...BUTTON_SNARK_KEYS, ...POSTER_SNARK_KEYS]) {
       expect(CONFIG.snark[key], `${key} aside must not be parenthesized`).not.toMatch(/[()]/);
+    }
+  });
+
+  // Spec §6.14's gallery renders one card per ending, keyed by the `ended` value game.js
+  // writes. The keys are *derived by ending the game three ways*, never hand-listed: a renamed
+  // terminal state must fail here rather than render a card titled `undefined`.
+  it('has an ending for every terminal state the game can reach (§6.14)', () => {
+    const start = createGameState(1, CONFIG);
+    const champion = { ...start, currentOpponentIndex: 3 }; // deathRisk 0.35, last of the card
+    const ALWAYS = () => 0; // rngChance(0.35) fires; rngInt picks the first death recap
+    const reached = [
+      retire(start).ended,
+      resolveFightOutcome(startFight(champion, CONFIG), true, ALWAYS, CONFIG).ended,
+      resolveFightOutcome(startFight(champion, CONFIG), false, ALWAYS, CONFIG).ended,
+    ];
+    expect(new Set(reached).size, 'three distinct endings').toBe(3);
+    expect(Object.keys(CONFIG.endings).sort()).toEqual([...reached].sort());
+    for (const key of reached) {
+      expect(CONFIG.endings[key].title.length, `${key} needs a title`).toBeGreaterThan(0);
+      expect(CONFIG.endings[key].epitaph.length, `${key} needs an epitaph`).toBeGreaterThan(0);
+    }
+  });
+
+  // The epitaph is a §6.8 aside like any other: the renderer adds the parentheses, so the
+  // string must not carry its own, and an aside never states a number.
+  it('keeps ending epitaphs inside the §6.8 aside grammar', () => {
+    const entries = Object.entries(CONFIG.endings);
+    expect(entries.length).toBeGreaterThan(0); // guard against a vacuous loop
+    for (const [key, ending] of entries) {
+      expect(ending.epitaph.length, `${key} epitaph must be <= 40 chars`).toBeLessThanOrEqual(40);
+      expect(ending.epitaph, `${key} epitaph must not contain numbers`).not.toMatch(/\d/);
+      expect(ending.epitaph, `${key} epitaph must not be parenthesized`).not.toMatch(/[()]/);
     }
   });
 
