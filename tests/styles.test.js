@@ -339,6 +339,60 @@ describe('type floor (spec §8)', () => {
   });
 });
 
+// Spec §6.1/§6.5 — the bar track must be a block box.
+//
+// **Written at rule level on purpose.** The defect this guards is a used-width, and jsdom
+// implements no layout: every element has a used width of 0 there, so a test that measured the
+// collapse would pass identically before and after the fix. What is decidable from the sheets is
+// the *rule* that makes the collapse impossible, and it is a necessary condition for the visual
+// claim: `meter()` emits `.bar` as a `<span>` whose two children (`.bar__fill`, `.bar__num`) are
+// both absolutely positioned, so the track has no in-flow content and its entire size comes from
+// `width`/`height` — and neither applies to a non-replaced inline box (CSS2 §10.2). Without a
+// block-level `display` the track collapsed to ~5px on every poster HP plate in the game
+// (measured in a real browser at 900px) while looking correct in the HUD, because `.hud__stat`
+// is `inline-flex` and `.train-row` is `grid` and both blockify their items. Each assertion below
+// pins one link of that chain, so the test cannot rot into vacuity if the anatomy changes.
+describe('the bar track is a block box (spec §6.1/§6.5)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Values that make a box block-level (`inline-block` deliberately excluded: it would apply the
+  // width but leave the track shrink-wrapping its line box in an inline formatting context).
+  const BLOCK_LEVEL = ['block', 'flex', 'grid', 'flow-root'];
+  // A selector whose *rightmost* compound carries `.bar` is one that targets a track.
+  const TARGETS_A_BAR = /(^|[\s>+~])[^\s>+~]*\.bar(?![\w-])[^\s>+~]*$/;
+
+  // Flat (selector, body) pairs. The sheets nest nothing but @media, whose prelude starts `@`.
+  const RULES = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, prelude]) => !prelude.trim().startsWith('@'))
+    .flatMap(([, prelude, body]) => prelude.split(',').map((sel) => [sel.trim(), body]));
+
+  it('has the anatomy that makes the display load-bearing', () => {
+    const barRule = bare.match(/(?:^|\})\s*\.bar\s*\{([^}]*)\}/m);
+    expect(barRule, 'no `.bar` rule in the sheets').not.toBeNull();
+    // The track is sized, not content-shaped - so `display` decides whether the size applies.
+    expect(barRule[1]).toMatch(/(^|;)\s*width:/);
+    expect(barRule[1]).toMatch(/(^|;)\s*height:/);
+    // ...and nothing in it is in flow to give it a size instead.
+    for (const child of ['.bar__fill', '.bar__num']) {
+      const body = bare.match(new RegExp(`\\${child}\\s*\\{([^}]*)\\}`))[1];
+      expect(body, `${child} must stay out of flow`).toMatch(/position:\s*absolute/);
+    }
+  });
+
+  it('declares a block-level display on the track itself', () => {
+    const declared = RULES
+      .filter(([sel]) => TARGETS_A_BAR.test(sel))
+      .flatMap(([sel, body]) => [...body.matchAll(/(^|;)\s*display:\s*([^;]+)/g)]
+        .map((m) => [sel, m[2].trim()]));
+    // At least one rule must state it, or `width: 108px` is silently ignored on any bar whose
+    // parent is not a flex or grid container.
+    expect(declared.length, '`.bar` declares no `display` - its width will not apply')
+      .toBeGreaterThan(0);
+    // ...and every such rule must keep it block-level, so a later override cannot re-collapse
+    // the track. Allowlist, so an unrecognised value fails rather than slips through.
+    expect(declared.filter(([, value]) => !BLOCK_LEVEL.includes(value))).toEqual([]);
+  });
+});
+
 // Task 9 deleted `src/styles/legacy.css`. Two of its rules were still the only declaration of
 // their kind anywhere in the game and were moved into base.css; nothing re-declares either, so
 // a careless tidy-up would silently unbound every screen on a wide monitor and hand every dead
