@@ -29,6 +29,32 @@ describe('the state matrix covers every screen', () => {
     expect([...PHASES_COVERED].sort()).toEqual([...ALL_PHASES].sort());
     expect(Object.keys(SCREEN_STATES).length).toBeGreaterThanOrEqual(9);
   });
+
+  // Every state in this matrix used to carry an empty combat log, so the strip reached the Law
+  // 2/4 audits, the walks below and tests/styles.test.js as a bare `<ul class="log">` and none of
+  // §6.9's four typographic channels was ever seen on a rendered screen. This is the guard that
+  // keeps the populated state populated: emptying its log, or dropping the state, silently takes
+  // the log's typography back out of every markup-driven check in the suite rather than failing
+  // anything. Selected the way the sheet selects — `.log__entry b`, `em`, `.amount` are element
+  // and class hooks, not new classes (§6.0's index is closed) — so this and components.css
+  // disagree only if one of them is wrong.
+  it('renders a populated combat log, with all four of §6.9\'s channels', () => {
+    const entries = all('.log__entry');
+    expect(entries.length, 'no state in the matrix has a non-empty log').toBeGreaterThan(5);
+    // More than one turn, or `.log__turn` is a constant and the strip is one exchange.
+    const turns = new Set(entries.map(({ el }) => el.querySelector('.log__turn')?.textContent));
+    expect(turns.size).toBeGreaterThan(2);
+    for (const [channel, sel] of [
+      ['damage dealt', '.log__entry b'], // --blood-ink bold value
+      ['damage taken', '.log__entry [aria-hidden="true"]'], // plain ink + sword glyph
+      ['money', '.log .amount'], // --gold-ink, Law 2's log arm
+      ['status', '.log__entry em'], // italic body: block, counter, feint
+      ['snark', '.log__entry .snark'],
+    ]) {
+      expect(all(sel).length, `${channel} (${sel}) appears on no rendered screen`)
+        .toBeGreaterThan(0);
+    }
+  });
 });
 
 // --- Spec §8: "Keyboard parity … Tab order follows source order." ---

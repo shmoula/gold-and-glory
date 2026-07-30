@@ -11,7 +11,7 @@
 import { CONFIG } from '../../src/config.js';
 import { createGameState, PHASE } from '../../src/state.js';
 import { startFight, resolveFightOutcome, retire } from '../../src/game.js';
-import { markPressable } from '../../src/combat.js';
+import { applyPlayerAction, applyPress, enemyTurn, markPressable } from '../../src/combat.js';
 import { makeRng } from '../../src/rng.js';
 import { mount } from '../../src/ui/screens.js';
 
@@ -43,6 +43,55 @@ const fight = startFight(hubRich, CONFIG);
 // The press slot only exists after a landed damaging hit, and it is the fifth commit control.
 const fightPress = { ...fight, combat: markPressable(fight.combat, 'strike', 'hit') };
 
+// A bout already four exchanges deep, and the only state in this matrix whose combat log is not
+// empty. `createCombat` seeds `log: []` and `markPressable` pushes nothing, so before this every
+// markup-driven guard in the suite — the Law 2/4 audits, the §8 walks, the grid checks — saw the
+// strip as a bare `<ul class="log">`: `.log__entry`, `.log__turn`, `.log__entry b`,
+// `.log__entry em`, `.log .amount` and the snark aside were reachable only through logEntry()'s
+// own unit tests, which render no screen and stand on no ground.
+//
+// Played through the real turn flow, including main.js's own `canPress: false` after a press, so
+// every entry below is one the game really pushes and no unreachable combination is invented.
+// A fresh veteran rather than `hubRich`: health is bound to injuries between bouts
+// (`maxHealth - 20 * injuries`), so hubRich's 60 does not survive four answered exchanges, and a
+// log this long belongs to a fighter who has been winning.
+const hubVeteran = { ...hubFresh, gold: 900, wins: 3, sponsorUnlocked: true, currentOpponentIndex: 2 };
+// Seed 3 leaves both fighters comfortably alive (41/100 and 41/110) and above §6.1's urgent
+// fraction, so the strip is what this state adds and nothing else changes underneath it.
+const battleRng = makeRng(3);
+
+const veteranBout = startFight(hubVeteran, CONFIG);
+
+function playedOut() {
+  let c = veteranBout.combat;
+  // The three moves main.js makes, spelled the way main.js spells them.
+  const acts = (action, timing) => {
+    c = markPressable(applyPlayerAction(c, action, timing, CONFIG), action, timing);
+  };
+  const presses = (timing) => { c = { ...applyPress(c, timing, CONFIG), canPress: false }; };
+  const answers = () => { c = enemyTurn(c, battleRng, CONFIG); };
+
+  acts('strike', 'miss'); answers(); // a whiff, so §6.9's snark aside fires, then a blow taken
+  acts('block', 'hit'); answers(); // two italic status clauses: the guard and the counter
+  acts('feint', 'graze'); presses('hit'); answers(); // the feint's status clause, then a press
+  acts('heavy', 'crit'); presses('graze'); answers(); // the bold blood-ink damage figure
+  return c;
+}
+
+// §6.9's fourth typographic channel is money ("money = `--gold-ink`"), and `combat.js` emits no
+// `{gold}` clause anywhere — the placeholder is part of logEntry()'s contract and `.log .amount`
+// is one of Law 2's six sanctioned gold-text selectors, but nothing in the game fills the slot.
+// So this one entry is a stand-in rather than a replay: without it the gold arm of the log stays
+// outside every markup-driven guard, exactly the gap this state exists to close. Delete it the
+// day combat.js pushes a real money clause, and put the real clause in the sequence above.
+const MONEY_ENTRY = {
+  turn: 5, kind: 'attack', text: 'A patron tosses {gold} into the sand.', gold: 45,
+};
+const fightLogged = (() => {
+  const combat = playedOut();
+  return { ...veteranBout, combat: { ...combat, log: [...combat.log, MONEY_ENTRY] } };
+})();
+
 const resultWin = resolveFightOutcome(fight, true, makeRng(1), CONFIG);
 // A survived loss: the ledger's expense-heavy variant, and the one that gains an injury.
 const resultLoss = resolveFightOutcome(startFight(hubFresh, CONFIG), false, makeRng(1), CONFIG);
@@ -57,6 +106,7 @@ export const SCREEN_STATES = {
   'fight (first bout)': fightFirst,
   fight,
   'fight (press offered)': fightPress,
+  'fight (log four exchanges deep)': fightLogged,
   'result (victory)': resultWin,
   'result (survived loss)': resultLoss,
   'gameover (retired)': retire(hubFresh),
