@@ -413,10 +413,24 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
   // backlog item 20, spec §7's line about it is a comment, not a rule — so this walks whatever
   // is emitted instead of asserting a fixed set of screens, which would fail the day item 20 is
   // decided either way.
+  //
+  // It also owns the *width* of that footer, which is the half spec §7 forgets. Every element
+  // carrying `.commit-bar` also carries its screen's slot class, and all three of those align the
+  // item (`.hub__commit` end, `.result__cta` / `.gameover__cta` center) — and an aligned grid item
+  // is content-sized, so a bar whose `justify-self` is not reset at ≤640 sticks as a chip floating
+  // over the content below it rather than as a full-bleed footer, with its `border-top` spanning a
+  // fraction of the screen. Rule-level like everything else in this file: the chip's used width is
+  // 173px in a browser and 0 in jsdom, so the only decidable form of the claim is that no
+  // content-sizing `justify-self` survives at the sticky breakpoint.
   it('lifts every rendered commit bar into a sticky footer below 640px, and only there', () => {
     const bars = Object.entries(MOUNTED)
       .flatMap(([name, host]) => [...host.querySelectorAll('.commit-bar')].map((el) => [name, el]));
     expect(bars.length, 'no .commit-bar is rendered anywhere - the sticky rule is dead').toBeGreaterThan(0);
+    // Allowlist, not a denylist of the alignment keywords: `justify-self` has a dozen of them
+    // (`self-end`, `flex-end`, `right`, `anchor-center`, …) and a denylist would let the next one
+    // through. `null` means nothing declares it, which is the initial `normal` — stretch, for a
+    // grid item with a definite-free cross size and `auto` margins absent.
+    const STRETCHES = [null, 'normal', 'stretch'];
     const wrong = [];
     for (const [name, bar] of bars) {
       for (const width of DESKTOP_WIDTHS) {
@@ -426,10 +440,22 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
       for (const width of MOBILE_WIDTHS) {
         const pos = winner(bar, 'position', width);
         const bottom = winner(bar, 'bottom', width);
+        const justify = winner(bar, 'justify-self', width);
         if (pos !== 'sticky') wrong.push(`${width}px: ${name} commit bar is "${pos}", not sticky`);
         if (bottom !== '0') wrong.push(`${width}px: ${name} commit bar sticks at bottom "${bottom}"`);
+        if (!STRETCHES.includes(justify)) {
+          wrong.push(`${width}px: ${name} commit bar keeps "justify-self: ${justify}", so the sticky footer is content-sized`);
+        }
       }
     }
+    // The two spellings `winner()` cannot see. `place-self` is the shorthand for `justify-self`,
+    // and `justify-items` on the container sets the item's `justify-self` when it computes to
+    // `auto` - either one could content-size the bar behind the check above without tripping it.
+    // Nothing in the sheets uses either today, so refuse them loudly rather than silently.
+    const invisible = RULES.flatMap((r) => r.decls
+      .filter((d) => d.prop === 'place-self' || d.prop === 'justify-items')
+      .map((d) => `${r.sheet}: ${r.selectors.join(', ')} { ${d.prop}: ${d.value} }`));
+    expect(invisible, 'extend the commit-bar alignment check to read this spelling').toEqual([]);
     expect(wrong).toEqual([]);
   });
 

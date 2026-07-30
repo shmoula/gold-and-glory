@@ -154,7 +154,20 @@
      tests/grid-areas.test.js fails if a child keeps a named area with no matching
      `grid-template-areas` at any breakpoint, including one declared after this block. */
   .screen > * { grid-area: auto; }
+  /* `justify-self` is the fourth half of the reset, and spec §7 omits it exactly as it omits the
+     `grid-area` one above. Every element that carries `.commit-bar` also carries its screen's own
+     slot class — `.hub__commit` (`end`), `.result__cta` / `.gameover__cta` (`center`) — and an
+     `end`/`center` grid item is *content-sized*, so the bar was a 173px chip floating over
+     whatever it stuck above (measured at 375px: 173px wide at left: 170, its `border-top`
+     spanning a third of the screen). A sticky-bottom bar with a wood ground and a top border is a
+     footer, and a footer is full-bleed: `stretch` is what makes that border read as a divider
+     rather than a stub. Same (0,1,0) as the three slot classes and later in the sheet, so it wins
+     on source order alone - no `!important`. `text-align` keeps the button centred in the new
+     full-width ground: the two CTA screens already centred theirs, and left-hard against a
+     full-bleed plank is nobody's intent. tests/grid-areas.test.js fails if a rendered commit bar
+     is left content-sized at either mobile width. */
   .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
+    justify-self: stretch; text-align: center;
     padding: var(--space-2); background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink); }
 }
