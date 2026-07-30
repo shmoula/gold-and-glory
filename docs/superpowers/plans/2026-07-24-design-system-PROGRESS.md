@@ -271,10 +271,20 @@ plus Task 9's `0330985` (items 7 and 25).
 **Item 2 was never real.** `--ease-drop` *is* defined as `steps(2, end)` in `tokens.css`, so the
 prose and the token always agreed. Nothing to reconcile.
 
-**Awaiting a human decision — 12 items.** These are design, product or spec-policy calls, not
-patches, and no agent should decide them unilaterally. They are collected with recommendations in
-the section **"Open decisions"** at the end of this file: items **4, 8, 9, 10, 16, 17, 18, 21, 23,
-24, 26/28, 27, 30, 31, 33**, plus the hub training row's 45px meter at 375px.
+**Awaiting a human decision.** These are design, product or spec-policy calls, not patches, and no
+agent should decide them unilaterally. They are collected with recommendations in the section
+**"Open decisions"** at the end of this file: items **4, 8, 9, 10, 16, 17, 18, 21, 23, 24, 26/28,
+27, 30, 31, 33**, plus items **34–37** (structural debt found by the final whole-branch review) and
+the hub training row's 45px meter at 375px.
+
+**A final whole-branch review then ran** — the one view no per-task review had. Verdict: **fit to
+merge.** It checked every invariant this file states and found them holding branch-wide, with one
+genuine defect: the rAF `sweep` was the only animation handle never retired, so ending a fight
+without capturing the meter left the loop rescheduling itself forever against a detached node
+(`7ec48b6`). It also found that **no state in the shared matrix had a populated combat log**, so
+§6.9's four typographic channels were invisible to every markup-driven audit (`acab873`), and two
+comments that stated things that were not true, including a *pasted* U+25B8 under a comment claiming
+it was an escape (`928998b`). Its remaining findings are items 34–37 below.
 
 Original text follows.
 
@@ -555,6 +565,27 @@ the conflict, then a recommendation.
 - **31.** The M2 parchment quartet (`--grad-paper` / `--border-ink` / `--shadow-paper` / radius) is
   copy-pasted into nine rules. *Recommendation:* one `.parchment` class or a `@mixin`-style shared
   rule, once the §6.0 index question above is settled.
+- **34. The page column is declared twice.** `#app` (`base.css:16`) and `.screen` (`screens.css:3`)
+  both set `max-width: 1180px; margin: 0 auto; padding: var(--space-4)`. The gutter therefore doubles
+  to 32px, `.screen`'s 1180 cap is **unreachable** (`#app`'s content box is 1148), and `base.css`'s
+  comment that it "bounds nothing a screen renders" is untrue. The same 32px also makes
+  `tests/grid-areas.test.js`'s overflow budget (`width - 2*SPACE_4`) too generous — latent, nothing
+  exceeds it today. *Recommendation:* keep the cap and padding in one place; `.screen` is the better
+  home now that `legacy.css` is gone.
+- **35. Shortfall copy is spelled twice, in two languages.** `components.css:92`'s
+  `content: " (need " attr(data-missing) " more)"` and `effects.js:209`'s
+  `${MINUS}need ${missing} more`. Only the JS half is pinned by a test, so the CSS half can drift
+  silently. *Recommendation:* one source, or a test that reads the CSS string.
+- **36. Dead component states.** `btn()`'s `owned` branch and `variant: 'danger'` have **no call
+  site** ("Bribed ✓" uses native `disabled`). `.btn.is-owned(:hover)`, `.btn--danger`,
+  `.btn.is-disabled`, `.btn[aria-disabled="true"]` and `.poster--tilt-3` match nothing in the
+  10-state matrix — so `styles.test.js:450` derives a live rule's opacity from a rule no rendered
+  element ever matches. 16 tokens are unreferenced. *Recommendation:* delete what the spec does not
+  require and keep what it does, once decisions 18/21 settle §6.0.
+- **37. The source split was never mirrored in the tests.** `components.js` and `timing.js` have no
+  test file of their own; both are reached through `render.js`'s re-export barrel inside the
+  1636-line `tests/render.test.js`. `tests/screens.test.js` (5 tests) also overlaps
+  `render.test.js` / `main.test.js`. *Recommendation:* optional; split if `render.test.js` grows.
 
 **Game logic, not design**
 
