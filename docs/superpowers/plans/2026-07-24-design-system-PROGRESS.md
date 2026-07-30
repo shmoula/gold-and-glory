@@ -18,17 +18,23 @@ then spec-compliance review, then code-quality review, then next task.
 | 6 — Timing meter | **done, both reviews passed** | `078b8a1` + `616d6b3` + `b112433` |
 | 7 — Fight screen | **done, both reviews passed** | `fc5a1dd` + `982f36b` + `6205a85` + `aebe210` |
 | 8 — Result screen + effects | **done, both reviews passed** | `993ce07` + `8373bf3` + `959f9e5` |
-| 9 — Game Over | pending | — |
+| 9 — Game Over | **done, both reviews passed** | `0330985` + `c2faac3` + `0d382e5` |
 | 10 — Verification pass | pending | — |
 
 Baseline at handoff: **98 tests passing**, `npm run build` clean, fonts emit 3 assets
 (Nunito 400/700 are the same variable file and Vite dedupes them — this is expected, not a bug).
 
-## RESUME HERE — Task 9 (Game Over: endings gallery, cause of death, final cleanup)
+## RESUME HERE — Task 10 (Verification pass: spec §8 floor + §0 laws)
 
-Tasks 3 through 8 are **fully closed**, each with spec review + code-quality review + at least one
-fix round + an independent re-review. Suite is **297 tests green**, build clean. Every fix assertion
-was mutation-verified twice — once by the implementer, once independently by a reviewer.
+**All nine feature tasks are closed.** Each went through spec review + code-quality review + at
+least one fix round + an independent re-review. Suite is **325 tests green**, build clean, and
+`src/styles/legacy.css` is gone. Every fix assertion was mutation-verified twice — once by the
+implementer, once independently by a reviewer.
+
+Task 10 is the last task. Its own plan section is the work order, but the **deferred backlog below
+is now the bulk of the job** — it has grown to 33 items across nine tasks, and most are
+**spec/code contradictions that need a decision, not a patch**. Read it in full before starting,
+and expect to be editing the spec as often as the code.
 
 - Task 3: `b42f8b6` → `f0e3fb7` (5 review fixes) → `3595343` (2 quality fixes).
 - Task 4: `5e42184` → `9b0f859` (9 quality fixes).
@@ -38,6 +44,27 @@ was mutation-verified twice — once by the implementer, once independently by a
 - Task 7: `fc5a1dd` → `982f36b` (3 spec gaps + 3 correctness bugs) → `6205a85` (5 structural
   fixes) → `aebe210` (HUD/poster health divergence).
 - Task 8: `993ce07` → `8373bf3` (3 Important + 6 lesser fixes) → `959f9e5` (ledger announcer).
+- Task 9: `0330985` → `c2faac3` (10 fixes) → `0d382e5` (§9 punctuation guard).
+
+### What Task 9 leaves you
+
+- **`src/styles/legacy.css` is deleted.** `#app`'s cap and `button:disabled { opacity }` moved into
+  `base.css`. Proved safe with a cascade differ resolving every declared property for ~600 elements
+  across nine screen states at six widths: the only behavioural change in the whole deletion is
+  that 3 disabled buttons regained `cursor: not-allowed`, which the old `:where()` had shadowed.
+  The plan's keep-list was wrong about the button-skin group, but harmlessly so — Game Over's
+  restart button is now `.btn .btn--commit` and picks up its styling from the component layer.
+- **Ending copy is derived, not hand-listed.** `config.endings` carries each ending's
+  `stamp: {variant, text}`, and `render.js` derives the gallery order from `Object.keys`. Before
+  this, adding a 4th ending rendered 2 of 4 cards with no stamp and **no test failing**.
+- **`renderHud` takes an overridable `urgent`**, mirroring `poster()`. Game Over passes
+  `urgent: false` so the 0/100 corpse beam does not pulse forever against §5's 400ms budget.
+- **A derived Law 4 guard now exists** in `styles.test.js`: it reads the real paper/wood grounds
+  out of the sheets and fails any rendered `.wordmark` that lacks such an ancestor. That is how the
+  bare-wordmark-on-stone violation (1.55:1) was caught.
+- **`main.js` was deliberately not split** (340 lines, sole owner of mutable `state`). Two
+  reviewers agreed. If a seam is ever taken it should be `src/ui/announce.js` — `liveRegion` plus
+  the two regions and their announce functions, data passed in, no `state` import.
 
 ### What Task 8 leaves you — read before writing the Game Over screen
 
