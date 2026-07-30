@@ -44,6 +44,7 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --paper-2: #f3e7c8;   /* base */
   --paper-3: #e6d6ae;   /* shade */
   --paper-4: #d9c69a;   /* deep / portrait wells */
+  --paper-5: #c9b384;   /* deepest — the portrait well's outer gradient stop (§6.5) */
 
   /* Wood (planks, HUD beam) */
   --wood-1: #7a5533;
@@ -61,12 +62,18 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --ink-soft: #6b5638;   /* muted/snark text on paper — 5.67:1 on paper-2 */
   --bone: #f2e7cd;       /* text on wood/dark — 10.06:1 on wood-4 */
   --bone-bright: #fdf6e4;/* text on commit blue — 4.76:1 on commit */
+  --bone-dim: #cdb98e;   /* snark aside on a wood button — 4.76:1 on wood-3, 6.43:1 on wood-4 */
   --track: #241a11;      /* bar/meter track wells */
+
+  /* Illustration fills — never text, never a ground for text (Law 4) */
+  --silhouette: #443019;  /* the figure in a portrait well (§6.5) */
 
   /* Gold — money only (Law 2) */
   --gold-hi: #f4cf7a;
   --gold: #d9a441;       /* on dark wood: 5.50:1. NEVER as text on paper (1.83:1) */
   --gold-deep: #b07f24;  /* fills/borders only */
+  --gold-mid: #b98a3a;   /* the meter's GRAZE band — the ramp step between --gold-deep and
+                            --gold (§6.4). Fills only, never text. */
   --gold-ink: #7d5714;   /* money TEXT on paper — 5.26:1 */
 
   /* Blood — damage, costs, danger */
@@ -95,6 +102,7 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --text-sm: 14px;    /* HUD labels, log */
   --text-md: 16px;    /* body, buttons */
   --text-lg: 19px;    /* prices, emphasized rows */
+  --text-commit: 21px;/* the commit button's display face (§6.2) — its own step of the scale */
   --text-xl: 24px;    /* section headings (display) */
   --text-2xl: 32px;   /* poster names (display) */
   --text-3xl: 44px;   /* screen banners: VICTORY! (display) */
@@ -131,6 +139,7 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --dur-stamp: 240ms;   /* stamps, chicken drop */
   --dur-tally: 350ms;   /* per ledger line */
   --dur-chip: 900ms;    /* delta chip lifetime */
+  --dur-shake: 300ms;   /* §6.7's 3-frame rejection shake */
   --ease-snap: steps(3, end);
   --ease-drop: steps(2, end);
 
@@ -206,6 +215,8 @@ Every pair below was computed (WCAG 2.x relative luminance). Do not substitute v
 | `--moss-ink` on `--paper-2` | 5.07:1 | Income/heal text on paper (`--moss` fails at 4.02) |
 | `--bone` on `--wood-4` | 10.06:1 | Button/HUD text on wood |
 | `--gold` on `--wood-4` | 5.50:1 | HUD purse |
+| `--bone-dim` on `--wood-3` | 4.76:1 | Snark aside on a wood button (§6.8) |
+| `--bone-dim` on `--wood-4` | 6.43:1 | Same aside, against the plank's dark stop |
 | `--bone-bright` on `--commit` | 4.76:1 | Commit banner text (display size) |
 | `--bone-bright` on `--commit-lo` | 7.14:1 | Commit banner text, small |
 | `--ink` on `--gold` | 6.79:1 | Gold badges/coins |
@@ -546,7 +557,7 @@ carries the brand.
 ### 6.8 Snark slot (`.snark`)
 
 `font-family: var(--font-snark); font-size: var(--text-sm)` (never below `--text-xs`);
-color `--ink-soft` on paper, `#cdb98e` on wood. Grammar: **`[mechanical truth] (aside)`** —
+color `--ink-soft` on paper, `--bone-dim` on wood. Grammar: **`[mechanical truth] (aside)`** —
 the aside is optional, ≤ 40 characters, always parenthesized, and never contradicts or
 obscures the mechanics it accompanies. Asides may mock the player, the opponent, or the
 economy; they never lie about numbers. All snark strings live in `config.js` string tables

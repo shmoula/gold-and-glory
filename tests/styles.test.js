@@ -99,7 +99,7 @@ describe('contrast claims are recomputed, not trusted (spec §3)', () => {
     .matchAll(/^\|\s*`(--[\w-]+)`\s+on\s+`(--[\w-]+)`\s*\|\s*(\d+\.\d\d):1\s*\|/gm)];
 
   it('reproduces every row of spec §3\'s published table', () => {
-    expect(specTable.length).toBe(14);
+    expect(specTable.length).toBe(16);
     const wrong = [];
     for (const [, fg, bg, claimed] of specTable) {
       const [a, b] = [hexOf(fg), hexOf(bg)];
