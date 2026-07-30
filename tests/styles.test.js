@@ -56,6 +56,292 @@ describe('css custom properties', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Spec §3 / §8 contrast. Every ratio in this project is a *hand-written claim* — in a token
+// comment, in the spec's table, in a rule's justification — and a claim is exactly the kind of
+// thing that rots when a hex is nudged. Nothing recomputed any of them until now, so
+// `--bone-dim`'s annotation could have said any number at all and the suite would have agreed.
+//
+// This is the WCAG 2.x relative-luminance formula, which is what spec §3 says its table was
+// computed with. Reproducing all fourteen of its published rows to two decimals is the evidence
+// that this implementation is the same one the spec used — so a disagreement below is a real
+// disagreement about a colour, not two formulas talking past each other.
+const HEX = /^#[0-9a-fA-F]{6}$/;
+function luminance(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v8) => {
+    const v = v8 / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+// Symmetric, so a claim never has to say which side is the text.
+function contrast(a, b) {
+  const [x, y] = [luminance(a), luminance(b)];
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+const tokensCss = readFileSync('src/styles/tokens.css', 'utf8');
+// Literal hexes only: a token defined as `var(--other)` is an alias and is followed through
+// separately, so nothing here silently compares a string to itself.
+const HEXES = Object.fromEntries([...tokensCss.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)]
+  .map((m) => [m[1], m[2]]));
+// Follow `--a: var(--b)` chains so a semantic token can be measured as the primitive it is.
+function hexOf(token, seen = new Set()) {
+  if (HEXES[token]) return HEXES[token];
+  if (seen.has(token)) return null;
+  seen.add(token);
+  const alias = tokensCss.match(new RegExp(`${token}\\s*:\\s*var\\((--[\\w-]+)\\)`));
+  return alias ? hexOf(alias[1], seen) : null;
+}
+const round2 = (x) => Math.round(x * 100) / 100;
+
+describe('contrast claims are recomputed, not trusted (spec §3)', () => {
+  // The spec's own table is the calibration. If this passes, `luminance` above *is* the
+  // function §3 was written with, and every other assertion in this describe inherits that.
+  const specTable = [...readFileSync('docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md', 'utf8')
+    .matchAll(/^\|\s*`(--[\w-]+)`\s+on\s+`(--[\w-]+)`\s*\|\s*(\d+\.\d\d):1\s*\|/gm)];
+
+  it('reproduces every row of spec §3\'s published table', () => {
+    expect(specTable.length).toBe(14);
+    const wrong = [];
+    for (const [, fg, bg, claimed] of specTable) {
+      const [a, b] = [hexOf(fg), hexOf(bg)];
+      expect(a, `${fg} resolves to no hex`).toMatch(HEX);
+      expect(b, `${bg} resolves to no hex`).toMatch(HEX);
+      const actual = round2(contrast(a, b));
+      if (actual !== Number(claimed)) wrong.push(`${fg} on ${bg}: spec says ${claimed}, is ${actual}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  // tokens.css states its own ratios inline. They are written in one machine-readable form,
+  // `N.NN:1 vs --other`, against the token whose declaration the comment sits on — direction
+  // free, because contrast is symmetric. Task 10 normalised the wording to this shape for
+  // exactly this reason; a claim that cannot be parsed is a claim nobody checks.
+  const claims = [];
+  for (const line of tokensCss.split('\n')) {
+    const decl = /^\s*(--[\w-]+)\s*:\s*#[0-9a-fA-F]{6}\s*;\s*\/\*(.*)$/.exec(line);
+    if (!decl) continue;
+    for (const m of decl[2].matchAll(/(\d+\.\d\d):1 vs (--[\w-]+)/g)) {
+      claims.push({ token: decl[1], other: m[2], ratio: Number(m[1]) });
+    }
+  }
+
+  it('found the annotations to check', () => {
+    // Guards the vacuous pass: a broken regex yields zero claims and an empty `wrong` list.
+    expect(claims.length).toBeGreaterThanOrEqual(13);
+    expect(claims.map((c) => c.token)).toContain('--bone-dim');
+  });
+
+  it('recomputes every ratio a token comment claims', () => {
+    const wrong = [];
+    for (const { token, other, ratio } of claims) {
+      const [a, b] = [hexOf(token), hexOf(other)];
+      expect(b, `${other} resolves to no hex`).toMatch(HEX);
+      const actual = round2(contrast(a, b));
+      if (actual !== ratio) wrong.push(`${token} vs ${other}: comment says ${ratio}, is ${actual}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Step 2's arithmetic half. The two-tone focus ring is the one piece of §8 that cannot be
+// checked by looking at a screenshot of a single surface: plain `--color-focus` blue is
+// invisible on stone, and the bone halo in base.css is the only reason the ring survives there.
+// Both halves are load-bearing on different grounds, so a reviewer "simplifying" either one
+// silently breaks focus on some screen. This pins which half carries which surface.
+describe('focus ring reads on every §8 surface', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const focusRule = bare.match(/(?:^|\})\s*:focus-visible\s*\{[^}]*\}/m);
+  // §8: "UI component boundaries >= 3:1 against adjacent fills." A focus ring is such a boundary.
+  const FLOOR = 3;
+  const ring = hexOf('--color-focus');
+  const halo = hexOf('--bone-bright');
+  // The four grounds spec §8 and the plan's focus-ring amendment name: the stone page, a
+  // parchment card, a wood plank, and a commit banner. Derived through the semantic tokens, so
+  // repointing `--surface-page` at a different stone re-measures rather than re-passes.
+  const GROUNDS = {
+    stone: hexOf('--surface-page'),
+    paper: hexOf('--surface-paper'),
+    wood: hexOf('--surface-wood'),
+    blue: hexOf('--commit'),
+  };
+
+  it('resolves all four grounds and both halves of the ring', () => {
+    expect(ring).toMatch(HEX);
+    expect(halo).toMatch(HEX);
+    for (const [name, hex] of Object.entries(GROUNDS)) expect(hex, name).toMatch(HEX);
+  });
+
+  it('carries a >= 3:1 edge on stone, paper, wood and blue', () => {
+    const failed = [];
+    for (const [name, ground] of Object.entries(GROUNDS)) {
+      const best = Math.max(contrast(ring, ground), contrast(halo, ground));
+      if (best < FLOOR) {
+        failed.push(`${name}: ring ${round2(contrast(ring, ground))}, halo ${round2(contrast(halo, ground))}`);
+      }
+    }
+    expect(failed).toEqual([]);
+  });
+
+  // The reason the halo exists, stated as an assertion rather than a comment: on stone the blue
+  // is 1.12:1 and contributes nothing. If someone ever picks a focus blue that reads on stone by
+  // itself this fails — which is the right moment to reconsider whether the halo is still needed,
+  // rather than discovering the ring is invisible from a bug report.
+  it('needs the halo on stone and the blue on paper - neither half is redundant', () => {
+    expect(contrast(ring, GROUNDS.stone)).toBeLessThan(FLOOR);
+    expect(contrast(halo, GROUNDS.stone)).toBeGreaterThanOrEqual(FLOOR);
+    expect(contrast(halo, GROUNDS.paper)).toBeLessThan(FLOOR);
+    expect(contrast(ring, GROUNDS.paper)).toBeGreaterThanOrEqual(FLOOR);
+    // …and the two halves are distinguishable from each other, so the ring has an internal edge
+    // whichever ground swallows one of them.
+    expect(contrast(ring, halo)).toBeGreaterThanOrEqual(FLOOR);
+  });
+
+  it('states the halo once, as the sheets\' only !important box-shadow', () => {
+    expect(focusRule, 'no bare :focus-visible rule').not.toBeNull();
+    expect(focusRule[0]).toMatch(/outline:\s*3px solid var\(--color-focus\)/);
+    expect(focusRule[0]).toMatch(/outline-offset:/);
+    // The `!important` is what stops a component's own box-shadow (`.btn:active`,
+    // `.btn.is-owned { box-shadow: none }`) from swallowing the halo. It only stops them while
+    // it is the *only* important box-shadow in the cascade: a second one at higher specificity
+    // would outrank it, and the ring would vanish on exactly those components.
+    const important = bare.match(/box-shadow\s*:[^;}]*!\s*important/g) ?? [];
+    expect(important.length, `!important box-shadows: ${important.join(' | ')}`).toBe(1);
+    expect(important[0]).toContain('var(--bone-bright)');
+  });
+
+  // On a commit banner the blue ring would sit on its own colour (1.25:1), so §8 says the ring
+  // turns bone there. It has to clear the floor against *both* gradient stops, since the button
+  // is a gradient and the ring runs along all of it.
+  it('turns bone on a commit banner, and clears both gradient stops', () => {
+    const commitFocus = bare.match(/\.btn--commit:focus-visible\s*\{[^}]*\}/);
+    expect(commitFocus, 'no .btn--commit:focus-visible rule').not.toBeNull();
+    expect(commitFocus[0]).toMatch(/outline-color:\s*var\(--bone-bright\)/);
+    for (const stop of ['--commit-hi', '--commit-lo']) {
+      expect(round2(contrast(halo, hexOf(stop))), stop).toBeGreaterThanOrEqual(FLOOR);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Step 3, the stylesheet half. effects.js's reduced-motion behaviour is already covered by
+// tests/effects.test.js, but the JS and the CSS have to agree, and one place they did not:
+// `chip-fall` ends at `opacity: 0` and runs `forwards`, so shortening it to 1ms does not stop
+// the chip travelling — it *deletes* the chip a millisecond after it appears, while
+// REDUCED_CHIP_LIFE_MS keeps an invisible node alive for 1.5s. The JS test passed and a
+// reduced-motion player saw no money move at all.
+describe('reduced motion (spec §5)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const block = bare.match(/@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/);
+
+  it('has the blanket block spec §5 mandates', () => {
+    expect(block, 'no prefers-reduced-motion block').not.toBeNull();
+    expect(block[1]).toMatch(/animation-duration:\s*1ms\s*!important/);
+    expect(block[1]).toMatch(/transition-duration:\s*1ms\s*!important/);
+    // Not in spec §5's own snippet, and the thing that actually stops the pulses: `bar-urgent`
+    // and `urgent-pulse` are `infinite`, so a 1ms duration alone would still restart them
+    // forever. §8 says pulses stop.
+    expect(block[1]).toMatch(/animation-iteration-count:\s*1\s*!important/);
+  });
+
+  it('leaves every infinite pulse to that iteration-count clamp', () => {
+    const infinite = [...bare.matchAll(/([^{}]+)\{([^{}]*animation[^{}]*infinite[^{}]*)\}/g)]
+      .map((m) => m[1].trim());
+    // Vacuity guard: if the game ever stops pulsing, this test should be deleted, not passing.
+    expect(infinite.length).toBeGreaterThan(0);
+    expect(infinite).toContain('.btn.is-urgent');
+  });
+
+  // The general form of the delta-chip defect: a `forwards` animation whose last keyframe hides
+  // the element is not slowed down by the blanket rule, it is *applied instantly and kept*. Any
+  // such animation must be cancelled outright inside the reduced-motion block.
+  it('cancels, rather than shortens, any forwards animation that ends hidden', () => {
+    const vanishing = new Set();
+    for (const [, name, body] of bare.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)) {
+      const last = [...body.matchAll(/(to|100%)\s*\{([^{}]*)\}/g)].pop();
+      if (last && /opacity:\s*0(\D|$)/.test(last[2])) vanishing.add(name);
+    }
+    expect(vanishing.size, 'no vanishing keyframes found - regex rotted?').toBeGreaterThan(0);
+    const unguarded = [];
+    for (const [, prelude, body] of bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const anim = /animation\s*:\s*([^;}]+)/.exec(body);
+      if (!anim || !/\bforwards\b/.test(anim[1])) continue;
+      if (![...vanishing].some((n) => anim[1].includes(n))) continue;
+      const sel = prelude.trim();
+      // The reduced-motion block must switch this rule's animation off, not merely compress it.
+      const cancelled = new RegExp(`\\${sel}\\s*\\{[^}]*animation:\\s*none`).test(block[1]);
+      if (!cancelled) unguarded.push(sel);
+    }
+    expect(unguarded).toEqual([]);
+  });
+
+  // "…but the meter still sweeps." It sweeps because main.js writes `transform` from a rAF loop,
+  // so no CSS timing function is in the path. The moment the cursor gains a CSS animation the
+  // blanket 1ms rule freezes gameplay, and no unit test would notice.
+  it('keeps the meter sweeping by leaving the cursor to JS', () => {
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, prelude]) => /\.meter-cursor\b/.test(prelude));
+    expect(rules.length).toBeGreaterThan(0);
+    for (const [, prelude, body] of rules) {
+      expect(body, `${prelude.trim()} animates the cursor in CSS`).not.toMatch(/animation\s*:/);
+    }
+    expect(readFileSync('src/main.js', 'utf8'), 'the sweep must be JS-driven')
+      .toMatch(/requestAnimationFrame/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec §8's last line: "All text >= --text-xs (12.5px); mechanics text >= --text-sm." This is
+// the floor Step 1b enforced against §6.1's verbatim `font-size: 11px`, and nothing kept it
+// enforced afterwards — the token could be lowered, or a new rule could restate a literal.
+describe('type floor (spec §8)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const px = (token) => Number(/(\d+(?:\.\d+)?)px/.exec(tokensCss.match(new RegExp(`${token}\\s*:\\s*[^;]+`))[0])[1]);
+
+  it('keeps --text-xs at or above 12.5px', () => {
+    expect(px('--text-xs')).toBeGreaterThanOrEqual(12.5);
+    expect(px('--text-sm')).toBeGreaterThanOrEqual(px('--text-xs'));
+  });
+
+  it('states no font size below the floor, as a token or as a literal', () => {
+    const floor = px('--text-xs');
+    const tooSmall = [];
+    for (const [, prelude, body] of bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (prelude.trim().startsWith('@')) continue;
+      // `font-size: Npx` and the size slot of the `font:` shorthand both count.
+      for (const [, size] of body.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)px/g)) {
+        if (Number(size) < floor) tooSmall.push(`${prelude.trim()}: font-size ${size}px`);
+      }
+      for (const [, size] of body.matchAll(/font\s*:\s*[^;}]*?(\d+(?:\.\d+)?)px\s*[/ ]/g)) {
+        if (Number(size) < floor) tooSmall.push(`${prelude.trim()}: font ${size}px`);
+      }
+      for (const [, token] of body.matchAll(/font-size\s*:\s*var\((--text-[\w-]+)\)/g)) {
+        if (px(token) < floor) tooSmall.push(`${prelude.trim()}: ${token}`);
+      }
+    }
+    expect(tooSmall).toEqual([]);
+  });
+
+  // Step 1b's own follow-up question, which its comment promises this file answers: the numeral
+  // grew from 11px to 12.5px, so it has to still fit the narrowest track that carries one.
+  // Both sides are read out of the sheets, so narrowing the bar or raising the token fails here.
+  // The glyph advances are a stated assumption (Nunito tabular digits ~0.6em, solidus ~0.256em),
+  // not a measurement - jsdom lays out nothing and nothing here parses the woff2.
+  it('still fits "170/170" inside the narrowest numbered track', () => {
+    const barRule = bare.match(/(?:^|\})\s*\.bar\s*\{([^}]*)\}/m)[1];
+    const width = Number(/width:\s*(\d+(?:\.\d+)?)px/.exec(barRule)[1]);
+    const border = Number(/border:\s*(\d+(?:\.\d+)?)px/.exec(barRule)[1]);
+    const numRule = bare.match(/\.bar__num\s*\{([^}]*)\}/)[1];
+    expect(numRule).toMatch(/font-size:\s*var\(--text-xs\)/);
+    const track = width - 2 * border;
+    const em = px('--text-xs');
+    const widest = (6 * 0.6 + 0.256) * em; // "170/170" - six digits and a solidus
+    expect(widest).toBeLessThan(track);
+  });
+});
+
 // Task 9 deleted `src/styles/legacy.css`. Two of its rules were still the only declaration of
 // their kind anywhere in the game and were moved into base.css; nothing re-declares either, so
 // a careless tidy-up would silently unbound every screen on a wide monitor and hand every dead

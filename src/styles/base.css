@@ -59,4 +59,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     transition-duration: 1ms !important;
   }
   .meter-cursor { transition: none !important; }
+  /* Spec §5 asks for chips that "appear/disappear without travel". The blanket rule above does
+     not deliver that for this one: `chip-fall` ends at `opacity: 0` and runs `forwards`, so
+     compressing it to 1ms does not stop the travel — it applies the final keyframe immediately
+     and keeps it, which hides the chip a millisecond after it is spawned. ui/effects.js extends
+     the chip's life to REDUCED_CHIP_LIFE_MS precisely so a *still* chip can be read, and that
+     1.5s was being spent on an invisible node: a reduced-motion player saw no money move at
+     all. Cancelling the animation leaves the chip at rest, fully opaque, until the JS timer
+     removes it. `animation`, not `animation-name`, so the shorthand's fill-mode goes too.
+     tests/styles.test.js generalises this: any forwards animation ending hidden must be
+     cancelled here rather than shortened. */
+  .delta-chip { animation: none !important; }
 }

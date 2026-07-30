@@ -25,11 +25,11 @@
   --stone-3: #7e6f5b;
 
   /* Ink & bone */
-  --ink: #2f2318;        /* borders, text on paper */
-  --ink-soft: #6b5638;   /* muted/snark text on paper — 5.67:1 on paper-2 */
-  --bone: #f2e7cd;       /* text on wood/dark — 10.06:1 on wood-4 */
-  --bone-bright: #fdf6e4;/* text on commit blue — 4.76:1 on commit */
-  --bone-dim: #cdb98e;   /* snark aside on a wood button — 4.76:1 on wood-3, 6.43:1 on wood-4 */
+  --ink: #2f2318;        /* borders, text on paper. 12.42:1 vs --paper-2 */
+  --ink-soft: #6b5638;   /* muted/snark text on paper — 5.67:1 vs --paper-2 */
+  --bone: #f2e7cd;       /* text on wood/dark — 10.06:1 vs --wood-4 */
+  --bone-bright: #fdf6e4;/* text on commit blue — 4.76:1 vs --commit */
+  --bone-dim: #cdb98e;   /* snark aside on a wood button — 4.76:1 vs --wood-3, 6.43:1 vs --wood-4 */
   --track: #241a11;      /* bar/meter track wells */
 
   /* Illustration fills — never text, never a ground for text (Law 4) */
@@ -37,25 +37,25 @@
 
   /* Gold — money only (Law 2) */
   --gold-hi: #f4cf7a;
-  --gold: #d9a441;       /* on dark wood: 5.50:1. NEVER as text on paper (1.83:1) */
+  --gold: #d9a441;       /* 5.50:1 vs --wood-4 on dark wood. NEVER as text on paper: 1.83:1 vs --paper-2 */
   --gold-deep: #b07f24;  /* fills/borders only */
   --gold-mid: #b98a3a;   /* the meter's GRAZE band — the ramp step between --gold-deep and
                             --gold (§6.4). Fills only, never text. */
-  --gold-ink: #7d5714;   /* money TEXT on paper — 5.26:1 */
+  --gold-ink: #7d5714;   /* money TEXT on paper — 5.26:1 vs --paper-2 */
 
   /* Blood — damage, costs, danger */
   --blood-hi: #c85541;
-  --blood: #b5402f;      /* large/bold text on paper: 4.57:1; button fill */
-  --blood-ink: #9c3226;  /* small text on paper — 5.89:1 */
+  --blood: #b5402f;      /* large/bold text on paper: 4.57:1 vs --paper-2; button fill */
+  --blood-ink: #9c3226;  /* small text on paper — 5.89:1 vs --paper-2 */
 
   /* Moss — income, healing */
-  --moss: #4a7c3f;       /* fills only (4.02:1 — fails as small text) */
-  --moss-ink: #3f6b35;   /* text on paper — 5.07:1 */
+  --moss: #4a7c3f;       /* fills only (4.02:1 vs --paper-2 — fails as small text) */
+  --moss-ink: #3f6b35;   /* text on paper — 5.07:1 vs --paper-2 */
 
   /* Commit blue — irreversible choices, focus */
   --commit-hi: #4d7fc0;
   --commit: #3e6fae;
-  --commit-lo: #2d5487;  /* bone-bright on this: 7.14:1 */
+  --commit-lo: #2d5487;  /* 7.14:1 vs --bone-bright */
 
   /* Spacing — 4px base scale */
   --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
