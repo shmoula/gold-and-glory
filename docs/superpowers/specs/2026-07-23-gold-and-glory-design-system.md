@@ -736,17 +736,46 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
     grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
   .screen--fight { grid-template-columns: 1fr 1fr;
     grid-template-areas: "hud hud" "you foe" "stage stage" "actions actions" "log log"; }
-  .screen--result, .screen--gameover { grid-template-columns: 1fr;
-    grid-template-areas: none; } /* natural stacking order via source order */
+  /* Name the stack — do NOT use `grid-template-areas: none` here. See the note below. */
+  .screen--result { grid-template-columns: 1fr;
+    grid-template-areas: "hud" "recap" "ledger" "cta"; }
+  .screen--gameover { grid-template-columns: 1fr;
+    grid-template-areas: "hud" "stamp" "endL" "endR" "cause" "cta"; }
 }
 @media (max-width: 640px) {
-  .screen { grid-template-columns: 1fr !important; }
+  .screen { grid-template-columns: 1fr; grid-template-areas: none; }
+  /* Both resets below are load-bearing. Neither is optional. */
+  .screen > * { grid-area: auto; }
   .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
+    justify-self: stretch; text-align: center;
     padding: var(--space-2); background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink); }
   /* Hub's Next Fight and Fight's action grid live inside .commit-bar when stacked */
 }
 ```
+
+**Two resets that a stacked grid cannot do without.** Dropping `grid-template-areas` does *not*
+return named children to auto-placement: per CSS Grid §8.3 an unmatched `<custom-ident>` in
+`grid-area` resolves to `1 <ident>`, and when no line carries that name every named child lands in
+the same implicit cell — so the children **overlap** instead of stacking. `.screen > * { grid-area:
+auto; }` is what actually stacks them, and it must sit in the same block. For the same reason the
+≤900 result/gameover rules **name** their stacks rather than setting `areas: none`.
+
+Second, a sticky footer must be told to fill its column. `.hub__commit` sets `justify-self: end` and
+`.result__cta` / `.gameover__cta` set `center`; a grid item aligned `end` or `center` is
+content-sized, so without `justify-self: stretch` the bar renders as a content-width chip floating
+over whatever sits beneath it, with its `border-top` spanning a fraction of the screen.
+`text-align: center` then keeps the button centred inside the full-width bar.
+
+`tests/grid-areas.test.js` enforces both: it resolves the cascade at each breakpoint and fails if any
+`.screen` child keeps a named `grid-area` where its container defines no matching
+`grid-template-areas`, if a screen names more rows than it sizes, or if a sticky commit bar is left
+content-sized. New screens inherit the resets for free **only if their `.screen--*` rules sit above
+the ≤640 block.**
+
+The `!important` once carried on `grid-template-columns` here is unnecessary — that rule already
+beats the `.screen--*` rules on source order at equal specificity — and it blocked any screen that
+wanted a non-`1fr` mobile grid.
 
 Source order = reading order = tab order: HUD → content columns left-to-right → commit CTA last.
 The "NEXT BOUT" opponent appears exactly once per screen.
