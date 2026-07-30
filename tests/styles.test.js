@@ -763,7 +763,13 @@ describe('animation durations (spec Law 6)', () => {
     return Number(found[1]);
   };
 
-  it('binds each JS constant to the token its CSS counterpart animates on', () => {
+  // Each constant is bound to its token, not to "the token its CSS counterpart animates on" —
+  // which was this line's claim and is only true of two of the three. `--dur-chip` and
+  // `--dur-shake` do drive rules (`.delta-chip`, `.hud__purse.is-shaking`, asserted below), but
+  // the ledger beat is pure JS: nothing animates on `--dur-tally` and components.css names it in
+  // a comment only. That makes the binding here more load-bearing for it, not less — the token is
+  // the single declaration of that duration, and this is the only thing holding BEAT_MS to it.
+  it('binds each JS constant to its token in tokens.css', () => {
     expect(BEAT_MS).toBe(tokenMs('--dur-tally'));
     expect(CHIP_LIFE_MS).toBe(tokenMs('--dur-chip'));
     expect(SHAKE_MS).toBe(tokenMs('--dur-shake'));

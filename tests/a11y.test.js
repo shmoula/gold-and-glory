@@ -211,11 +211,20 @@ describe('Law 3 — every signed amount carries its sign', () => {
 // Both directions. A sixth blue banner is a Law 3 violation; a named commitment that stops
 // rendering blue is one too, and only the reverse check notices that one.
 describe('Law 3 — commit blue only on the five named commitments', () => {
-  const ARROW = '▸'; // U+25B8 BLACK RIGHT-POINTING SMALL TRIANGLE, written as an escape.
+  // U+25B8 BLACK RIGHT-POINTING SMALL TRIANGLE, as an escape rather than a pasted glyph: a
+  // pasted lookalike would let this allowlist agree with the renderer while both were wrong,
+  // and nothing in a diff would show it. That is the U+00A0 bug this project already shipped
+  // once. The codepoint assertion below is what makes the escape load-bearing.
+  const ARROW = '\u25B8';
   const COMMITMENTS = new Set([
     `Next Fight ${ARROW}`, `Press the Attack ${ARROW}`, 'Retire Rich',
     `Fight Again ${ARROW}`, 'Return to Ludus',
   ]);
+
+  it('compares against the codepoint the renderer emits, not a lookalike', () => {
+    expect(ARROW.codePointAt(0)).toBe(0x25b8);
+    expect(ARROW).toHaveLength(1);
+  });
   // The label is the button's own first text node: `btn()` appends a price slot after it
   // (the result CTA reads "Return to Ludus" + "140 G"), so textContent would concatenate money
   // into the label and no allowlist could ever match.
