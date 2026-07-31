@@ -1,6 +1,6 @@
 # Gold & Glory
 
-*Death or glory, and a small administrative fee.*
+_Death or glory, and a small administrative fee._
 
 A turn-based arena fighter with a faucet/sink economy. Climb a corrupt fight
 circuit: win gold, but every fight wears your weapon and body while opponents

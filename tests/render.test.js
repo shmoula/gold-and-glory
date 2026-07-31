@@ -3,8 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  renderHud, renderHub, renderResult, renderGameOver, renderFight,
-  meterDistance, meterPosition, meterPeriod,
+  renderHud,
+  renderHub,
+  renderResult,
+  renderGameOver,
+  renderFight,
+  meterDistance,
+  meterPosition,
+  meterPeriod,
 } from '../src/ui/render.js';
 import { startFight } from '../src/game.js';
 
@@ -42,9 +48,16 @@ describe('renderResult', () => {
   it('renders a win recap card', () => {
     const s = createGameState(1, CONFIG);
     s.lastResult = {
-      won: true, died: false, opponentName: 'The Brute',
-      purse: 50, tax: 10, sponsorIncome: 0, netGold: 40,
-      durabilityLost: 3, injuriesGained: 0, causeOfDeath: null,
+      won: true,
+      died: false,
+      opponentName: 'The Brute',
+      purse: 50,
+      tax: 10,
+      sponsorIncome: 0,
+      netGold: 40,
+      durabilityLost: 3,
+      injuriesGained: 0,
+      causeOfDeath: null,
       commentary: 'The Brute falls.',
     };
     const html = renderResult(s, CONFIG);
@@ -128,7 +141,7 @@ describe('meterPeriod', () => {
   it('starts at the base sweep duration and speeds up per opponent tier', () => {
     expect(meterPeriod(0, CONFIG)).toBe(CONFIG.combat.meterPeriodMs.base);
     expect(meterPeriod(1, CONFIG)).toBe(
-      CONFIG.combat.meterPeriodMs.base + CONFIG.combat.meterPeriodMs.perTier,
+      CONFIG.combat.meterPeriodMs.base + CONFIG.combat.meterPeriodMs.perTier
     );
   });
 

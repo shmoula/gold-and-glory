@@ -5,11 +5,20 @@ import { renderHub, renderFight, renderResult, renderGameOver } from './render.j
 export function mount(container, state, config) {
   let html;
   switch (state.phase) {
-    case PHASE.HUB: html = renderHub(state, config); break;
-    case PHASE.FIGHT: html = renderFight(state, config); break;
-    case PHASE.RESULT: html = renderResult(state, config); break;
-    case PHASE.GAMEOVER: html = renderGameOver(state, config); break;
-    default: html = '<p>Unknown phase</p>';
+    case PHASE.HUB:
+      html = renderHub(state, config);
+      break;
+    case PHASE.FIGHT:
+      html = renderFight(state, config);
+      break;
+    case PHASE.RESULT:
+      html = renderResult(state, config);
+      break;
+    case PHASE.GAMEOVER:
+      html = renderGameOver(state, config);
+      break;
+    default:
+      html = '<p>Unknown phase</p>';
   }
   container.innerHTML = html;
 }

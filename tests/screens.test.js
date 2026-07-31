@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import { startFight } from '../src/game.js';
-import { PHASE } from '../src/state.js';
 import { mount, wire } from '../src/ui/screens.js';
 
 describe('mount', () => {
