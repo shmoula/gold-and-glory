@@ -24,6 +24,7 @@ const ENTRY = 'src/styles.css';
 const entryText = readFileSync(ENTRY, 'utf8');
 const imported = [...entryText.matchAll(/@import\s+['"]\.\/(.+?)['"]/g)].map((m) => `src/${m[1]}`);
 const extra = readdirSync('src/styles')
+  .filter((f) => f.endsWith('.css'))
   .map((f) => `src/styles/${f}`)
   .filter((f) => !imported.includes(f));
 const SHEETS = [ENTRY, ...imported, ...extra];
@@ -88,8 +89,18 @@ for (const f of SHEETS) parseRules(readFileSync(f, 'utf8'), f, RULES);
 
 // --- media evaluation: width features only; anything else is treated as not active ---
 const WIDTH_FEATURE = /\((max|min)-width:\s*(\d+)px\)/g;
+// At-rules whose inner blocks are inert here by construction: their declarations either never
+// reach RULES (@font-face has no nested rules) or can never match an element (@keyframes steps).
+// Listing them means an *unknown* at-rule — a future @supports/@container — throws instead of
+// silently making its rules inactive at every width, matching the discipline of specificity()
+// and fixedTrackPx() elsewhere in this file.
+const INERT_AT_RULES = /^@(keyframes|font-face|charset|import)\b/;
 function mediaActive(stack, width) {
   return stack.every((q) => {
+    if (INERT_AT_RULES.test(q)) return false;
+    if (!q.startsWith('@media')) {
+      throw new Error(`grid-areas.test.js cannot evaluate "${q}" - extend mediaActive() first`);
+    }
     const feats = [...q.matchAll(WIDTH_FEATURE)];
     const bare = q
       .replace(/^@media/, '')
@@ -396,9 +407,9 @@ const MOBILE_WIDTHS = [640, 375];
 const DESKTOP_WIDTHS = [1280, 900];
 // The page gutter: `#app` pads by --space-4 on each side (base.css). Read from the token rather
 // than restated, so lowering the token cannot leave the budget below silently generous.
-const SPACE_4 = Number(
-  /--space-4:\s*(\d+)px/.exec(readFileSync('src/styles/tokens.css', 'utf8'))[1]
-);
+const space4Match = /--space-4:\s*(\d+)px/.exec(readFileSync('src/styles/tokens.css', 'utf8'));
+if (!space4Match) throw new Error('grid-areas.test.js: tokens.css defines no --space-4 in px');
+const SPACE_4 = Number(space4Match[1]);
 
 // Track lists this reader can size. Anything else is refused rather than silently measured as
 // 0px, which is how a `repeat()` or a `var()` would sneak an overflowing track past the check.

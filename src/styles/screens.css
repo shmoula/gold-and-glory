@@ -29,6 +29,13 @@
 .hub__develop {
   grid-area: develop;
 }
+/* The two-up grid the §6.12 gear cards sit in. Hub layout, so it lives here rather than in the
+   components catalog beside `.shop-item`. */
+.hub__shop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
 /* Column, not flow: the two posters are rotated (§6.5 tilts), so they need a gap between
    them rather than touching margins, at every column width the grid hands this area. */
 .hub__fight {

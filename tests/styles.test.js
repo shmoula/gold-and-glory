@@ -5,8 +5,23 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS } from '../src/ui/effects.js';
 import { mountAll } from './support/screens.js';
 
-const SHEETS = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)];
+const SHEETS = [
+  'src/styles.css',
+  ...readdirSync('src/styles')
+    .filter((f) => f.endsWith('.css'))
+    .map((f) => `src/styles/${f}`),
+];
 const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
+
+// One mount for the whole file: every assertion below only reads the rendered markup, so the 11
+// states are mounted once here rather than re-mounted per describe, as SHEETS and css already are.
+const MOUNTED = mountAll();
+
+// Escape a whole selector for use inside a RegExp. `\\${sel}` escaped only the *first* character,
+// which is correct for a leading `.`/`#` but leaves every later metacharacter live — a `.` in
+// `.hud__purse.is-shaking` matched any char, and an `[attr]` selector would misparse. This escapes
+// all of them, so a selector matches literally whatever compound it carries.
+const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Plan Task 10 Step 4b. The vendored woff2 files are redistributed font software, in git and in
 // dist/, so the OFL requires the license to travel with them — and to *attribute* somebody. The
@@ -288,7 +303,7 @@ describe('reduced motion (spec §5)', () => {
       if (![...vanishing].some((n) => anim[1].includes(n))) continue;
       const sel = prelude.trim();
       // The reduced-motion block must switch this rule's animation off, not merely compress it.
-      const cancelled = new RegExp(`\\${sel}\\s*\\{[^}]*animation:\\s*none`).test(block[1]);
+      const cancelled = new RegExp(`${reEscape(sel)}\\s*\\{[^}]*animation:\\s*none`).test(block[1]);
       if (!cancelled) unguarded.push(sel);
     }
     expect(unguarded).toEqual([]);
@@ -317,8 +332,13 @@ describe('reduced motion (spec §5)', () => {
 // enforced afterwards — the token could be lowered, or a new rule could restate a literal.
 describe('type floor (spec §8)', () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  const px = (token) =>
-    Number(/(\d+(?:\.\d+)?)px/.exec(tokensCss.match(new RegExp(`${token}\\s*:\\s*[^;]+`))[0])[1]);
+  const px = (token) => {
+    const decl = tokensCss.match(new RegExp(`${token}\\s*:\\s*[^;]+`));
+    expect(decl, `${token} is not defined in tokens.css`).not.toBeNull();
+    const size = /(\d+(?:\.\d+)?)px/.exec(decl[0]);
+    expect(size, `${token} is not defined as a px value`).not.toBeNull();
+    return Number(size[1]);
+  };
 
   it('keeps --text-xs at or above 12.5px', () => {
     expect(px('--text-xs')).toBeGreaterThanOrEqual(12.5);
@@ -371,7 +391,9 @@ describe('type floor (spec §8)', () => {
   // The glyph advances are a stated assumption (Nunito tabular digits ~0.6em, solidus ~0.256em),
   // not a measurement - jsdom lays out nothing and nothing here parses the woff2.
   it('still fits "170/170" inside the narrowest numbered track', () => {
-    const barRule = bare.match(/(?:^|\})\s*\.bar\s*\{([^}]*)\}/m)[1];
+    const barMatch = bare.match(/(?:^|\})\s*\.bar\s*\{([^}]*)\}/m);
+    expect(barMatch, 'no `.bar` rule in the sheets').not.toBeNull();
+    const barRule = barMatch[1];
     const width = Number(/width:\s*(\d+(?:\.\d+)?)px/.exec(barRule)[1]);
     const border = Number(/border:\s*(\d+(?:\.\d+)?)px/.exec(barRule)[1]);
     const numRule = bare.match(/\.bar__num\s*\{([^}]*)\}/)[1];
@@ -417,8 +439,9 @@ describe('the bar track is a block box (spec §6.1/§6.5)', () => {
     expect(barRule[1]).toMatch(/(^|;)\s*height:/);
     // ...and nothing in it is in flow to give it a size instead.
     for (const child of ['.bar__fill', '.bar__num']) {
-      const body = bare.match(new RegExp(`\\${child}\\s*\\{([^}]*)\\}`))[1];
-      expect(body, `${child} must stay out of flow`).toMatch(/position:\s*absolute/);
+      const childRule = bare.match(new RegExp(`${reEscape(child)}\\s*\\{([^}]*)\\}`));
+      expect(childRule, `no ${child} rule in the sheets`).not.toBeNull();
+      expect(childRule[1], `${child} must stay out of flow`).toMatch(/position:\s*absolute/);
     }
   });
 
@@ -516,7 +539,7 @@ describe('selector coverage — every unaffordable surface is painted', () => {
 
   it('claims the price and the shortfall slot of every rendered unaffordable control', () => {
     const seen = [];
-    for (const [screen, host] of Object.entries(mountAll())) {
+    for (const [screen, host] of Object.entries(MOUNTED)) {
       for (const el of host.querySelectorAll('.is-unaffordable')) {
         const where = `${screen}: .${[...el.classList].join('.')}`;
         seen.push(where);
@@ -570,7 +593,7 @@ describe('Law 4 — text never sits on stone', () => {
     .filter(([, , body]) => PAPER_OR_WOOD.test(body))
     .flatMap(([, prelude]) => prelude.split(',').map((s) => s.trim()))
     .filter((s) => PLAIN_CLASS.test(s));
-  const SCREENS = mountAll();
+  const SCREENS = MOUNTED;
 
   it('derives the paper and wood grounds from the sheets', () => {
     // Guard against a vacuous pass: an empty ground list would make every element below fail,
@@ -743,7 +766,7 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
 describe('endings gallery (spec §6.14)', () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const ruleFor = (selector) => {
-    const rule = bare.match(new RegExp(`\\${selector}\\s*\\{[^}]*\\}`));
+    const rule = bare.match(new RegExp(`${reEscape(selector)}\\s*\\{[^}]*\\}`));
     expect(rule, `no rule for ${selector}`).not.toBeNull();
     return rule[0];
   };
@@ -787,7 +810,7 @@ describe('banner stamps (spec §6.13)', () => {
 
   it('raises no stamp the sheet does not paint', () => {
     const seen = [];
-    for (const [screen, host] of Object.entries(mountAll())) {
+    for (const [screen, host] of Object.entries(MOUNTED)) {
       for (const el of host.querySelectorAll('.banner-stamp')) {
         const variants = [...el.classList]
           .filter((c) => c.startsWith('banner-stamp--'))
@@ -836,7 +859,7 @@ describe('animation durations (spec Law 6)', () => {
       ['.delta-chip', '--dur-chip'],
       ['.hud__purse.is-shaking', '--dur-shake'],
     ]) {
-      const rule = components.match(new RegExp(`\\${selector}\\s*\\{[^}]*\\}`));
+      const rule = components.match(new RegExp(`${reEscape(selector)}\\s*\\{[^}]*\\}`));
       expect(rule, `no rule for ${selector}`).not.toBeNull();
       expect(rule[0], selector).toContain(`var(${token})`);
       expect(rule[0], selector).not.toMatch(/\d+m?s\b/);

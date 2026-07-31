@@ -158,7 +158,9 @@ export function meter(
 }
 
 export function bar(label, value, max, opts) {
-  return `<span class="hud__stat"><span class="hud__label">${label}</span>
+  // Escaped here as well as in meter(): the `.hud__label` span is a second sink for the same
+  // string, so the "every call site passes it raw" contract only holds if both are escaped.
+  return `<span class="hud__stat"><span class="hud__label">${escapeHtml(label)}</span>
     ${meter(label, value, max, opts)}</span>`;
 }
 
@@ -181,7 +183,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
     );
   }
   const missingAttr = shortfallAttr(item.cost, gold);
-  return `<button data-action="buy-${item.id}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
+  return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
       ${snarkAside(snark, missingAttr, shortfallAmount(item.cost, gold))}</button>`;
@@ -274,7 +276,7 @@ export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent
         urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION,
       })
     : '';
-  return `<article class="poster tape poster--tilt-${tilt}">
+  return `<article class="poster tape poster--tilt-${escapeHtml(tilt)}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>
     <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
     ${hpBar}

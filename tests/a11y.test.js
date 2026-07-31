@@ -15,7 +15,12 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { mountAll, SCREEN_STATES, PHASES_COVERED, ALL_PHASES } from './support/screens.js';
 
 const SCREENS = mountAll();
-const css = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)]
+const css = [
+  'src/styles.css',
+  ...readdirSync('src/styles')
+    .filter((f) => f.endsWith('.css'))
+    .map((f) => `src/styles/${f}`),
+]
   .map((f) => readFileSync(f, 'utf8'))
   .join('\n')
   .replace(/\/\*[\s\S]*?\*\//g, '');

@@ -64,14 +64,14 @@ const hubVeteran = {
   sponsorUnlocked: true,
   currentOpponentIndex: 2,
 };
-// Seed 3 leaves both fighters comfortably alive (41/100 and 41/110) and above §6.1's urgent
-// fraction, so the strip is what this state adds and nothing else changes underneath it.
-const battleRng = makeRng(3);
-
 const veteranBout = startFight(hubVeteran, CONFIG);
 
 function playedOut() {
   let c = veteranBout.combat;
+  // Seed 3 leaves both fighters comfortably alive (41/100 and 41/110) and above §6.1's urgent
+  // fraction, so the strip is what this state adds and nothing else changes underneath it. Scoped
+  // to this call, not module-level, so a second caller cannot shift the documented draw sequence.
+  const battleRng = makeRng(3);
   // The three moves main.js makes, spelled the way main.js spells them.
   const acts = (action, timing) => {
     c = markPressable(applyPlayerAction(c, action, timing, CONFIG), action, timing);

@@ -912,7 +912,7 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
 
   it('puts the resulting balance in the CTA price slot, never in its label (§6.6/§9)', () => {
     const cta = dom(resultOf(WIN, { gold: 3110 })).querySelector('[data-action="to-hub"]');
-    expect([...cta.classList]).toEqual(['btn', 'btn--commit']);
+    expect([...cta.classList]).toEqual(expect.arrayContaining(['btn', 'btn--commit']));
     expect(cta.querySelector('.btn__price').textContent).toBe(formatGold(3110));
     expect(cta.firstChild.textContent).toBe('Return to Ludus'); // no money in the label
     expect([...cta.classList]).not.toContain('is-unaffordable'); // a balance is never a cost

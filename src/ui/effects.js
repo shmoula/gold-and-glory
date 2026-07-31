@@ -46,10 +46,13 @@ export function reducedMotion() {
 
 // Money formatters a ledger row can ask for by name. A row with no `data-unit` (an injury
 // count, a durability figure) is not money and does not tick — §6.6 counts *money* rows.
-const UNITS = {
+// Null-prototype so a `data-unit` of `constructor`/`toString`/etc. resolves to no format rather
+// than to an inherited member (which would slip past the `!format` guard and write an object into
+// the cell). Same treatment src/main.js gives its untrusted `event.key` lookup.
+const UNITS = Object.assign(Object.create(null), {
   gold: (v) => formatGold(v),
   'gold-signed': (v) => formatGold(v, { signed: true }),
-};
+});
 
 // One place writes a counted cell, so a pre-tallied row and a finished count leave a cell in
 // exactly the same state — text and `data-value` together, never one without the other.

@@ -6,7 +6,7 @@
   align-items: center;
   gap: var(--space-5);
   flex-wrap: wrap;
-  background: linear-gradient(var(--wood-3), var(--wood-4));
+  background: var(--grad-wood);
   border: var(--border-w) solid var(--border-ink);
   border-radius: 10px 14px 9px 15px;
   padding: var(--space-2) var(--space-4);
@@ -295,11 +295,8 @@
 }
 
 /* ---- 6.12 Shop item card (state triad) ---- */
-.hub__shop {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-}
+/* `.hub__shop` (the grid the cards sit in) is hub *layout*, not a §6 catalog entry, so it lives
+   in screens.css beside the other `.hub__*` rules — same boundary the `.fight__*` rules follow. */
 .shop-item {
   display: flex;
   flex-direction: column;
