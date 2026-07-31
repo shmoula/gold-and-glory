@@ -323,6 +323,10 @@ describe('renderHub', () => {
     const span = html.match(/<span class="([^"]*)"[^>]*\sdata-missing="125\u00A0G"/);
     expect(span, 'no snark span carries the shortfall').not.toBeNull();
     expect(span[1].split(/\s+/)).toEqual(expect.arrayContaining(['btn__snark', 'snark']));
+    // \u2026and the same gap is stated as real, `.sr-only`-clipped text, not only as the CSS
+    // `::after` (generated content is not reliably in the accessibility tree, and is gone with
+    // CSS off). Same formatted amount as `data-missing`, so the spoken and painted gaps agree.
+    expect(html).toContain(`<span class="sr-only"> (need 125\u00A0G more)</span>`);
   });
 
   // Backlog item 3. Spec §6.2 renders the shortfall through `.btn__snark::after`, an *optional*

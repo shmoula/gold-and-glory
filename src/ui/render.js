@@ -140,7 +140,7 @@ export function renderHub(state, config) {
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
           disabled: missing <= 0,
         })}
-        ${btn('heal', `Heal ${state.injuries} injuries`, {
+        ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}`, {
           cost: healCost(state.injuries, config),
           gold: state.gold,
           snark: config.snark.heal,
@@ -419,6 +419,10 @@ function renderMeter(state, config) {
 // of the bout. A fight is tens of entries, so rendering all of them costs nothing.
 // Each entry still carries its own turn stamp from combat.js, so the number counts exchanges
 // rather than lines — an exchange pushes two entries, or three with a press.
+// The strip holds no interactive elements, so `tabindex="0"` (below) puts the scroll container
+// itself in the tab ring — WCAG 2.1.1: a keyboard user must be able to scroll to older entries,
+// which Firefox and Safari otherwise leave unreachable without a pointer. It carries an
+// `aria-label` for the same reason the meter does: a focusable region needs a name.
 export function renderFight(state, config) {
   const c = state.combat;
   // The bout being fought is still the current one: resolveFightOutcome advances the index
@@ -445,7 +449,7 @@ export function renderFight(state, config) {
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
       })}</div>
-      <div class="fight__log"><h2>Commentary</h2><ul class="log" aria-live="polite">${logHtml}</ul></div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log" tabindex="0" aria-label="Combat log" aria-live="polite">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
         <div class="fight__grid">

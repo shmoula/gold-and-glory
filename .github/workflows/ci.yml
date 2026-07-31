@@ -49,6 +49,24 @@ jobs:
       - name: Production build
         run: npm run build
 
+      # ── Font licenses in the artifact (OFL) ─────────────────────────────────
+      # The woff2 subsets are redistributed in dist/, and the OFL requires the license to travel
+      # with them. vite.config.js's copy-font-licenses plugin copies each OFL-*.txt into dist/;
+      # this asserts every source license actually landed there, so a build that drops one fails.
+      - name: Font licenses present in build
+        run: |
+          MISSING=0
+          for f in src/assets/fonts/OFL-*.txt; do
+            NAME=$(basename "$f")
+            if ! find dist -type f -name "$NAME" | grep -q .; then
+              echo "❌ $NAME is missing from dist/"
+              MISSING=1
+            else
+              echo "✅ $NAME present in dist/"
+            fi
+          done
+          exit $MISSING
+
       # ── Bundle size gate (<256 KB) ──────────────────────────────────────────
       # Measures the *initial* JS payload only — the entry chunk plus any chunks
       # index.html preloads. The budget is far above the current bundle size;

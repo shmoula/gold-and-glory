@@ -33,8 +33,10 @@ const hubRich = {
 };
 
 // The other end of the same screen: nothing is affordable, so every commerce surface renders its
-// `is-unaffordable` skin and its shortfall aside.
-const hubBroke = { ...hubFresh, gold: 0, injuries: 1, weaponDurability: 1 };
+// `is-unaffordable` skin and its shortfall aside. Health follows the between-bouts invariant
+// `maxHealth - 20 * injuries` (see hubVeteran below), so one injury pairs with 80, not the full
+// bar hubFresh carries — no unreachable HUD combination is invented here.
+const hubBroke = { ...hubFresh, gold: 0, injuries: 1, health: 80, weaponDurability: 1 };
 
 // Two fights, because the fight screen renders differently on the first bout: §6.4's taunt line
 // is emitted only while `wins === 0`, so a matrix built on a veteran state never sees it.

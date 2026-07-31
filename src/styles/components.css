@@ -557,7 +557,7 @@
   font-size: var(--text-4xl);
 }
 @keyframes stamp-in {
-  from {
+  0% {
     transform: scale(1.5) rotate(var(--tilt-3));
   }
   50% {

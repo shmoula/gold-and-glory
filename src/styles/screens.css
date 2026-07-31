@@ -274,7 +274,13 @@
     z-index: var(--z-hud);
     justify-self: stretch;
     text-align: center;
-    padding: var(--space-2);
+    /* `stretch` fills the grid column, but the column is not the viewport: `.screen` and `#app`
+       each pad by `var(--space-4)`, so the bar stopped 32px short of both edges and its
+       `border-top` — the divider the footer is for — spanned only the middle. Cancel both
+       gutters with a matching negative margin, then pad the content back in, so the wood ground
+       and its divider reach the viewport edges the sticky footer is meant to span. */
+    margin: 0 calc(-2 * var(--space-4));
+    padding: var(--space-2) calc(2 * var(--space-4));
     background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink);
   }

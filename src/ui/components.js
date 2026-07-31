@@ -18,12 +18,21 @@ export function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// The shortfall as a bare display amount, '' when the purse covers the cost. The single place
+// that computes `cost - gold` and formats it (formatGold is the only money formatter — spec §2),
+// so the `data-missing` attribute, the visual `.btn__snark::after`, and the AT text in
+// snarkAside() can never state three different gaps.
+export function shortfallAmount(cost, gold) {
+  return canAfford(gold, cost) ? '' : formatGold(cost - gold);
+}
+
 // The shortfall attribute, spec §6.2/§6.12. Empty string when the purse covers the cost, so
 // callers can concatenate it unconditionally. Shared by `.btn` and the `.shop-item` card so
 // the two commerce surfaces can never disagree about what "unaffordable" means or how the
-// gap is spelled (formatGold is the only money formatter — spec §2).
+// gap is spelled.
 export function shortfallAttr(cost, gold) {
-  return canAfford(gold, cost) ? '' : ` data-missing="${escapeHtml(formatGold(cost - gold))}"`;
+  const amount = shortfallAmount(cost, gold);
+  return amount ? ` data-missing="${escapeHtml(amount)}"` : '';
 }
 
 // The optional snark aside. `missing` is a shortfallAttr() result: spec §6.2 renders the gap
@@ -35,10 +44,19 @@ export function shortfallAttr(cost, gold) {
 // only priced controls in the game with no aside — rendered a red price and no "(need 50 more)"
 // at all, and §6.2 is explicit that the game tells you you are broke rather than hiding it.
 // An empty slot carries no parentheses of its own; the pseudo-element brings its own.
-export function snarkAside(snark, missing = '') {
+// `shortfall` is a shortfallAmount() result ('' when affordable): the visible gap is painted by
+// `.btn__snark::after { content: … attr(data-missing) … }`, which is CSS-generated content — not
+// reliably in the accessibility tree, and gone entirely with CSS off. This mirrors the same gap
+// as real, `.sr-only`-clipped text so a screen reader that ignores generated content, and a
+// CSS-off reader, both get the shortfall while the ::after stays as the visual. Same words, from
+// the same formatted amount, so the spoken and the painted gap can never disagree. (A screen
+// reader that *does* voice ::after content hears the gap twice — the far smaller failure than the
+// gap being announced to no one, which is what this closes.)
+export function snarkAside(snark, missing = '', shortfall = '') {
   if (!snark && !missing) return '';
   const body = snark ? `(${escapeHtml(snark)})` : '';
-  return `<span class="btn__snark snark"${missing}>${body}</span>`;
+  const at = shortfall ? `<span class="sr-only"> (need ${escapeHtml(shortfall)} more)</span>` : '';
+  return `<span class="btn__snark snark"${missing}>${body}${at}</span>`;
 }
 
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?].
@@ -94,9 +112,10 @@ export function btn(
   // purchase spelling and its `gold` guard; this one is presentation only.
   const shown = cost ?? price;
   const priceSlot = shown != null ? `<span class="btn__price">${formatGold(shown)}</span>` : '';
+  const missingAmount = cost != null ? shortfallAmount(cost, gold) : '';
   return (
     `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr)}</button>`
+    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
   );
 }
 
@@ -165,7 +184,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   return `<button data-action="buy-${item.id}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
-      ${snarkAside(snark, missingAttr)}</button>`;
+      ${snarkAside(snark, missingAttr, shortfallAmount(item.cost, gold))}</button>`;
 }
 
 // ---- Combat log entry (spec §6.9) ----

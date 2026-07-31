@@ -157,6 +157,11 @@ describe('interactive targets are at least 44px tall (spec §8)', () => {
   it('sizes every focusable the screens render', () => {
     const short = new Set();
     for (const { name, el } of all(FOCUSABLE)) {
+      // The combat log is in the tab ring as a scrollable region (WCAG 2.1.1 — older entries
+      // must be reachable without a pointer), not as a pointer target, so §8's 44px floor does
+      // not apply to it. Every real target carries `[data-action]`; the meter carries
+      // `[data-meter]`. Anything else in the ring is a scroll region, not a target.
+      if (!el.matches('[data-action], [data-meter]')) continue;
       const best = Math.max(0, ...[...el.classList].map((c) => heights.get(c) ?? 0));
       if (best < 44)
         short.add(`${name}: ${el.tagName}.${[...el.classList].join('.')} -> ${best}px`);

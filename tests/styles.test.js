@@ -14,6 +14,9 @@ const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
 // the unfilled `Copyright (c) <dates>, <Copyright Holder>`: a license, naming no one. Derived
 // from the `@font-face` rules rather than from a hand-kept list, so a fourth family cannot be
 // vendored without its own upstream OFL.txt arriving beside it (scripts/fetch-fonts.mjs).
+// This guards the *source-tree* copies; the built artifact's copies (vite.config.js's
+// copy-font-licenses plugin) are asserted by CI's "Font licenses present in build" step, which
+// keeps this unit suite from depending on a `vite build` having run.
 describe('font attribution (OFL)', () => {
   const faces = [
     ...readFileSync('src/styles/tokens.css', 'utf8').matchAll(
