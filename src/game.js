@@ -1,5 +1,13 @@
 // src/game.js
-import { trainingCost, repairCost, healCost, canAfford, fightPayout, arenaTax, sponsorIncome } from './economy.js';
+import {
+  trainingCost,
+  repairCost,
+  healCost,
+  canAfford,
+  fightPayout,
+  arenaTax,
+  sponsorIncome,
+} from './economy.js';
 import { PHASE, transition } from './state.js';
 import { createCombat } from './combat.js';
 import { rngChance, rngInt } from './rng.js';
@@ -91,9 +99,15 @@ export function resolveFightOutcome(state, won, rng, config) {
     const durabilityLost = Math.min(config.weapon.durabilityLossPerFight, state.weaponDurability);
 
     const result = {
-      won: true, died: false, opponentName: opponent.name,
-      purse: opponent.purse, tax, sponsorIncome: sponsor,
-      netGold: net + sponsor, durabilityLost, injuriesGained: 0,
+      won: true,
+      died: false,
+      opponentName: opponent.name,
+      purse: opponent.purse,
+      tax,
+      sponsorIncome: sponsor,
+      netGold: net + sponsor,
+      durabilityLost,
+      injuriesGained: 0,
       causeOfDeath: null,
       commentary: `${opponent.name} falls. The crowd wants more.`,
     };
@@ -112,7 +126,12 @@ export function resolveFightOutcome(state, won, rng, config) {
     };
 
     if (isLast) {
-      return { ...transition(base, PHASE.RESULT), phase: PHASE.GAMEOVER, ended: 'win-circuit', lastResult: result };
+      return {
+        ...transition(base, PHASE.RESULT),
+        phase: PHASE.GAMEOVER,
+        ended: 'win-circuit',
+        lastResult: result,
+      };
     }
     return { ...transition(base, PHASE.RESULT), lastResult: result };
   }
@@ -120,14 +139,18 @@ export function resolveFightOutcome(state, won, rng, config) {
   // loss
   const died = rngChance(rng, opponent.deathRisk);
   const durabilityLost = Math.min(config.weapon.durabilityLossPerFight, state.weaponDurability);
-  const cause = died
-    ? config.deathRecaps[rngInt(rng, 0, config.deathRecaps.length - 1)]
-    : null;
+  const cause = died ? config.deathRecaps[rngInt(rng, 0, config.deathRecaps.length - 1)] : null;
 
   const result = {
-    won: false, died, opponentName: opponent.name,
-    purse: 0, tax: 0, sponsorIncome: 0, netGold: 0,
-    durabilityLost, injuriesGained: died ? 0 : 1,
+    won: false,
+    died,
+    opponentName: opponent.name,
+    purse: 0,
+    tax: 0,
+    sponsorIncome: 0,
+    netGold: 0,
+    durabilityLost,
+    injuriesGained: died ? 0 : 1,
     causeOfDeath: cause,
     commentary: died
       ? `And that's the end of that gladiator.`
@@ -145,7 +168,12 @@ export function resolveFightOutcome(state, won, rng, config) {
   };
 
   if (died) {
-    return { ...transition(base, PHASE.RESULT), phase: PHASE.GAMEOVER, ended: 'dead', lastResult: result };
+    return {
+      ...transition(base, PHASE.RESULT),
+      phase: PHASE.GAMEOVER,
+      ended: 'dead',
+      lastResult: result,
+    };
   }
   return { ...transition(base, PHASE.RESULT), lastResult: result };
 }

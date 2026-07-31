@@ -3,12 +3,25 @@ import { CONFIG } from './config.js';
 import { createGameState, transition, PHASE } from './state.js';
 import { makeRng } from './rng.js';
 import {
-  effectiveStats, trainStat, repairWeapon, healInjuries, buyGear, bribeOfficial,
-  startFight, resolveFightOutcome, retire,
+  effectiveStats,
+  trainStat,
+  repairWeapon,
+  healInjuries,
+  buyGear,
+  bribeOfficial,
+  startFight,
+  resolveFightOutcome,
+  retire,
 } from './game.js';
 import {
-  resolveTiming, timingWindowWidth, applyPlayerAction, applyPress,
-  enemyTurn, isFightOver, fightWinner, markPressable,
+  resolveTiming,
+  timingWindowWidth,
+  applyPlayerAction,
+  applyPress,
+  enemyTurn,
+  isFightOver,
+  fightWinner,
+  markPressable,
 } from './combat.js';
 import { meterDistance, meterPosition, meterPeriod } from './ui/render.js';
 import { mount, wire } from './ui/screens.js';
@@ -78,7 +91,10 @@ function doPlayerAction(action) {
   state = { ...state, combat };
 
   if (isFightOver(state.combat)) return endFight();
-  if (state.combat.canPress) { render(); return; } // offer press before enemy acts
+  if (state.combat.canPress) {
+    render();
+    return;
+  } // offer press before enemy acts
   enemyResponds();
 }
 
@@ -106,23 +122,59 @@ function endFight() {
 
 // --- Action handlers ---
 const handlers = {
-  'train-power': () => { state = trainStat(state, 'power', CONFIG); render(); },
-  'train-guard': () => { state = trainStat(state, 'guard', CONFIG); render(); },
-  'train-speed': () => { state = trainStat(state, 'speed', CONFIG); render(); },
-  repair: () => { state = repairWeapon(state, CONFIG); render(); },
-  heal: () => { state = healInjuries(state, CONFIG); render(); },
-  'buy-shield': () => { state = buyGear(state, 'shield', CONFIG); render(); },
-  'buy-blade': () => { state = buyGear(state, 'blade', CONFIG); render(); },
-  'buy-charm': () => { state = buyGear(state, 'charm', CONFIG); render(); },
-  bribe: () => { state = bribeOfficial(state, CONFIG); render(); },
-  'next-fight': () => { state = startFight(state, CONFIG); render(); },
-  retire: () => { state = retire(state); render(); },
+  'train-power': () => {
+    state = trainStat(state, 'power', CONFIG);
+    render();
+  },
+  'train-guard': () => {
+    state = trainStat(state, 'guard', CONFIG);
+    render();
+  },
+  'train-speed': () => {
+    state = trainStat(state, 'speed', CONFIG);
+    render();
+  },
+  repair: () => {
+    state = repairWeapon(state, CONFIG);
+    render();
+  },
+  heal: () => {
+    state = healInjuries(state, CONFIG);
+    render();
+  },
+  'buy-shield': () => {
+    state = buyGear(state, 'shield', CONFIG);
+    render();
+  },
+  'buy-blade': () => {
+    state = buyGear(state, 'blade', CONFIG);
+    render();
+  },
+  'buy-charm': () => {
+    state = buyGear(state, 'charm', CONFIG);
+    render();
+  },
+  bribe: () => {
+    state = bribeOfficial(state, CONFIG);
+    render();
+  },
+  'next-fight': () => {
+    state = startFight(state, CONFIG);
+    render();
+  },
+  retire: () => {
+    state = retire(state);
+    render();
+  },
   strike: () => doPlayerAction('strike'),
   heavy: () => doPlayerAction('heavy'),
   block: () => doPlayerAction('block'),
   feint: () => doPlayerAction('feint'),
   press: () => doPress(),
-  'to-hub': () => { state = transition(state, PHASE.HUB); render(); },
+  'to-hub': () => {
+    state = transition(state, PHASE.HUB);
+    render();
+  },
   restart: () => newRun(),
 };
 

@@ -1,2 +1,21 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Internal tooling / agent metadata
+.claude/
+
 node_modules/
 dist/
+coverage/
+*.local
+
+# Lighthouse CI generated reports
+.lighthouseci/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

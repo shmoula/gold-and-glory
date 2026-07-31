@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Gold &amp; Glory">
+  <rect width="32" height="32" rx="6" fill="#2a1408" />
+  <!-- the purse the circuit pays out, crossed by the blade that earns it -->
+  <circle cx="16" cy="17" r="9" fill="#e0a72e" stroke="#8a5a12" stroke-width="1.2" />
+  <path
+    d="M8.5 8.5 L23.5 23.5 M9.8 6.8 L7 9.6 M22.2 22.4 L25 25.2"
+    stroke="#f3f0e8"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+</svg>

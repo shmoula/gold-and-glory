@@ -4,7 +4,9 @@ import { effectiveStats } from '../game.js';
 
 export function escapeHtml(s) {
   return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
 
@@ -29,15 +31,19 @@ export function renderHub(state, config) {
   const missing = config.weapon.maxDurability - state.weaponDurability;
   const opponent = config.opponents[state.currentOpponentIndex];
 
-  const trainButtons = ['power', 'guard', 'speed'].map((stat) => {
-    const cost = trainingCost(state.trainingLevels[stat], config);
-    return btn(`train-${stat}`, `Train ${stat} → ${eff[stat]}`, cost, state.gold);
-  }).join('');
+  const trainButtons = ['power', 'guard', 'speed']
+    .map((stat) => {
+      const cost = trainingCost(state.trainingLevels[stat], config);
+      return btn(`train-${stat}`, `Train ${stat} → ${eff[stat]}`, cost, state.gold);
+    })
+    .join('');
 
-  const gearButtons = Object.values(config.gear).map((g) => {
-    if (state.gear.includes(g.id)) return `<button disabled>${escapeHtml(g.name)} ✓</button>`;
-    return btn(`buy-${g.id}`, g.name, g.cost, state.gold);
-  }).join('');
+  const gearButtons = Object.values(config.gear)
+    .map((g) => {
+      if (state.gear.includes(g.id)) return `<button disabled>${escapeHtml(g.name)} ✓</button>`;
+      return btn(`buy-${g.id}`, g.name, g.cost, state.gold);
+    })
+    .join('');
 
   return `
     ${renderHud(state, config)}
@@ -47,9 +53,11 @@ export function renderHub(state, config) {
       <div class="row">
         ${btn('repair', 'Repair weapon', repairCost(missing, config), state.gold, missing <= 0 ? ' data-noop="1"' : '')}
         ${btn('heal', `Heal ${state.injuries} injuries`, healCost(state.injuries, config), state.gold)}
-        ${state.bribedThisFight
-          ? '<button disabled>Bribed ✓</button>'
-          : btn('bribe', 'Bribe official', config.arena.bribeCost, state.gold)}
+        ${
+          state.bribedThisFight
+            ? '<button disabled>Bribed ✓</button>'
+            : btn('bribe', 'Bribe official', config.arena.bribeCost, state.gold)
+        }
       </div>
       <div class="row">${gearButtons}</div>
       ${state.sponsorUnlocked ? `<p class="sponsor">Sponsor active: +${config.sponsor.stipendPerFight}g/fight. Objective: ${escapeHtml(config.sponsor.objective)}</p>` : ''}
@@ -68,20 +76,24 @@ export function renderResult(state, config) {
     <section class="result ${cls}">
       <h2>${r.won ? 'VICTORY' : 'DEFEAT'} — ${escapeHtml(r.opponentName)}</h2>
       <p>${escapeHtml(r.commentary)}</p>
-      ${r.won ? `<ul>
+      ${
+        r.won
+          ? `<ul>
         <li>Purse: ${r.purse}g (tax ${r.tax}g)</li>
         ${r.sponsorIncome ? `<li>Sponsor: +${r.sponsorIncome}g</li>` : ''}
         <li><strong>Net: +${r.netGold}g</strong></li>
         <li>Weapon wear: -${r.durabilityLost} durability</li>
-      </ul>` : `<ul>
+      </ul>`
+          : `<ul>
         <li>Injuries gained: ${r.injuriesGained}</li>
         <li>Weapon wear: -${r.durabilityLost} durability</li>
-      </ul>`}
+      </ul>`
+      }
       <button data-action="to-hub">Back to the Ludus</button>
     </section>`;
 }
 
-export function renderGameOver(state, config) {
+export function renderGameOver(state, _config) {
   let body;
   if (state.ended === 'dead') {
     body = `<h2>YOU DIED</h2>
@@ -119,7 +131,10 @@ export function meterPeriod(tierIndex, config) {
 
 export function renderFight(state, config) {
   const c = state.combat;
-  const logHtml = c.log.slice(-6).map((l) => `<li>${escapeHtml(l)}</li>`).join('');
+  const logHtml = c.log
+    .slice(-6)
+    .map((l) => `<li>${escapeHtml(l)}</li>`)
+    .join('');
   return `
     ${renderHud(state, config)}
     <section class="fight">
