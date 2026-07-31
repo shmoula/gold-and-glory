@@ -2,17 +2,30 @@
 // Run once: node scripts/fetch-fonts.mjs
 import { mkdir, writeFile } from 'node:fs/promises';
 
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 // `ofl` is the family's directory in github.com/google/fonts, whose OFL.txt carries the real
 // copyright line. `license` is what it is vendored as. One per family, never shared: the three
 // families have three different copyright holders, and a single file can only name one of them.
 const FAMILIES = [
-  { spec: 'Bangers', ofl: 'bangers', license: 'OFL-Bangers.txt',
-    out: { 400: 'Bangers-400.woff2' } },
-  { spec: 'Nunito:wght@400;700', ofl: 'nunito', license: 'OFL-Nunito.txt',
-    out: { 400: 'Nunito-400.woff2', 700: 'Nunito-700.woff2' } },
-  { spec: 'Patrick+Hand', ofl: 'patrickhand', license: 'OFL-PatrickHand.txt',
-    out: { 400: 'PatrickHand-400.woff2' } },
+  {
+    spec: 'Bangers',
+    ofl: 'bangers',
+    license: 'OFL-Bangers.txt',
+    out: { 400: 'Bangers-400.woff2' },
+  },
+  {
+    spec: 'Nunito:wght@400;700',
+    ofl: 'nunito',
+    license: 'OFL-Nunito.txt',
+    out: { 400: 'Nunito-400.woff2', 700: 'Nunito-700.woff2' },
+  },
+  {
+    spec: 'Patrick+Hand',
+    ofl: 'patrickhand',
+    license: 'OFL-PatrickHand.txt',
+    out: { 400: 'PatrickHand-400.woff2' },
+  },
 ];
 const GF_RAW = 'https://raw.githubusercontent.com/google/fonts/main/ofl';
 
@@ -25,7 +38,11 @@ const get = async (url, init) => {
 await mkdir('src/assets/fonts', { recursive: true });
 const written = [];
 for (const { spec, out } of FAMILIES) {
-  const css = await (await get(`https://fonts.googleapis.com/css2?family=${spec}&display=swap`, { headers: { 'User-Agent': UA } })).text();
+  const css = await (
+    await get(`https://fonts.googleapis.com/css2?family=${spec}&display=swap`, {
+      headers: { 'User-Agent': UA },
+    })
+  ).text();
   for (const m of css.matchAll(/\/\* (\w[\w-]*) \*\/\s*@font-face\s*\{([^}]*)\}/g)) {
     if (m[1] !== 'latin') continue;
     const weight = m[2].match(/font-weight:\s*(\d+)/)?.[1];

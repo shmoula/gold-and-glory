@@ -40,11 +40,11 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   /* ============ TIER 1 — PRIMITIVES ============ */
 
   /* Paper (parchment) */
-  --paper-1: #f6ecd1;   /* highlight edge */
-  --paper-2: #f3e7c8;   /* base */
-  --paper-3: #e6d6ae;   /* shade */
-  --paper-4: #d9c69a;   /* deep / portrait wells */
-  --paper-5: #c9b384;   /* deepest — the portrait well's outer gradient stop (§6.5) */
+  --paper-1: #f6ecd1; /* highlight edge */
+  --paper-2: #f3e7c8; /* base */
+  --paper-3: #e6d6ae; /* shade */
+  --paper-4: #d9c69a; /* deep / portrait wells */
+  --paper-5: #c9b384; /* deepest — the portrait well's outer gradient stop (§6.5) */
 
   /* Wood (planks, HUD beam) */
   --wood-1: #7a5533;
@@ -58,55 +58,61 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --stone-3: #7e6f5b;
 
   /* Ink & bone */
-  --ink: #2f2318;        /* borders, text on paper */
-  --ink-soft: #6b5638;   /* muted/snark text on paper — 5.67:1 on paper-2 */
-  --bone: #f2e7cd;       /* text on wood/dark — 10.06:1 on wood-4 */
-  --bone-bright: #fdf6e4;/* text on commit blue — 4.76:1 on commit */
-  --bone-dim: #cdb98e;   /* snark aside on a wood button — 4.76:1 on wood-3, 6.43:1 on wood-4 */
-  --track: #241a11;      /* bar/meter track wells */
+  --ink: #2f2318; /* borders, text on paper */
+  --ink-soft: #6b5638; /* muted/snark text on paper — 5.67:1 on paper-2 */
+  --bone: #f2e7cd; /* text on wood/dark — 10.06:1 on wood-4 */
+  --bone-bright: #fdf6e4; /* text on commit blue — 4.76:1 on commit */
+  --bone-dim: #cdb98e; /* snark aside on a wood button — 4.76:1 on wood-3, 6.43:1 on wood-4 */
+  --track: #241a11; /* bar/meter track wells */
 
   /* Illustration fills — never text, never a ground for text (Law 4) */
-  --silhouette: #443019;  /* the figure in a portrait well (§6.5) */
+  --silhouette: #443019; /* the figure in a portrait well (§6.5) */
 
   /* Gold — money only (Law 2) */
   --gold-hi: #f4cf7a;
-  --gold: #d9a441;       /* on dark wood: 5.50:1. NEVER as text on paper (1.83:1) */
-  --gold-deep: #b07f24;  /* fills/borders only */
-  --gold-mid: #b98a3a;   /* the meter's GRAZE band — the ramp step between --gold-deep and
+  --gold: #d9a441; /* on dark wood: 5.50:1. NEVER as text on paper (1.83:1) */
+  --gold-deep: #b07f24; /* fills/borders only */
+  --gold-mid: #b98a3a; /* the meter's GRAZE band — the ramp step between --gold-deep and
                             --gold (§6.4). Fills only, never text. */
-  --gold-ink: #7d5714;   /* money TEXT on paper — 5.26:1 */
+  --gold-ink: #7d5714; /* money TEXT on paper — 5.26:1 */
 
   /* Blood — damage, costs, danger */
   --blood-hi: #c85541;
-  --blood: #b5402f;      /* large/bold text on paper: 4.57:1; button fill */
-  --blood-ink: #9c3226;  /* small text on paper — 5.89:1 */
+  --blood: #b5402f; /* large/bold text on paper: 4.57:1; button fill */
+  --blood-ink: #9c3226; /* small text on paper — 5.89:1 */
 
   /* Moss — income, healing */
-  --moss: #4a7c3f;       /* fills only (4.02:1 — fails as small text) */
-  --moss-ink: #3f6b35;   /* text on paper — 5.07:1 */
+  --moss: #4a7c3f; /* fills only (4.02:1 — fails as small text) */
+  --moss-ink: #3f6b35; /* text on paper — 5.07:1 */
 
   /* Commit blue — irreversible choices, focus */
   --commit-hi: #4d7fc0;
   --commit: #3e6fae;
-  --commit-lo: #2d5487;  /* bone-bright on this: 7.14:1 */
+  --commit-lo: #2d5487; /* bone-bright on this: 7.14:1 */
 
   /* Spacing — 4px base scale */
-  --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
-  --space-5: 24px; --space-6: 32px;  --space-7: 48px; --space-8: 64px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
 
   /* Typography */
   --font-display: 'Bangers', 'Arial Black', sans-serif;
   --font-body: 'Nunito', system-ui, sans-serif;
   --font-snark: 'Patrick Hand', 'Comic Sans MS', cursive;
-  --text-xs: 12.5px;  /* captions, log snark */
-  --text-sm: 14px;    /* HUD labels, log */
-  --text-md: 16px;    /* body, buttons */
-  --text-lg: 19px;    /* prices, emphasized rows */
-  --text-commit: 21px;/* the commit button's display face (§6.2) — its own step of the scale */
-  --text-xl: 24px;    /* section headings (display) */
-  --text-2xl: 32px;   /* poster names (display) */
-  --text-3xl: 44px;   /* screen banners: VICTORY! (display) */
-  --text-4xl: 64px;   /* YOU DIED (display) */
+  --text-xs: 12.5px; /* captions, log snark */
+  --text-sm: 14px; /* HUD labels, log */
+  --text-md: 16px; /* body, buttons */
+  --text-lg: 19px; /* prices, emphasized rows */
+  --text-commit: 21px; /* the commit button's display face (§6.2) — its own step of the scale */
+  --text-xl: 24px; /* section headings (display) */
+  --text-2xl: 32px; /* poster names (display) */
+  --text-3xl: 44px; /* screen banners: VICTORY! (display) */
+  --text-4xl: 64px; /* YOU DIED (display) */
   --leading-display: 1.05;
   --leading-body: 1.5;
 
@@ -114,7 +120,7 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --wobble-1: 255px 18px 225px 18px / 18px 225px 18px 255px;
   --wobble-2: 18px 225px 18px 255px / 255px 18px 225px 18px;
   --wobble-3: 160px 22px 190px 24px / 22px 190px 24px 160px;
-  --wobble-bar: 6px 9px 6px 8px;   /* subtle, for meters/bars */
+  --wobble-bar: 6px 9px 6px 8px; /* subtle, for meters/bars */
 
   /* Tilt — siblings must alternate tilt tokens (never two identical neighbors) */
   --tilt-1: -1.4deg;
@@ -132,14 +138,19 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --grad-wood: linear-gradient(var(--wood-3), var(--wood-4));
   --grad-wood-hover: linear-gradient(var(--wood-2), var(--wood-3));
   --grad-commit: linear-gradient(var(--commit-hi), var(--commit-lo));
-  --grad-coin: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 55%, var(--gold-deep));
+  --grad-coin: radial-gradient(
+    circle at 35% 30%,
+    var(--gold-hi),
+    var(--gold) 55%,
+    var(--gold-deep)
+  );
 
   /* Motion — paper-puppet: stepped, snappy, pivoted (see §5) */
-  --dur-snap: 180ms;    /* UI state changes */
-  --dur-stamp: 240ms;   /* stamps, chicken drop */
-  --dur-tally: 350ms;   /* per ledger line */
-  --dur-chip: 900ms;    /* delta chip lifetime */
-  --dur-shake: 300ms;   /* §6.7's 3-frame rejection shake */
+  --dur-snap: 180ms; /* UI state changes */
+  --dur-stamp: 240ms; /* stamps, chicken drop */
+  --dur-tally: 350ms; /* per ledger line */
+  --dur-chip: 900ms; /* delta chip lifetime */
+  --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
   --ease-snap: steps(3, end);
   --ease-drop: steps(2, end);
 
@@ -152,8 +163,8 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --color-text: var(--ink);
   --color-text-muted: var(--ink-soft);
   --color-text-inverse: var(--bone);
-  --color-money: var(--gold-ink);          /* money text on paper */
-  --color-money-on-dark: var(--gold);      /* money text on wood */
+  --color-money: var(--gold-ink); /* money text on paper */
+  --color-money-on-dark: var(--gold); /* money text on wood */
   --color-income: var(--moss-ink);
   --color-expense: var(--blood-ink);
   --color-damage: var(--blood);
@@ -172,13 +183,14 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
 
 ## 2. Typography
 
-| Role | Face | Weight | Usage | Never |
-|---|---|---|---|---|
-| Display | Bangers | 400 | Banners, screen titles, commit CTAs, result stamps, poster names | Body copy, anything below 19px |
-| Body | Nunito | 400 / 700 | All UI text, prices, stats, combat log, plank buttons | — |
-| Snark | Patrick Hand | 400 | `.snark` slot only | Mechanics, numbers, labels |
+| Role    | Face         | Weight    | Usage                                                            | Never                          |
+| ------- | ------------ | --------- | ---------------------------------------------------------------- | ------------------------------ |
+| Display | Bangers      | 400       | Banners, screen titles, commit CTAs, result stamps, poster names | Body copy, anything below 19px |
+| Body    | Nunito       | 400 / 700 | All UI text, prices, stats, combat log, plank buttons            | —                              |
+| Snark   | Patrick Hand | 400       | `.snark` slot only                                               | Mechanics, numbers, labels     |
 
 Rules:
+
 - All money and stat figures: `font-variant-numeric: tabular-nums;` (verified: Nunito digits are
   uniform-width — 480/480/480 for repeated 1/8/0 — so ledgers and tickers align for free).
 - Display face gets `letter-spacing: 0.03em` at ≥32px sizes; body labels in uppercase get `0.06em`.
@@ -192,10 +204,30 @@ Download latin woff2 subsets (all OFL-licensed) via the Google Fonts css2 API fo
 
 ```css
 /* in tokens.css, above :root */
-@font-face { font-family: 'Bangers';      src: url('../assets/fonts/Bangers-400.woff2') format('woff2');      font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Nunito';       src: url('../assets/fonts/Nunito-400.woff2') format('woff2');       font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Nunito';       src: url('../assets/fonts/Nunito-700.woff2') format('woff2');       font-weight: 700; font-display: swap; }
-@font-face { font-family: 'Patrick Hand'; src: url('../assets/fonts/PatrickHand-400.woff2') format('woff2');  font-weight: 400; font-display: swap; }
+@font-face {
+  font-family: 'Bangers';
+  src: url('../assets/fonts/Bangers-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('../assets/fonts/Nunito-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('../assets/fonts/Nunito-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Patrick Hand';
+  src: url('../assets/fonts/PatrickHand-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
 ```
 
 ---
@@ -204,28 +236,28 @@ Download latin woff2 subsets (all OFL-licensed) via the Google Fonts css2 API fo
 
 Every pair below was computed (WCAG 2.x relative luminance). Do not substitute values.
 
-| Foreground on background | Ratio | Verdict / rule |
-|---|---|---|
-| `--ink` on `--paper-2` | 12.42:1 | Body text on paper |
-| `--ink-soft` on `--paper-2` | 5.67:1 | Muted + snark on paper |
-| `--gold-ink` on `--paper-2` | 5.26:1 | **The only gold allowed as text on paper** |
-| `--gold` on `--paper-2` | 1.83:1 | FAIL — display gold is fills/dark-bg only |
-| `--blood` on `--paper-2` | 4.57:1 | Large/bold damage text on paper |
-| `--blood-ink` on `--paper-2` | 5.89:1 | Small expense text on paper |
-| `--moss-ink` on `--paper-2` | 5.07:1 | Income/heal text on paper (`--moss` fails at 4.02) |
-| `--bone` on `--wood-4` | 10.06:1 | Button/HUD text on wood |
-| `--gold` on `--wood-4` | 5.50:1 | HUD purse |
-| `--bone-dim` on `--wood-3` | 4.76:1 | Snark aside on a wood button (§6.8) |
-| `--bone-dim` on `--wood-4` | 6.43:1 | Same aside, against the plank's dark stop |
-| `--bone-bright` on `--commit` | 4.76:1 | Commit banner text (display size) |
-| `--bone-bright` on `--commit-lo` | 7.14:1 | Commit banner text, small |
-| `--ink` on `--gold` | 6.79:1 | Gold badges/coins |
-| `--bone` on `--track` | 13.88:1 | Numbers inside bars |
-| `--bone` on `--stone-2` | 2.99:1 | FAIL — this is why Law 4 exists |
+| Foreground on background         | Ratio   | Verdict / rule                                     |
+| -------------------------------- | ------- | -------------------------------------------------- |
+| `--ink` on `--paper-2`           | 12.42:1 | Body text on paper                                 |
+| `--ink-soft` on `--paper-2`      | 5.67:1  | Muted + snark on paper                             |
+| `--gold-ink` on `--paper-2`      | 5.26:1  | **The only gold allowed as text on paper**         |
+| `--gold` on `--paper-2`          | 1.83:1  | FAIL — display gold is fills/dark-bg only          |
+| `--blood` on `--paper-2`         | 4.57:1  | Large/bold damage text on paper                    |
+| `--blood-ink` on `--paper-2`     | 5.89:1  | Small expense text on paper                        |
+| `--moss-ink` on `--paper-2`      | 5.07:1  | Income/heal text on paper (`--moss` fails at 4.02) |
+| `--bone` on `--wood-4`           | 10.06:1 | Button/HUD text on wood                            |
+| `--gold` on `--wood-4`           | 5.50:1  | HUD purse                                          |
+| `--bone-dim` on `--wood-3`       | 4.76:1  | Snark aside on a wood button (§6.8)                |
+| `--bone-dim` on `--wood-4`       | 6.43:1  | Same aside, against the plank's dark stop          |
+| `--bone-bright` on `--commit`    | 4.76:1  | Commit banner text (display size)                  |
+| `--bone-bright` on `--commit-lo` | 7.14:1  | Commit banner text, small                          |
+| `--ink` on `--gold`              | 6.79:1  | Gold badges/coins                                  |
+| `--bone` on `--track`            | 13.88:1 | Numbers inside bars                                |
+| `--bone` on `--stone-2`          | 2.99:1  | FAIL — this is why Law 4 exists                    |
 
 Colorblind redundancy (mandatory): money deltas always carry `+`/`−`; damage log lines carry the
 sword glyph, healing the drop glyph; meter zones are labeled and notched (§6.4); owned vs
-unaffordable shop states differ by *structure*, not hue (§6.12).
+unaffordable shop states differ by _structure_, not hue (§6.12).
 
 ---
 
@@ -269,18 +301,24 @@ Everything moves like a Gilliam cutout: few frames, hard stops, pivot from an ed
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;   /* an infinite pulse at 1ms is a strobe */
+    animation-iteration-count: 1 !important; /* an infinite pulse at 1ms is a strobe */
     transition-duration: 1ms !important;
   }
-  .meter-cursor { transition: none !important; } /* sweep stays JS-driven */
+  .meter-cursor {
+    transition: none !important;
+  } /* sweep stays JS-driven */
   /* Shortening is not the same as cancelling. `chip-fall` ends at `opacity: 0` and runs
      `forwards`, so at 1ms it applies its final keyframe immediately and keeps it — the chip is
      hidden a millisecond after it is spawned, and "appears/disappears without travel" above
      becomes "never appears". Any `forwards` animation whose last keyframe hides the element has
      to be cancelled outright here; the JS timer still removes the node. */
-  .delta-chip { animation: none !important; }
+  .delta-chip {
+    animation: none !important;
+  }
 }
 ```
 
@@ -308,63 +346,131 @@ Contents in order: purse, Health bar, Durability bar, Injuries pips.
 
 ```html
 <header class="hud">
-  <span class="hud__purse"><i class="coin"></i>GOLD: <span class="ticker" data-value="2450">2,450</span></span>
-  <span class="hud__stat"><span class="hud__label">HEALTH</span>
-    <span class="bar" role="meter" aria-label="Health" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
+  <span class="hud__purse"
+    ><i class="coin"></i>GOLD: <span class="ticker" data-value="2450">2,450</span></span
+  >
+  <span class="hud__stat"
+    ><span class="hud__label">HEALTH</span>
+    <span
+      class="bar"
+      role="meter"
+      aria-label="Health"
+      aria-valuenow="65"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
       <span class="bar__fill" style="width:65%"></span><span class="bar__num">65/100</span>
-    </span></span>
-  <span class="hud__stat"><span class="hud__label">DURABILITY</span>
-    <span class="bar"><span class="bar__fill bar__fill--dur" style="width:58%"></span><span class="bar__num">58/100</span></span></span>
-  <span class="hud__stat"><span class="hud__label">INJURIES</span>
+    </span></span
+  >
+  <span class="hud__stat"
+    ><span class="hud__label">DURABILITY</span>
+    <span class="bar"
+      ><span class="bar__fill bar__fill--dur" style="width:58%"></span
+      ><span class="bar__num">58/100</span></span
+    ></span
+  >
+  <span class="hud__stat"
+    ><span class="hud__label">INJURIES</span>
     <span class="pips" role="img" aria-label="3 injuries">
-      <i class="pip pip--filled"></i><i class="pip pip--filled"></i><i class="pip pip--filled"></i><i class="pip"></i><i class="pip"></i>
-    </span></span>
+      <i class="pip pip--filled"></i><i class="pip pip--filled"></i><i class="pip pip--filled"></i
+      ><i class="pip"></i><i class="pip"></i> </span
+  ></span>
 </header>
 ```
 
 ```css
 .hud {
-  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
   background: linear-gradient(var(--wood-3), var(--wood-4));
-  border: var(--border-w) solid var(--border-ink); border-radius: 10px 14px 9px 15px;
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: 10px 14px 9px 15px;
   padding: var(--space-2) var(--space-4);
   box-shadow: var(--shadow-plank);
   color: var(--color-text-inverse);
-  font-family: var(--font-body); font-weight: 700; font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--text-sm);
 }
 /* `position: relative` is §6.7's delta-chip anchor: the chip is spawned into the purse and
    positioned against it. `text-transform` is why the markup above may spell the label in
    sentence case. */
-.hud__purse { color: var(--color-money-on-dark); display: inline-flex; align-items: center;
-  gap: var(--space-2); font-variant-numeric: tabular-nums; text-transform: uppercase;
-  position: relative; }
-.coin { width: 15px; height: 15px; border-radius: 50%; display: inline-block;
-  background: var(--grad-coin); border: 1.5px solid var(--border-ink); }
+.hud__purse {
+  color: var(--color-money-on-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  position: relative;
+}
+.coin {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--grad-coin);
+  border: 1.5px solid var(--border-ink);
+}
 /* `display: block` is load-bearing: the track is a <span> whose two children are both
    absolutely positioned, so it carries no in-flow content and its whole size comes from
    `width`/`height` — neither of which applies to a non-replaced inline box (CSS2 §10.2). It
    only ever looked right inside `.hud__stat` (inline-flex) and the training row (grid), both
    of which blockify their items; a poster is plain block flow, and every poster HP plate
    collapsed to ~5px without this. */
-.bar { display: block; position: relative; width: 108px; height: 16px; background: var(--track);
-  border: 2px solid var(--border-ink); border-radius: var(--wobble-bar); overflow: hidden; }
-.bar__fill { position: absolute; inset: 0 auto 0 0; background: var(--blood);
-  transition: width 150ms ease-out; }
-.bar__fill--dur { background: var(--gold-deep); }
+.bar {
+  display: block;
+  position: relative;
+  width: 108px;
+  height: 16px;
+  background: var(--track);
+  border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  overflow: hidden;
+}
+.bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--blood);
+  transition: width 150ms ease-out;
+}
+.bar__fill--dur {
+  background: var(--gold-deep);
+}
 /* The numeral is `--text-xs`, not 11px: §8's floor ("all text >= --text-xs") is ship-blocking
    and wins over an earlier draft of this block. It still fits — the narrowest numbered track is
    this bar's own 104px padding box, and the widest string a bar renders ("170/170") is 48.2px
    of Nunito tabular digits at 12.5px. */
-.bar__num { position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: var(--text-xs); color: var(--bone); font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 0 rgba(31,22,12,0.9); }
-.pips { display: inline-flex; gap: 3px; }
-.pip { width: 11px; height: 14px; border: 1.5px solid var(--border-ink);
-  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: var(--track); }
-.pip--filled { background: var(--blood); }
+.bar__num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xs);
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(31, 22, 12, 0.9);
+}
+.pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.pip {
+  width: 11px;
+  height: 14px;
+  border: 1.5px solid var(--border-ink);
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: var(--track);
+}
+.pip--filled {
+  background: var(--blood);
+}
 ```
 
 Rules:
+
 - Health fill is `--blood` at all values; below 33% add `.is-urgent` on the `.bar` → 900ms
   opacity pulse on the fill (steps(2)).
 - Pips render `max(injuries, 5)` slots; each filled pip = one 40 G debt (GDD heal cost).
@@ -377,47 +483,100 @@ Three variants. All: `min-height 44px`, `font-family var(--font-body) 700` (plan
 `var(--font-display)` (commit), `cursor: pointer`, and:
 
 ```css
-.btn { display: inline-flex; align-items: baseline; gap: var(--space-3);
-  font: 700 var(--text-md)/1.2 var(--font-body); color: var(--color-text-inverse);
-  background: var(--grad-wood); border: var(--border-w) solid var(--border-ink);
-  border-radius: 9px 13px 8px 14px; padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-plank); min-height: 44px; }
-.btn:hover { background: var(--grad-wood-hover); }
-.btn:active { transform: translateY(2.5px); box-shadow: var(--shadow-plank-pressed); }
-.btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
-.btn__price { color: var(--color-money-on-dark); font-variant-numeric: tabular-nums; font-size: var(--text-lg); }
-.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: var(--bone-dim); }
+.btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font: 700 var(--text-md)/1.2 var(--font-body);
+  color: var(--color-text-inverse);
+  background: var(--grad-wood);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: 9px 13px 8px 14px;
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-plank);
+  min-height: 44px;
+}
+.btn:hover {
+  background: var(--grad-wood-hover);
+}
+.btn:active {
+  transform: translateY(2.5px);
+  box-shadow: var(--shadow-plank-pressed);
+}
+.btn:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.btn__price {
+  color: var(--color-money-on-dark);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
+}
+.btn__snark {
+  font-family: var(--font-snark);
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--bone-dim);
+}
 
-.btn--commit { font: 400 var(--text-commit)/1 var(--font-display); letter-spacing: 0.05em;
-  color: var(--bone-bright); background: var(--grad-commit); border-radius: var(--wobble-1);
-  padding: var(--space-2) var(--space-5); text-shadow: 0 1.5px 0 rgba(20,30,50,0.55); }
-.btn--commit:focus-visible { outline-color: var(--bone-bright); }
+.btn--commit {
+  font: 400 var(--text-commit)/1 var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--bone-bright);
+  background: var(--grad-commit);
+  border-radius: var(--wobble-1);
+  padding: var(--space-2) var(--space-5);
+  text-shadow: 0 1.5px 0 rgba(20, 30, 50, 0.55);
+}
+.btn--commit:focus-visible {
+  outline-color: var(--bone-bright);
+}
 
-.btn--danger { background: linear-gradient(var(--blood-hi), var(--blood)); }
+.btn--danger {
+  background: linear-gradient(var(--blood-hi), var(--blood));
+}
 
-.btn.is-disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.btn.is-disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 /* `.is-unaffordable` stays full-strength EXCEPT the price — which is prose, not a rule: an
    empty rule declares nothing. The `.shop-item` comma-mates are §6.12 asking for the same
    treatment on the gear card, which is not a `.btn` and which the selector above never reached. */
 .btn.is-unaffordable .btn__price,
-.shop-item.is-unaffordable .btn__price { color: var(--blood-hi); }
+.shop-item.is-unaffordable .btn__price {
+  color: var(--blood-hi);
+}
 .btn.is-unaffordable .btn__snark::after,
-.shop-item.is-unaffordable .btn__snark::after { content: " (need " attr(data-missing) " more)"; }
-.btn.is-urgent { animation: urgent-pulse 1.2s var(--ease-drop) infinite; }
-@keyframes urgent-pulse { 50% { box-shadow: var(--shadow-plank), 0 0 0 3px var(--gold-deep); } }
+.shop-item.is-unaffordable .btn__snark::after {
+  content: ' (need ' attr(data-missing) ' more)';
+}
+.btn.is-urgent {
+  animation: urgent-pulse 1.2s var(--ease-drop) infinite;
+}
+@keyframes urgent-pulse {
+  50% {
+    box-shadow:
+      var(--shadow-plank),
+      0 0 0 3px var(--gold-deep);
+  }
+}
 ```
 
 Anatomy rule: every commerce button is `[label] [price slot] [snark slot?]` — the price is
 first-class, right of the label, never in parentheses.
 
 Semantics:
+
 - `.btn--commit` (blue banner + display face) **only** for irreversible commitments:
   Next Fight, Press the Attack, Retire Rich, Fight Again, Return to Ludus.
 - `.is-unaffordable`: button remains enabled-looking but click is rejected with a purse-shake
-  (§6.7) — the game *tells* you you're broke rather than hiding the option. `data-missing`
+  (§6.7) — the game _tells_ you you're broke rather than hiding the option. `data-missing`
   carries the formatted shortfall, on the control **and** on its `.btn__snark` span, because
   `attr()` resolves against the pseudo-element's own originating element. The snark slot is
-  optional copy but not an optional *slot*: a priced control with no aside (the Train buttons)
+  optional copy but not an optional _slot_: a priced control with no aside (the Train buttons)
   still emits an empty one, or the shortfall it carries has nowhere to render.
 - A true no-op — nothing to repair, nobody to heal — is not "unaffordable": it emits the native
   `disabled` attribute, which the rule above deliberately does not match. `button:disabled` in
@@ -488,35 +647,72 @@ is one element moved via `transform: translateX()` in a `requestAnimationFrame` 
 
 ```html
 <div class="meter" role="application" aria-label="Timing meter — press Space or click to strike">
-  <div class="meter__zone meter__zone--graze" style="left:var(--graze-start);width:var(--graze-size)"></div>
-  <div class="meter__zone meter__zone--hit"   style="left:var(--hit-start);width:var(--hit-size)"></div>
-  <div class="meter__zone meter__zone--crit"  style="left:var(--crit-start);width:var(--crit-size)"></div>
-  <div class="meter-cursor"><img class="meter-chicken" src="…/chicken.svg" alt=""></div>
+  <div
+    class="meter__zone meter__zone--graze"
+    style="left:var(--graze-start);width:var(--graze-size)"
+  ></div>
+  <div
+    class="meter__zone meter__zone--hit"
+    style="left:var(--hit-start);width:var(--hit-size)"
+  ></div>
+  <div
+    class="meter__zone meter__zone--crit"
+    style="left:var(--crit-start);width:var(--crit-size)"
+  ></div>
+  <div class="meter-cursor"><img class="meter-chicken" src="…/chicken.svg" alt="" /></div>
 </div>
 <div class="meter__labels"><!-- MISS · GRAZE · HIT · CRIT ticks, aligned to zone edges --></div>
 ```
 
 ```css
-.meter { position: relative; height: 48px; background: var(--track);
-  border: var(--border-w) solid var(--border-ink); border-radius: var(--wobble-bar);
-  cursor: crosshair; }
-.meter__zone { position: absolute; top: 0; bottom: 0; }
-.meter__zone--graze { background: #b98a3a; }
-.meter__zone--hit   { background: var(--gold); }
-.meter__zone--crit  { background: var(--gold-hi);
-  border-inline: 2px solid var(--border-ink);            /* notches: not color-only */
-  box-shadow: 0 0 12px rgba(244, 207, 122, 0.8); }       /* the one permitted glow */
-.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px;
-  background: var(--ink); will-change: transform; }
-.meter-chicken { position: absolute; bottom: 100%; left: 50%; width: 40px; height: 48px;
-  transform: translateX(-50%); }
+.meter {
+  position: relative;
+  height: 48px;
+  background: var(--track);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  cursor: crosshair;
+}
+.meter__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.meter__zone--graze {
+  background: #b98a3a;
+}
+.meter__zone--hit {
+  background: var(--gold);
+}
+.meter__zone--crit {
+  background: var(--gold-hi);
+  border-inline: 2px solid var(--border-ink); /* notches: not color-only */
+  box-shadow: 0 0 12px rgba(244, 207, 122, 0.8);
+} /* the one permitted glow */
+.meter-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ink);
+  will-change: transform;
+}
+.meter-chicken {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 40px;
+  height: 48px;
+  transform: translateX(-50%);
+}
 ```
 
-Zone color logic: a monochromatic gold ramp — *the brighter, the closer to glory* — plus ink
+Zone color logic: a monochromatic gold ramp — _the brighter, the closer to glory_ — plus ink
 notches on the crit window and text labels/ticks below the track, so the hierarchy survives
 grayscale and every CVD type.
 
 **Interaction (implement exactly):**
+
 1. Click anywhere on `.meter` or press **Space** → capture `performance.now()`, compute `p`,
    resolve zone.
 2. **Freeze:** cancel the rAF loop; cursor stays at `p` for 250ms. The chicken drops
@@ -524,7 +720,7 @@ grayscale and every CVD type.
 3. Flash the struck zone (2-frame opacity blink) and pop a `.meter__stamp` label at `p`:
    `MISS! / GRAZE! / HIT! / CRIT!` in `--font-display`, stamp-scale animation (§5).
 4. Resolve combat, write log entry, resume sweep next player turn.
-The freeze is not decoration: it is how players calibrate their timing. Never skip it.
+   The freeze is not decoration: it is how players calibrate their timing. Never skip it.
 
 Chicken asset: `chicken.svg` (or transparent PNG), 40×48, feet-down, facing travel direction via
 `scaleX(-1)` flip. Fallback if asset missing: the ink cursor line alone is fully functional.
@@ -537,7 +733,7 @@ Parchment M2 + tape M4, `--tilt-1` (player) / `--tilt-2` (opponent) — neighbor
 Anatomy top-to-bottom: `.poster__name` (display, 27px, centered), `.poster__portrait`
 (fixed 4:3 well, `--paper-4` ground, `<img>` content asset with silhouette fallback),
 `.poster__sub` (tier · fight purse with `--gold-ink` amount), `.snark` line.
-HP plate for fight screen: one `.bar` (width 100%) mounted *below* the portrait — exactly one
+HP plate for fight screen: one `.bar` (width 100%) mounted _below_ the portrait — exactly one
 per poster. Player poster and HUD may both show HP; they must read from the same state field.
 
 ### 6.6 The Ledger (result breakdown)
@@ -549,31 +745,68 @@ Parchment M2, `--tilt-2`. This card is co-primary with the result banner — it 
   <p class="ledger__banner">VICTORY!</p>
   <p class="snark">He tripped on a banana peel. Victory by default!</p>
   <dl>
-    <div class="ledger__row"><dt>Purse</dt><dd class="amount amount--pos">+600 G</dd></div>
-    <div class="ledger__row"><dt>Tax (15%) <span class="snark">(Ouch!)</span></dt><dd class="amount amount--neg">−90 G</dd></div>
-    <div class="ledger__row"><dt>Sponsor bonus <span class="snark">(He loves losers)</span></dt><dd class="amount amount--pos">+150 G</dd></div>
-    <div class="ledger__row ledger__row--net"><dt>Net gold</dt><dd class="amount amount--pos">+660 G</dd></div>
-    <div class="ledger__row ledger__row--balance"><dt>New balance</dt><dd class="amount">3,110 G</dd></div>
+    <div class="ledger__row">
+      <dt>Purse</dt>
+      <dd class="amount amount--pos">+600 G</dd>
+    </div>
+    <div class="ledger__row">
+      <dt>Tax (15%) <span class="snark">(Ouch!)</span></dt>
+      <dd class="amount amount--neg">−90 G</dd>
+    </div>
+    <div class="ledger__row">
+      <dt>Sponsor bonus <span class="snark">(He loves losers)</span></dt>
+      <dd class="amount amount--pos">+150 G</dd>
+    </div>
+    <div class="ledger__row ledger__row--net">
+      <dt>Net gold</dt>
+      <dd class="amount amount--pos">+660 G</dd>
+    </div>
+    <div class="ledger__row ledger__row--balance">
+      <dt>New balance</dt>
+      <dd class="amount">3,110 G</dd>
+    </div>
   </dl>
 </section>
 ```
 
 ```css
-.ledger__banner { font: 400 var(--text-3xl)/1 var(--font-display); color: var(--blood); margin: 0; }
-.ledger__row { display: flex; justify-content: space-between; align-items: baseline;
-  gap: var(--space-4); padding: var(--space-1) 0;
-  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25); }
-.ledger__row--net { border-top: var(--border-w) solid var(--border-ink); margin-top: var(--space-2); }
-.amount { font-weight: 700; font-variant-numeric: tabular-nums; }
-.amount--pos { color: var(--color-income); }
-.amount--neg { color: var(--color-expense); }
-.ledger__row--balance .amount { color: var(--color-money); font-size: var(--text-lg); }
+.ledger__banner {
+  font: 400 var(--text-3xl)/1 var(--font-display);
+  color: var(--blood);
+  margin: 0;
+}
+.ledger__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-1) 0;
+  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
+}
+.ledger__row--net {
+  border-top: var(--border-w) solid var(--border-ink);
+  margin-top: var(--space-2);
+}
+.amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.amount--pos {
+  color: var(--color-income);
+}
+.amount--neg {
+  color: var(--color-expense);
+}
+.ledger__row--balance .amount {
+  color: var(--color-money);
+  font-size: var(--text-lg);
+}
 ```
 
 **Ledger theater (sequence, exact):** rows start `visibility: hidden`; reveal one per
 `--dur-tally` beat, top to bottom. Money rows count from 0 to value over the beat
 (tabular digits prevent wobble). The tax row lands with a stamp animation on its amount
-(scale 1.4→1.0, `--ease-drop`) — the player must *feel* the cut, every fight. Banner and
+(scale 1.4→1.0, `--ease-drop`) — the player must _feel_ the cut, every fight. Banner and
 snark line appear first with the stamp treatment. Total sequence ≤ 2.5s; a click anywhere
 skips to the final state (never trap the player in theater). Reduced motion: single fade,
 pre-tallied.
@@ -638,17 +871,17 @@ the row's meter fill transitions (150ms) and a delta chip fires.
 Parchment mini-card (M2, no tape), anatomy: icon well, name (body 700), price slot, snark slot.
 Three mutually exclusive states — structural, not just tonal:
 
-| State | Class | Treatment |
-|---|---|---|
-| Available | — | Full color; price in `--gold-ink`; hover lifts (`translateY(-2px)`) |
-| Unaffordable | `.is-unaffordable` | Full color; price in `--blood-hi`; shortfall snark; click → purse shake |
-| Owned | `.is-owned` | Desaturated to ~60% opacity; price row **replaced** by ink checkmark + "OWNED"; no hover; not a control |
+| State        | Class              | Treatment                                                                                               |
+| ------------ | ------------------ | ------------------------------------------------------------------------------------------------------- |
+| Available    | —                  | Full color; price in `--gold-ink`; hover lifts (`translateY(-2px)`)                                     |
+| Unaffordable | `.is-unaffordable` | Full color; price in `--blood-hi`; shortfall snark; click → purse shake                                 |
+| Owned        | `.is-owned`        | Desaturated to ~60% opacity; price row **replaced** by ink checkmark + "OWNED"; no hover; not a control |
 
 Never render unaffordable and owned with the same visual weight (this was the mockup's bug).
 
 An owned card is a `<div>`, not a disabled button: there is nothing to click, so it carries no
 action and no `aria-disabled` — the attribute is ignored on a role-less element, and the visible
-"✓ Owned" already states the case. (An inert *button* — an option already taken, such as
+"✓ Owned" already states the case. (An inert _button_ — an option already taken, such as
 `Bribed ✓` — is different: it stays a `<button>` and does use `aria-disabled`, so it is announced
 rather than dropped out of the tab order.)
 
@@ -685,16 +918,21 @@ Desktop-first. Base design width 1280; content max-width 1180px centered.
 Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
 
 ```css
-.screen { display: grid; gap: var(--space-4); max-width: 1180px;
-  margin: 0 auto; padding: var(--space-4); }
+.screen {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
 
 /* HUB — spend left→right, commit bottom-right */
 .screen--hub {
   grid-template-columns: 230px 1fr 300px;
   grid-template-areas:
-    "hud     hud     hud"
-    "sinks   develop fight"
-    "retire  retire  commit";
+    'hud     hud     hud'
+    'sinks   develop fight'
+    'retire  retire  commit';
 }
 /* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
@@ -704,9 +942,9 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
   grid-template-columns: 260px 1fr 300px;
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
-    "hud  hud    hud"
-    "you  stage  foe"
-    "log  log    actions";
+    'hud  hud    hud'
+    'you  stage  foe'
+    'log  log    actions';
 }
 /* stage: taunt line + .meter + labels · actions: Press-the-Attack slot above 2×2 action grid */
 
@@ -714,9 +952,9 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
 .screen--result {
   grid-template-columns: 1.1fr 1fr;
   grid-template-areas:
-    "hud    hud"
-    "recap  ledger"
-    "cta    cta";
+    'hud    hud'
+    'recap  ledger'
+    'cta    cta';
 }
 /* recap: banner-stamp + defeated-opponent poster with CSS red-X overlay (two rotated
    --blood bars, ::before/::after) · cta: centered .btn--commit */
@@ -725,36 +963,55 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
 .screen--gameover {
   grid-template-columns: 1fr 1.2fr 1fr;
   grid-template-areas:
-    "hud   hud    hud"
-    "endL  stamp  endR"
-    "cause cause  cause"
-    "cta   cta    cta";
+    'hud   hud    hud'
+    'endL  stamp  endR'
+    'cause cause  cause'
+    'cta   cta    cta';
 }
 
 @media (max-width: 900px) {
-  .screen--hub { grid-template-columns: 1fr 1fr;
-    grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
-  .screen--fight { grid-template-columns: 1fr 1fr;
-    grid-template-areas: "hud hud" "you foe" "stage stage" "actions actions" "log log"; }
+  .screen--hub {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 'hud hud' 'sinks fight' 'develop develop' 'retire commit';
+  }
+  .screen--fight {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 'hud hud' 'you foe' 'stage stage' 'actions actions' 'log log';
+  }
   /* Name the stack — do NOT use `grid-template-areas: none` here. See the note below. */
-  .screen--result { grid-template-columns: 1fr;
-    grid-template-areas: "hud" "recap" "ledger" "cta"; }
-  .screen--gameover { grid-template-columns: 1fr;
-    grid-template-areas: "hud" "stamp" "endL" "endR" "cause" "cta"; }
+  .screen--result {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'hud' 'recap' 'ledger' 'cta';
+  }
+  .screen--gameover {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'hud' 'stamp' 'endL' 'endR' 'cause' 'cta';
+  }
 }
 @media (max-width: 640px) {
-  .screen { grid-template-columns: 1fr; grid-template-areas: none; }
+  .screen {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
   /* Both resets below are load-bearing. Neither is optional. */
-  .screen > * { grid-area: auto; }
-  .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
-    justify-self: stretch; text-align: center;
-    padding: var(--space-2); background: var(--grad-wood);
-    border-top: var(--border-w) solid var(--border-ink); }
+  .screen > * {
+    grid-area: auto;
+  }
+  .commit-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--z-hud);
+    justify-self: stretch;
+    text-align: center;
+    padding: var(--space-2);
+    background: var(--grad-wood);
+    border-top: var(--border-w) solid var(--border-ink);
+  }
   /* Hub's Next Fight and Fight's action grid live inside .commit-bar when stacked */
 }
 ```
 
-**Two resets that a stacked grid cannot do without.** Dropping `grid-template-areas` does *not*
+**Two resets that a stacked grid cannot do without.** Dropping `grid-template-areas` does _not_
 return named children to auto-placement: per CSS Grid §8.3 an unmatched `<custom-ident>` in
 `grid-area` resolves to `1 <ident>`, and when no line carries that name every named child lands in
 the same implicit cell — so the children **overlap** instead of stacking. `.screen > * { grid-area:
@@ -823,6 +1080,7 @@ src/styles/screens.css     ← §7 grids
 ```
 
 Suggested build order for implementing agents (each step independently verifiable):
+
 1. tokens + base + fonts (visual smoke test: stone page, parchment swatch)
 2. HUD beam + bars + pips (bind to existing state)
 3. Buttons (all states) + hub layout + shop/training/sponsor cards
@@ -841,5 +1099,5 @@ these assets present** (silhouette fallbacks in portrait wells; ink cursor line 
 
 ---
 
-*Spec ends. Anything not specified here is not part of the system — extend the document first,
-then the code.*
+_Spec ends. Anything not specified here is not part of the system — extend the document first,
+then the code._

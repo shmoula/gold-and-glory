@@ -1,30 +1,57 @@
 /* screens.css — spec §7 grids */
 
-.screen { display: grid; gap: var(--space-4); max-width: 1180px;
-  margin: 0 auto; padding: var(--space-4); }
+.screen {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
 
 /* HUB — spend left to right, commit bottom-right. Areas are spec §7 verbatim; the `hud` row
    is reserved for the beam, which still renders above the section (Tasks 8/9 move it in). */
 .screen--hub {
   grid-template-columns: 230px 1fr 300px;
   grid-template-areas:
-    "hud     hud     hud"
-    "sinks   develop fight"
-    "retire  retire  commit";
+    'hud     hud     hud'
+    'sinks   develop fight'
+    'retire  retire  commit';
 }
 /* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
-.hub__sinks { grid-area: sinks; display: flex; flex-direction: column;
-  align-items: stretch; gap: var(--space-2); }
-.hub__develop { grid-area: develop; }
+.hub__sinks {
+  grid-area: sinks;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.hub__develop {
+  grid-area: develop;
+}
 /* Column, not flow: the two posters are rotated (§6.5 tilts), so they need a gap between
    them rather than touching margins, at every column width the grid hands this area. */
-.hub__fight { grid-area: fight; display: flex; flex-direction: column; gap: var(--space-4); }
-.hub__retire { grid-area: retire; }
-.hub__commit { grid-area: commit; justify-self: end; }
+.hub__fight {
+  grid-area: fight;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.hub__retire {
+  grid-area: retire;
+}
+.hub__commit {
+  grid-area: commit;
+  justify-self: end;
+}
 /* Hub layout label, not a §6 component: the eyebrow over the NEXT BOUT poster. */
-.hub__next-label { font-family: var(--font-display); font-size: var(--text-lg);
-  letter-spacing: 0.05em; color: var(--bone); text-shadow: 0 1.5px 0 rgba(31,22,12,0.8); }
+.hub__next-label {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 0.05em;
+  color: var(--bone);
+  text-shadow: 0 1.5px 0 rgba(31, 22, 12, 0.8);
+}
 
 /* FIGHT — posters flank, meter center-stage, log left / actions right. Areas are spec §7
    verbatim; as on the hub, the `hud` row is reserved for the beam that still renders above
@@ -34,24 +61,42 @@
   grid-template-columns: 260px 1fr 300px;
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
-    "hud  hud    hud"
-    "you  stage  foe"
-    "log  log    actions";
+    'hud  hud    hud'
+    'you  stage  foe'
+    'log  log    actions';
 }
 /* stage: taunt line + .meter + labels · actions: Press-the-Attack slot above 2×2 action grid */
-.fight__you { grid-area: you; }
-.fight__stage { grid-area: stage; align-self: center; }
-.fight__foe { grid-area: foe; }
-.fight__log { grid-area: log; }
+.fight__you {
+  grid-area: you;
+}
+.fight__stage {
+  grid-area: stage;
+  align-self: center;
+}
+.fight__foe {
+  grid-area: foe;
+}
+.fight__log {
+  grid-area: log;
+}
 /* Placement *and* inner layout, stated once: the slot stacks the optional Press button above
    the action grid, and the grid is the 2×2 the spec §7 comment above describes. Both were
    filed under components.css §6.9 by mistake — they are this screen's layout, not §6 catalog
    entries, and `.fight__actions` had rules in two sheets. Nothing else in any sheet declares
    `display`/`flex-*`/`gap`/`align-items`/`grid-template-columns` on either element, so the
    merge is cascade-neutral (verified element-by-element at every declared breakpoint). */
-.fight__actions { grid-area: actions; display: flex; flex-direction: column;
-  gap: var(--space-3); align-items: stretch; }
-.fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.fight__actions {
+  grid-area: actions;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+.fight__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
 
 /* RESULT — recap and ledger co-primary. Areas are spec §7 verbatim; as on the hub and the
    fight, the `hud` row is reserved for the beam that still renders above the section. Must
@@ -59,25 +104,54 @@
 .screen--result {
   grid-template-columns: 1.1fr 1fr;
   grid-template-areas:
-    "hud    hud"
-    "recap  ledger"
-    "cta    cta";
+    'hud    hud'
+    'recap  ledger'
+    'cta    cta';
 }
 /* recap: banner-stamp + defeated-opponent poster with CSS red-X overlay (two rotated
    --blood bars, ::before/::after) · cta: centered .btn--commit */
-.result__recap { grid-area: recap; position: relative; }
-.result__ledger { grid-area: ledger; }
-.result__cta { grid-area: cta; justify-self: center; }
+.result__recap {
+  grid-area: recap;
+  position: relative;
+}
+.result__ledger {
+  grid-area: ledger;
+}
+.result__cta {
+  grid-area: cta;
+  justify-self: center;
+}
 /* The X is drawn over the whole recap column rather than over an extra wrapper around the
    poster: §6.0's class index is closed, and the bars land across the portrait at these
    offsets. `pointer-events: none` so it cannot eat the click that skips the ledger theater. */
-.result__cross { position: absolute; inset: 0; pointer-events: none; }
-.result__cross::before, .result__cross::after { content: ""; position: absolute;
-  left: 10%; right: 10%; top: 45%; height: 12px; background: var(--blood);
-  border-radius: 6px; opacity: 0.85; }
-.result__cross::before { transform: rotate(18deg); }
-.result__cross::after { transform: rotate(-18deg); }
-.result__flavor { display: block; text-align: center; margin: var(--space-3) 0 0; }
+.result__cross {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.result__cross::before,
+.result__cross::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 45%;
+  height: 12px;
+  background: var(--blood);
+  border-radius: 6px;
+  opacity: 0.85;
+}
+.result__cross::before {
+  transform: rotate(18deg);
+}
+.result__cross::after {
+  transform: rotate(-18deg);
+}
+.result__flavor {
+  display: block;
+  text-align: center;
+  margin: var(--space-3) 0 0;
+}
 
 /* GAMEOVER — the endings gallery: the ending you reached in the middle under its stamp, the two
    you did not on either side, the screenshot payload beneath the trio. Areas are spec §7
@@ -87,12 +161,14 @@
 .screen--gameover {
   grid-template-columns: 1fr 1.2fr 1fr;
   grid-template-areas:
-    "hud   hud    hud"
-    "endL  stamp  endR"
-    "cause cause  cause"
-    "cta   cta    cta";
+    'hud   hud    hud'
+    'endL  stamp  endR'
+    'cause cause  cause'
+    'cta   cta    cta';
 }
-.gameover__left { grid-area: endL; }
+.gameover__left {
+  grid-area: endL;
+}
 /* M2 gives every parchment card one `--tilt-*`, and neighbours must never share one. The centre
    card also sits directly under the banner stamp, which is already `--tilt-3`, so it takes
    `--tilt-2` and the right-hand column takes the third. Left keeps the `--tilt-1` default.
@@ -100,14 +176,28 @@
    components.css §6.14). A screen that set `transform` here instead would be the sheet's only
    override of a component's own transform, and would drop whatever else the card ever puts
    in that property. */
-.gameover__stamp { grid-area: stamp; text-align: center; --card-tilt: var(--tilt-2); }
-.gameover__right { grid-area: endR; --card-tilt: var(--tilt-3); }
-.gameover__cause { grid-area: cause; }
-.gameover__cta { grid-area: cta; justify-self: center; }
+.gameover__stamp {
+  grid-area: stamp;
+  text-align: center;
+  --card-tilt: var(--tilt-2);
+}
+.gameover__right {
+  grid-area: endR;
+  --card-tilt: var(--tilt-3);
+}
+.gameover__cause {
+  grid-area: cause;
+}
+.gameover__cta {
+  grid-area: cta;
+  justify-self: center;
+}
 
 @media (max-width: 900px) {
-  .screen--hub { grid-template-columns: 1fr 1fr;
-    grid-template-areas: "hud hud" "sinks fight" "develop develop" "retire commit"; }
+  .screen--hub {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 'hud hud' 'sinks fight' 'develop develop' 'retire commit';
+  }
   /* The posters pair up, the stage spans, and the actions come before the commentary: at this
      width the log is history and the buttons are the thing you reach for. */
   /* Rows must be reset with the areas. The base rule's `auto 1fr auto` is written for the
@@ -117,20 +207,27 @@
      trap the moment Tasks 8/9 give a screen a definite height. `none` rather than
      `auto auto 1fr auto auto`: at this width the stage is one band in a stack, not a
      centrepiece competing for slack, and every row should size to its content. */
-  .screen--fight { grid-template-columns: 1fr 1fr; grid-template-rows: none;
-    grid-template-areas: "hud hud" "you foe" "stage stage" "actions actions" "log log"; }
+  .screen--fight {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: none;
+    grid-template-areas: 'hud hud' 'you foe' 'stage stage' 'actions actions' 'log log';
+  }
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
      their named areas, and CSS Grid §8.3 collapses all of them into one implicit cell rather
      than stacking them. Naming the stack recomposes the screen *and* keeps every child
      placed, which is what tests/grid-areas.test.js checks in both directions. */
-  .screen--result { grid-template-columns: 1fr;
-    grid-template-areas: "hud" "recap" "ledger" "cta"; }
+  .screen--result {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'hud' 'recap' 'ledger' 'cta';
+  }
   /* Same one-breakpoint-early overlap bug in spec §7, same fix: name the stack rather than
      dropping the areas. Stacked in source order, so reading order, tab order and visual order
      stay the same thing (§7) — the achieved ending does not jump the queue. */
-  .screen--gameover { grid-template-columns: 1fr;
-    grid-template-areas: "hud" "endL" "stamp" "endR" "cause" "cta"; }
+  .screen--gameover {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'hud' 'endL' 'stamp' 'endR' 'cause' 'cta';
+  }
 }
 @media (max-width: 640px) {
   /* One stack reset for every screen, present and future. Both halves are required:
@@ -141,7 +238,10 @@
      at (0,1,0) this is the sheet's last declaration of both properties, so it already beats
      `.screen--hub` on source order (line 9 base, line 25 at 900px), and a screen that wants a
      different mobile grid can simply declare one after this block. */
-  .screen { grid-template-columns: 1fr; grid-template-areas: none; }
+  .screen {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
   /* Third half of the reset, and the one spec §7 forgets: the children must give up their
      named areas too. Per CSS Grid §8.3 an unmatched `<custom-ident>` in `grid-area` falls
      back to `1 <ident>`, and with no line of that name every implicit line is assumed to
@@ -153,7 +253,9 @@
      Every future `.screen--*` (fight/result/gameover) inherits the reset for free.
      tests/grid-areas.test.js fails if a child keeps a named area with no matching
      `grid-template-areas` at any breakpoint, including one declared after this block. */
-  .screen > * { grid-area: auto; }
+  .screen > * {
+    grid-area: auto;
+  }
   /* `justify-self` is the fourth half of the reset, and spec §7 omits it exactly as it omits the
      `grid-area` one above. Every element that carries `.commit-bar` also carries its screen's own
      slot class — `.hub__commit` (`end`), `.result__cta` / `.gameover__cta` (`center`) — and an
@@ -166,8 +268,14 @@
      full-width ground: the two CTA screens already centred theirs, and left-hard against a
      full-bleed plank is nobody's intent. tests/grid-areas.test.js fails if a rendered commit bar
      is left content-sized at either mobile width. */
-  .commit-bar { position: sticky; bottom: 0; z-index: var(--z-hud);
-    justify-self: stretch; text-align: center;
-    padding: var(--space-2); background: var(--grad-wood);
-    border-top: var(--border-w) solid var(--border-ink); }
+  .commit-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--z-hud);
+    justify-self: stretch;
+    text-align: center;
+    padding: var(--space-2);
+    background: var(--grad-wood);
+    border-top: var(--border-w) solid var(--border-ink);
+  }
 }

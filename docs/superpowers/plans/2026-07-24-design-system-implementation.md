@@ -12,37 +12,38 @@
 
 **Already done (do not redo):** commit `385e732` fixed the meter to timestamp-based sweep (`meterPosition`, `meterPeriod` in `src/ui/render.js`, `meterPeriodMs` in config, cursor via `transform`).
 
-**Explicitly out of scope (YAGNI):** §6.15 Modal (no current flow opens one), snark asides inside combat-log entries (log entries stay plain strings; rendering supports styling them later), the sandal/chicken/portrait *image assets* (structural slots + fallbacks only — the UI must look complete without them, per spec §10).
+**Explicitly out of scope (YAGNI):** §6.15 Modal (no current flow opens one), snark asides inside combat-log entries (log entries stay plain strings; rendering supports styling them later), the sandal/chicken/portrait _image assets_ (structural slots + fallbacks only — the UI must look complete without them, per spec §10).
 
 ---
 
 ## File Structure
 
-| File | Status | Responsibility |
-|---|---|---|
-| `scripts/fetch-fonts.mjs` | create | One-shot vendoring of the 4 woff2 files |
-| `src/assets/fonts/*.woff2` | create (4) | Self-hosted Bangers/Nunito/Patrick Hand |
-| `src/styles.css` | rewrite | Entry: `@import` the five sheets, nothing else |
-| `src/styles/tokens.css` | create | Spec §1 verbatim + `@font-face` (§2) |
-| `src/styles/base.css` | create | Reset, stone page, type defaults, `.snark`/`.tape`/`.amount`, focus, reduced-motion |
-| `src/styles/components.css` | create | Spec §6 catalog, appended to task-by-task |
-| `src/styles/screens.css` | create | Spec §7 grids + breakpoints |
-| `src/styles/legacy.css` | create → delete | Zero-specificity holdover rules for not-yet-rewritten screens; trimmed in Task 8, deleted in Task 9 |
-| `tests/styles.test.js` | create | Every `var(--x)` in the sheets resolves to a token |
-| `src/ui/format.js` | create | `formatGold` — the only money formatter |
-| `src/ui/effects.js` | create | Ticker, delta chips, purse shake, ledger theater |
-| `src/ui/render.js` | modify | All screen/component templates; `meterZones` |
-| `src/main.js` | modify | Sweet-spot seeding, freeze visuals, keyboard, effects wiring |
-| `src/config.js` | modify | `sweetCenter`, snark string tables, ending epitaphs |
-| `tests/format.test.js` | create | formatGold |
-| `tests/effects.test.js` | create | Theater/ticker with fake timers |
-| `tests/render.test.js` | modify | New markup assertions (some existing assertions updated) |
+| File                        | Status          | Responsibility                                                                                      |
+| --------------------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| `scripts/fetch-fonts.mjs`   | create          | One-shot vendoring of the 4 woff2 files                                                             |
+| `src/assets/fonts/*.woff2`  | create (4)      | Self-hosted Bangers/Nunito/Patrick Hand                                                             |
+| `src/styles.css`            | rewrite         | Entry: `@import` the five sheets, nothing else                                                      |
+| `src/styles/tokens.css`     | create          | Spec §1 verbatim + `@font-face` (§2)                                                                |
+| `src/styles/base.css`       | create          | Reset, stone page, type defaults, `.snark`/`.tape`/`.amount`, focus, reduced-motion                 |
+| `src/styles/components.css` | create          | Spec §6 catalog, appended to task-by-task                                                           |
+| `src/styles/screens.css`    | create          | Spec §7 grids + breakpoints                                                                         |
+| `src/styles/legacy.css`     | create → delete | Zero-specificity holdover rules for not-yet-rewritten screens; trimmed in Task 8, deleted in Task 9 |
+| `tests/styles.test.js`      | create          | Every `var(--x)` in the sheets resolves to a token                                                  |
+| `src/ui/format.js`          | create          | `formatGold` — the only money formatter                                                             |
+| `src/ui/effects.js`         | create          | Ticker, delta chips, purse shake, ledger theater                                                    |
+| `src/ui/render.js`          | modify          | All screen/component templates; `meterZones`                                                        |
+| `src/main.js`               | modify          | Sweet-spot seeding, freeze visuals, keyboard, effects wiring                                        |
+| `src/config.js`             | modify          | `sweetCenter`, snark string tables, ending epitaphs                                                 |
+| `tests/format.test.js`      | create          | formatGold                                                                                          |
+| `tests/effects.test.js`     | create          | Theater/ticker with fake timers                                                                     |
+| `tests/render.test.js`      | modify          | New markup assertions (some existing assertions updated)                                            |
 
 ---
 
 ### Task 1: Fonts, tokens, base — the ground everything stands on
 
 **Files:**
+
 - Create: `scripts/fetch-fonts.mjs`, `src/styles/tokens.css`, `src/styles/base.css`, `src/styles/components.css` (empty header comment), `src/styles/screens.css` (empty header comment)
 - Modify: `src/styles.css`
 
@@ -60,7 +61,8 @@ git commit -m "docs: design system spec and implementation plan"
 // Run once: node scripts/fetch-fonts.mjs
 import { mkdir, writeFile } from 'node:fs/promises';
 
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const FAMILIES = [
   { spec: 'Bangers', out: { 400: 'Bangers-400.woff2' } },
   { spec: 'Nunito:wght@400;700', out: { 400: 'Nunito-400.woff2', 700: 'Nunito-700.woff2' } },
@@ -76,7 +78,11 @@ const get = async (url, init) => {
 await mkdir('src/assets/fonts', { recursive: true });
 const written = [];
 for (const { spec, out } of FAMILIES) {
-  const css = await (await get(`https://fonts.googleapis.com/css2?family=${spec}&display=swap`, { headers: { 'User-Agent': UA } })).text();
+  const css = await (
+    await get(`https://fonts.googleapis.com/css2?family=${spec}&display=swap`, {
+      headers: { 'User-Agent': UA },
+    })
+  ).text();
   for (const m of css.matchAll(/\/\* (\w[\w-]*) \*\/\s*@font-face\s*\{([^}]*)\}/g)) {
     if (m[1] !== 'latin') continue;
     const weight = m[2].match(/font-weight:\s*(\d+)/)?.[1];
@@ -126,7 +132,11 @@ grep -c "@font-face" src/styles/tokens.css  # expect 4
 
 ```css
 /* base.css — reset, materials M1 + M4/M5 shared pieces, typography, a11y */
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 body {
   margin: 0;
   background:
@@ -136,39 +146,88 @@ body {
   font: 400 var(--text-md)/var(--leading-body) var(--font-body);
   min-height: 100dvh;
 }
-#app { min-height: 100dvh; }
-h1, h2, h3 { font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
-  letter-spacing: 0.03em; margin: 0; }
-button { font: inherit; cursor: pointer; }
+#app {
+  min-height: 100dvh;
+}
+h1,
+h2,
+h3 {
+  font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
 
 /* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
    wood (blue-on-stone is 1.12:1 — invisible). Spec §8 is ship-blocking, so the
    halo is !important: a component's own box-shadow must never swallow it. */
-:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px;
-  box-shadow: 0 0 0 6px var(--bone-bright) !important; }
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--bone-bright) !important;
+}
 
-.snark { font-family: var(--font-snark); font-size: var(--text-sm);
-  font-weight: 400; color: var(--color-text-muted); }
-.amount { font-weight: 700; font-variant-numeric: tabular-nums; }
-.amount--pos { color: var(--color-income); }
-.amount--neg { color: var(--color-expense); }
+.snark {
+  font-family: var(--font-snark);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.amount--pos {
+  color: var(--color-income);
+}
+.amount--neg {
+  color: var(--color-expense);
+}
 
-.tape { position: relative; }
-.tape::before, .tape::after { content: ""; position: absolute; width: 64px; height: 20px;
-  background: rgba(235, 224, 192, 0.9); border: 1px solid rgba(31, 22, 12, 0.25); top: -10px; }
-.tape::before { left: 12%; transform: rotate(-5deg); }
-.tape::after { right: 12%; transform: rotate(4deg); }
+.tape {
+  position: relative;
+}
+.tape::before,
+.tape::after {
+  content: '';
+  position: absolute;
+  width: 64px;
+  height: 20px;
+  background: rgba(235, 224, 192, 0.9);
+  border: 1px solid rgba(31, 22, 12, 0.25);
+  top: -10px;
+}
+.tape::before {
+  left: 12%;
+  transform: rotate(-5deg);
+}
+.tape::after {
+  right: 12%;
+  transform: rotate(4deg);
+}
 
-.wordmark { font-family: var(--font-display); font-size: var(--text-sm);
-  letter-spacing: 0.12em; color: var(--color-text-muted); opacity: 0.7; }
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
-  .meter-cursor { transition: none !important; }
+  .meter-cursor {
+    transition: none !important;
+  }
 }
 ```
 
@@ -191,24 +250,104 @@ the infinite `bar-urgent` / `urgent-pulse` loops from §6.1/§6.2 would keep cyc
    Trimmed to .gameover/.cause in Task 8; DELETED in Task 9
    (along with its @import in styles.css).
    ============================================================ */
-:where(#app) { max-width: 1180px; margin: 0 auto; padding: var(--space-4); }
-:where(button:disabled) { opacity: 0.4; cursor: not-allowed; }
-:where(.hud) { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #463829; margin-bottom: 12px; }
-:where(.hud .gold) { color: var(--gold); font-weight: 700; }
-:where(.hub .row) { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-:where(.hub, .actions, .result, .gameover) :where(button) { background: var(--paper-3); color: var(--ink); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
-:where(.sponsor) { color: var(--gold-ink); }
-:where(.combatants) { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
-:where(.timing-meter) { position: relative; height: 28px; background: var(--track); border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
-:where(.meter-sweet) { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
-:where(.meter-cursor) { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
-:where(.actions) { display: flex; gap: 8px; }
-:where(.press) { background: var(--blood); color: #fff; margin-top: 8px; }
-:where(.log) { font-size: 0.85rem; color: var(--ink-soft); list-style: none; padding: 0; }
-:where(.result.good) { border-left: 4px solid var(--moss); padding-left: 12px; }
-:where(.result.danger) { border-left: 4px solid var(--blood); padding-left: 12px; }
-:where(.result .cause, .gameover .cause) { font-style: italic; color: var(--blood-ink); }
-:where(.gameover) { text-align: center; padding: 32px 0; }
+:where(#app) {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+:where(button:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+:where(.hud) {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid #463829;
+  margin-bottom: 12px;
+}
+:where(.hud .gold) {
+  color: var(--gold);
+  font-weight: 700;
+}
+:where(.hub .row) {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+:where(.hub, .actions, .result, .gameover) :where(button) {
+  background: var(--paper-3);
+  color: var(--ink);
+  border: 1px solid #5a4632;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+:where(.sponsor) {
+  color: var(--gold-ink);
+}
+:where(.combatants) {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.2rem;
+  margin: 16px 0;
+}
+:where(.timing-meter) {
+  position: relative;
+  height: 28px;
+  background: var(--track);
+  border: 1px solid #5a4632;
+  border-radius: 6px;
+  margin: 12px 0;
+  cursor: crosshair;
+}
+:where(.meter-sweet) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  transform: translateX(-50%);
+  background: rgba(90, 138, 74, 0.5);
+}
+:where(.meter-cursor) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gold);
+}
+:where(.actions) {
+  display: flex;
+  gap: 8px;
+}
+:where(.press) {
+  background: var(--blood);
+  color: #fff;
+  margin-top: 8px;
+}
+:where(.log) {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  list-style: none;
+  padding: 0;
+}
+:where(.result.good) {
+  border-left: 4px solid var(--moss);
+  padding-left: 12px;
+}
+:where(.result.danger) {
+  border-left: 4px solid var(--blood);
+  padding-left: 12px;
+}
+:where(.result .cause, .gameover .cause) {
+  font-style: italic;
+  color: var(--blood-ink);
+}
+:where(.gameover) {
+  text-align: center;
+  padding: 32px 0;
+}
 ```
 
 Note the `#app` max-width: **1180px, not the old 720px.** Spec §7 builds `230px 1fr 300px` desktop grids inside `#app`; a 720px ancestor cap would squeeze every new screen in Tasks 5–7 while the `≤900px` breakpoint (viewport-based, not container-based) never fires to rescue it. 1180px matches `.screen`'s own max-width, so the two agree and the eventual deletion is a no-op.
@@ -271,6 +410,7 @@ git commit -m "feat(ui): vendor fonts, add design tokens, base styles, and CSS e
 ### Task 2: `formatGold` — the only money formatter
 
 **Files:**
+
 - Create: `src/ui/format.js`, `tests/format.test.js`
 
 - [ ] **Step 1: Write the failing tests**
@@ -301,7 +441,7 @@ describe('formatGold', () => {
   // them by codepoint - an assertion against a pasted character cannot catch a swap.
   it('pins the two significant codepoints', () => {
     expect([...formatGold(5)].map((c) => c.codePointAt(0))).toContain(0x00a0); // NBSP, not U+0020
-    expect(formatGold(-5).codePointAt(0)).toBe(0x2212);                        // minus, not U+002D
+    expect(formatGold(-5).codePointAt(0)).toBe(0x2212); // minus, not U+002D
   });
 });
 ```
@@ -324,7 +464,7 @@ Expected: FAIL — `Cannot find module '../src/ui/format.js'`
 // src/ui/format.js — every gold amount in the UI goes through this. (Spec §2)
 export function formatGold(n, { signed = false } = {}) {
   const abs = Math.abs(n).toLocaleString('en-US');
-  const sign = n < 0 ? '−' : (signed && n > 0 ? '+' : '');
+  const sign = n < 0 ? '−' : signed && n > 0 ? '+' : '';
   return `${sign}${abs}\u00A0G`;
 }
 ```
@@ -345,6 +485,7 @@ git commit -m "feat(ui): formatGold money formatter (tabular-ready, U+2212 negat
 ### Task 3: HUD beam — purse, bars, injury pips
 
 **Files:**
+
 - Modify: `src/ui/render.js` (replace `renderHud`), `tests/render.test.js` (extend `renderHud` block)
 - Modify: `src/styles/components.css` (append)
 
@@ -354,29 +495,31 @@ label strings in markup; uppercase comes from CSS `text-transform`, so old tests
 - [ ] **Step 1: Add failing tests** (append inside `describe('renderHud')` in `tests/render.test.js`)
 
 ```js
-  it('renders bars with fill widths and injury pips', () => {
-    const s = createGameState(1, CONFIG);
-    s.health = 65; s.injuries = 3; s.weaponDurability = 15;
-    const html = renderHud(s, CONFIG);
-    expect(html).toContain('class="hud"');
-    expect(html).toContain('width:65%');                       // health fill
-    expect(html).toContain('width:50%');                       // durability 15/30
-    expect((html.match(/pip pip--filled/g) || []).length).toBe(3);
-    expect((html.match(/class="pip[" ]/g) || []).length).toBe(5); // 5 slots at 3 injuries
-    expect(html).toContain('65/100');
-  });
+it('renders bars with fill widths and injury pips', () => {
+  const s = createGameState(1, CONFIG);
+  s.health = 65;
+  s.injuries = 3;
+  s.weaponDurability = 15;
+  const html = renderHud(s, CONFIG);
+  expect(html).toContain('class="hud"');
+  expect(html).toContain('width:65%'); // health fill
+  expect(html).toContain('width:50%'); // durability 15/30
+  expect((html.match(/pip pip--filled/g) || []).length).toBe(3);
+  expect((html.match(/class="pip[" ]/g) || []).length).toBe(5); // 5 slots at 3 injuries
+  expect(html).toContain('65/100');
+});
 
-  it('marks the health bar urgent below a third', () => {
-    const s = createGameState(1, CONFIG);
-    s.health = 30;
-    expect(renderHud(s, CONFIG)).toContain('is-urgent');
-  });
+it('marks the health bar urgent below a third', () => {
+  const s = createGameState(1, CONFIG);
+  s.health = 30;
+  expect(renderHud(s, CONFIG)).toContain('is-urgent');
+});
 
-  it('formats gold through formatGold', () => {
-    const s = createGameState(1, CONFIG);
-    s.gold = 2450;
-    expect(renderHud(s, CONFIG)).toContain('2,450\u00A0G');
-  });
+it('formats gold through formatGold', () => {
+  const s = createGameState(1, CONFIG);
+  s.gold = 2450;
+  expect(renderHud(s, CONFIG)).toContain('2,450\u00A0G');
+});
 ```
 
 - [ ] **Step 2: Run to verify failure**
@@ -400,8 +543,10 @@ function bar(label, value, max, { fillClass = '', urgent = false } = {}) {
 
 export function renderHud(state, config) {
   const pipCount = Math.max(5, state.injuries);
-  const pips = Array.from({ length: pipCount }, (_, i) =>
-    `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`).join('');
+  const pips = Array.from(
+    { length: pipCount },
+    (_, i) => `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`
+  ).join('');
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
@@ -422,11 +567,26 @@ Run: `npx vitest run` → all PASS (the whole suite, not just render — `render
 Copy the complete `.hud` / `.coin` / `.bar` / `.pip` block from spec **§6.1** verbatim, then add:
 
 ```css
-.hud__label { letter-spacing: 0.06em; text-transform: uppercase; }
-.hud__stat { display: inline-flex; align-items: center; gap: var(--space-2); }
-.hud__purse .ticker { font-variant-numeric: tabular-nums; }
-.bar.is-urgent .bar__fill { animation: bar-urgent 900ms var(--ease-drop) infinite; }
-@keyframes bar-urgent { 50% { opacity: 0.55; } }
+.hud__label {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hud__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.hud__purse .ticker {
+  font-variant-numeric: tabular-nums;
+}
+.bar.is-urgent .bar__fill {
+  animation: bar-urgent 900ms var(--ease-drop) infinite;
+}
+@keyframes bar-urgent {
+  50% {
+    opacity: 0.55;
+  }
+}
 ```
 
 - [ ] **Step 6: Visual smoke + commit**
@@ -443,6 +603,7 @@ git commit -m "feat(ui): HUD beam with stat bars, injury pips, and formatted pur
 ### Task 4: Button system + snark tables in config
 
 **Files:**
+
 - Modify: `src/config.js` (add `snark` table), `src/ui/render.js` (replace `btn` helper), `tests/render.test.js`, `src/styles/components.css` (append)
 
 Behavior change (spec §6.2): unaffordable buttons are **no longer `disabled`** — they render
@@ -454,28 +615,28 @@ True no-ops (nothing to repair/heal, already bribed, owned gear) stay `disabled`
 In `tests/render.test.js`, **replace** the existing `'disables unaffordable buttons'` test with:
 
 ```js
-  it('marks unaffordable buttons instead of disabling them', () => {
-    const s = createGameState(1, CONFIG);
-    s.gold = 0;
-    const html = renderHub(s, CONFIG);
-    expect(html).toContain('is-unaffordable');
-    expect(html).toContain('data-missing=');
-  });
+it('marks unaffordable buttons instead of disabling them', () => {
+  const s = createGameState(1, CONFIG);
+  s.gold = 0;
+  const html = renderHub(s, CONFIG);
+  expect(html).toContain('is-unaffordable');
+  expect(html).toContain('data-missing=');
+});
 
-  it('puts prices in the price slot, not in parentheses', () => {
-    const s = createGameState(1, CONFIG);
-    const html = renderHub(s, CONFIG);
-    expect(html).toContain('btn__price');
-    expect(html).not.toMatch(/\(\d+g\)/);
-  });
+it('puts prices in the price slot, not in parentheses', () => {
+  const s = createGameState(1, CONFIG);
+  const html = renderHub(s, CONFIG);
+  expect(html).toContain('btn__price');
+  expect(html).not.toMatch(/\(\d+g\)/);
+});
 
-  it('flags urgent sinks from state thresholds', () => {
-    const s = createGameState(1, CONFIG);
-    s.weaponDurability = 10; // < 50% of 30
-    s.injuries = 2;
-    const html = renderHub(s, CONFIG);
-    expect((html.match(/is-urgent/g) || []).length).toBeGreaterThanOrEqual(2);
-  });
+it('flags urgent sinks from state thresholds', () => {
+  const s = createGameState(1, CONFIG);
+  s.weaponDurability = 10; // < 50% of 30
+  s.injuries = 2;
+  const html = renderHub(s, CONFIG);
+  expect((html.match(/is-urgent/g) || []).length).toBeGreaterThanOrEqual(2);
+});
 ```
 
 - [ ] **Step 2: Run to verify failure**
@@ -502,8 +663,11 @@ Run: `npx vitest run tests/render.test.js` → new tests FAIL.
 ```js
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?]
 // variant: '' (plank) | 'commit' | 'danger'
-function btn(action, label, { cost = null, gold = 0, variant = '', snark = '',
-  urgent = false, disabled = false } = {}) {
+function btn(
+  action,
+  label,
+  { cost = null, gold = 0, variant = '', snark = '', urgent = false, disabled = false } = {}
+) {
   const classes = ['btn'];
   if (variant) classes.push(`btn--${variant}`);
   if (urgent) classes.push('is-urgent');
@@ -516,8 +680,10 @@ function btn(action, label, { cost = null, gold = 0, variant = '', snark = '',
   if (disabled) attrs += ' disabled';
   const price = cost != null ? `<span class="btn__price">${formatGold(cost)}</span>` : '';
   const aside = snark ? `<span class="btn__snark snark">(${escapeHtml(snark)})</span>` : '';
-  return `<button data-action="${action}" class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${price}${aside}</button>`;
+  return (
+    `<button data-action="${action}" class="${classes.join(' ')}"${attrs}>` +
+    `${escapeHtml(label)}${price}${aside}</button>`
+  );
 }
 ```
 
@@ -557,8 +723,14 @@ Copy the complete `.btn` block from spec **§6.2** verbatim (base, `--commit`, `
 `is-disabled`, `is-unaffordable`, `is-urgent`, `@keyframes urgent-pulse`), plus:
 
 ```css
-.btn.is-owned { opacity: 0.6; cursor: default; box-shadow: none; }
-.btn.is-owned:hover { background: var(--grad-wood); }
+.btn.is-owned {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+}
+.btn.is-owned:hover {
+  background: var(--grad-wood);
+}
 ```
 
 - [ ] **Step 7: Visual smoke + commit**
@@ -575,6 +747,7 @@ git commit -m "feat(ui): button system with price slots, snark asides, and state
 ### Task 5: Hub screen — posters, cards, layout grid
 
 **Files:**
+
 - Modify: `src/ui/render.js` (add `poster` helper, rewrite `renderHub`), `tests/render.test.js`
 - Modify: `src/styles/components.css`, `src/styles/screens.css` (append)
 
@@ -613,10 +786,12 @@ describe('renderHub layout', () => {
 ```js
 // Wanted poster (spec §6.5). hp: {value, max} | null. tilt: 1|2|3.
 export function poster({ name, sub = '', snark = '', hp = null, tilt = 1 }) {
-  const hpBar = hp ? `<span class="bar" role="meter" aria-label="${escapeHtml(name)} health"
+  const hpBar = hp
+    ? `<span class="bar" role="meter" aria-label="${escapeHtml(name)} health"
       aria-valuenow="${Math.max(0, hp.value)}" aria-valuemax="${hp.max}">
       <span class="bar__fill" style="width:${Math.max(0, Math.round((hp.value / hp.max) * 100))}%"></span>
-      <span class="bar__num">${Math.max(0, hp.value)}/${hp.max}</span></span>` : '';
+      <span class="bar__num">${Math.max(0, hp.value)}/${hp.max}</span></span>`
+    : '';
   return `<article class="poster tape poster--tilt-${tilt}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>
     <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
@@ -635,38 +810,44 @@ export function renderHub(state, config) {
   const missing = config.weapon.maxDurability - state.weaponDurability;
   const opponent = config.opponents[state.currentOpponentIndex];
 
-  const trainRows = ['power', 'guard', 'speed'].map((stat) => {
-    const cost = trainingCost(state.trainingLevels[stat], config);
-    const cap = 50; // display cap for the meter only; stats are uncapped
-    return `<div class="train-row">
+  const trainRows = ['power', 'guard', 'speed']
+    .map((stat) => {
+      const cost = trainingCost(state.trainingLevels[stat], config);
+      const cap = 50; // display cap for the meter only; stats are uncapped
+      return `<div class="train-row">
       <span class="train-row__label">${stat[0].toUpperCase() + stat.slice(1)} ${eff[stat]}</span>
       <span class="bar train-row__meter"><span class="bar__fill bar__fill--dur"
         style="width:${Math.min(100, Math.round((eff[stat] / cap) * 100))}%"></span></span>
       ${btn(`train-${stat}`, `Train +${config.training.statPerLevel}`, { cost, gold: state.gold })}
     </div>`;
-  }).join('');
+    })
+    .join('');
 
-  const gearCards = Object.values(config.gear).map((g) => {
-    if (state.gear.includes(g.id)) {
-      return `<div class="shop-item is-owned" aria-disabled="true">
+  const gearCards = Object.values(config.gear)
+    .map((g) => {
+      if (state.gear.includes(g.id)) {
+        return `<div class="shop-item is-owned" aria-disabled="true">
         <span class="shop-item__name">${escapeHtml(g.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
-    }
-    const unaffordable = !canAfford(state.gold, g.cost);
-    return `<button data-action="buy-${g.id}" class="shop-item${unaffordable ? ' is-unaffordable' : ''}"
+      }
+      const unaffordable = !canAfford(state.gold, g.cost);
+      return `<button data-action="buy-${g.id}" class="shop-item${unaffordable ? ' is-unaffordable' : ''}"
       ${unaffordable ? ` data-missing="${escapeHtml(formatGold(g.cost - state.gold))}"` : ''}>
       <span class="shop-item__name">${escapeHtml(g.name)}</span>
       <span class="btn__price">${formatGold(g.cost)}</span>
       <span class="snark">(${escapeHtml(config.snark[g.id] ?? '')})</span></button>`;
-  }).join('');
+    })
+    .join('');
 
-  const sponsorCard = state.sponsorUnlocked ? `<aside class="sponsor-card tape">
+  const sponsorCard = state.sponsorUnlocked
+    ? `<aside class="sponsor-card tape">
       <span class="sponsor-card__eyebrow">Sponsor</span>
       <h3 class="sponsor-card__name">Lord Biggus</h3>
       <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
       <p>Reward: <span class="amount amount--pos">${formatGold(config.sponsor.stipendPerFight + config.sponsor.objectiveBonus, { signed: true })}</span>
         <span class="snark">(${escapeHtml(config.snark.sponsorReward)})</span></p>
-    </aside>` : '';
+    </aside>`
+    : '';
 
   return `
     ${renderHud(state, config)}
@@ -674,16 +855,29 @@ export function renderHub(state, config) {
       <div class="hub__sinks">
         <h2>The Ludus</h2>
         <p>Wins: ${state.wins}</p>
-        ${btn('repair', 'Repair weapon', { cost: repairCost(missing, config), gold: state.gold,
+        ${btn('repair', 'Repair weapon', {
+          cost: repairCost(missing, config),
+          gold: state.gold,
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < 0.5,
-          disabled: missing <= 0 })}
-        ${btn('heal', `Heal ${state.injuries} injuries`, { cost: healCost(state.injuries, config),
-          gold: state.gold, snark: config.snark.heal, urgent: state.injuries >= 1,
-          disabled: state.injuries === 0 })}
-        ${state.bribedThisFight ? '<button class="btn" disabled>Bribed ✓</button>'
-          : btn('bribe', `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
-              { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe })}
+          disabled: missing <= 0,
+        })}
+        ${btn('heal', `Heal ${state.injuries} injuries`, {
+          cost: healCost(state.injuries, config),
+          gold: state.gold,
+          snark: config.snark.heal,
+          urgent: state.injuries >= 1,
+          disabled: state.injuries === 0,
+        })}
+        ${
+          state.bribedThisFight
+            ? '<button class="btn" disabled>Bribed ✓</button>'
+            : btn(
+                'bribe',
+                `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
+                { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe }
+              )
+        }
       </div>
       <div class="hub__develop">
         <h2>Training</h2>
@@ -694,8 +888,11 @@ export function renderHub(state, config) {
       </div>
       <div class="hub__fight">
         <span class="hub__next-label">Next bout</span>
-        ${poster({ name: opponent.name, tilt: 2,
-          sub: `Tier: ${escapeHtml(opponent.tier)} · Purse: <span class="amount">${formatGold(opponent.purse)}</span>` })}
+        ${poster({
+          name: opponent.name,
+          tilt: 2,
+          sub: `Tier: ${escapeHtml(opponent.tier)} · Purse: <span class="amount">${formatGold(opponent.purse)}</span>`,
+        })}
       </div>
       <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
       <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
@@ -713,55 +910,161 @@ export function renderHub(state, config) {
 To `components.css`, copy spec §6.5 poster CSS pattern and add the hub cards:
 
 ```css
-.poster { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-1); padding: var(--space-4); box-shadow: var(--shadow-paper); }
-.poster--tilt-1 { transform: rotate(var(--tilt-1)); }
-.poster--tilt-2 { transform: rotate(var(--tilt-2)); }
-.poster--tilt-3 { transform: rotate(var(--tilt-3)); }
-.poster__name { font-size: var(--text-2xl); text-align: center; margin-bottom: var(--space-3); }
-.poster__portrait { position: relative; height: 104px; margin: 0 var(--space-1);
+.poster {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-1);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-paper);
+}
+.poster--tilt-1 {
+  transform: rotate(var(--tilt-1));
+}
+.poster--tilt-2 {
+  transform: rotate(var(--tilt-2));
+}
+.poster--tilt-3 {
+  transform: rotate(var(--tilt-3));
+}
+.poster__name {
+  font-size: var(--text-2xl);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+.poster__portrait {
+  position: relative;
+  height: 104px;
+  margin: 0 var(--space-1);
   background: radial-gradient(circle at 50% 42%, var(--paper-4), #c9b384);
-  border: 2px solid var(--border-ink); border-radius: 10px 13px 11px 14px; overflow: hidden; }
-.poster__silhouette { position: absolute; left: 50%; top: 30px; width: 54px; height: 60px;
-  transform: translateX(-50%); background: #443019; border-radius: 46% 46% 40% 40%; }
-.poster__sub { font-size: var(--text-sm); font-weight: 700; text-align: center;
-  margin: var(--space-2) 0 0; }
-.poster .bar { width: 100%; margin-top: var(--space-2); }
-.poster .snark { display: block; text-align: center; }
+  border: 2px solid var(--border-ink);
+  border-radius: 10px 13px 11px 14px;
+  overflow: hidden;
+}
+.poster__silhouette {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 54px;
+  height: 60px;
+  transform: translateX(-50%);
+  background: #443019;
+  border-radius: 46% 46% 40% 40%;
+}
+.poster__sub {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+  margin: var(--space-2) 0 0;
+}
+.poster .bar {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+.poster .snark {
+  display: block;
+  text-align: center;
+}
 
-.train-row { display: grid; grid-template-columns: 90px 1fr auto; align-items: center;
-  gap: var(--space-3); margin: var(--space-2) 0; }
-.train-row__label { font-weight: 700; font-size: var(--text-sm); }
-.train-row__meter { width: 100%; }
+.train-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+}
+.train-row__label {
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.train-row__meter {
+  width: 100%;
+}
 
-.hub__shop { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.shop-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-3); padding: var(--space-3); text-align: left;
-  box-shadow: var(--shadow-paper); font: inherit; }
-.shop-item:not(.is-owned):hover { transform: translateY(-2px); }
-.shop-item__name { font-weight: 700; }
-.shop-item.is-unaffordable .btn__price { color: var(--blood-hi); }
-.shop-item.is-owned { opacity: 0.6; filter: grayscale(0.6); box-shadow: none; }
-.shop-item__owned { font-weight: 700; color: var(--color-text-muted); }
+.hub__shop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3);
+  padding: var(--space-3);
+  text-align: left;
+  box-shadow: var(--shadow-paper);
+  font: inherit;
+}
+.shop-item:not(.is-owned):hover {
+  transform: translateY(-2px);
+}
+.shop-item__name {
+  font-weight: 700;
+}
+.shop-item.is-unaffordable .btn__price {
+  color: var(--blood-hi);
+}
+.shop-item.is-owned {
+  opacity: 0.6;
+  filter: grayscale(0.6);
+  box-shadow: none;
+}
+.shop-item__owned {
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
 
-.sponsor-card { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-2); padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-paper); transform: rotate(var(--tilt-3)); margin-top: var(--space-4); }
-.sponsor-card__eyebrow { font-size: var(--text-xs); font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
-.sponsor-card__name { font-size: var(--text-xl); }
-.hub__next-label { font-family: var(--font-display); font-size: var(--text-lg);
-  letter-spacing: 0.05em; color: var(--bone); text-shadow: 0 1.5px 0 rgba(31,22,12,0.8); }
+.sponsor-card {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-paper);
+  transform: rotate(var(--tilt-3));
+  margin-top: var(--space-4);
+}
+.sponsor-card__eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.sponsor-card__name {
+  font-size: var(--text-xl);
+}
+.hub__next-label {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 0.05em;
+  color: var(--bone);
+  text-shadow: 0 1.5px 0 rgba(31, 22, 12, 0.8);
+}
 ```
 
 To `screens.css`, copy the `.screen` base + `.screen--hub` grid from spec **§7** verbatim,
 mapping areas to classes:
 
 ```css
-.hub__sinks { grid-area: sinks; } .hub__develop { grid-area: develop; }
-.hub__fight { grid-area: fight; } .hub__retire { grid-area: retire; }
-.hub__commit { grid-area: commit; justify-self: end; }
+.hub__sinks {
+  grid-area: sinks;
+}
+.hub__develop {
+  grid-area: develop;
+}
+.hub__fight {
+  grid-area: fight;
+}
+.hub__retire {
+  grid-area: retire;
+}
+.hub__commit {
+  grid-area: commit;
+  justify-self: end;
+}
 ```
 
 Also add the two `@media` blocks from spec §7 now (hub rules only; fight/result rules join in
@@ -781,6 +1084,7 @@ git commit -m "feat(ui): hub screen with sink rail, training rows, shop cards, a
 ### Task 6: Timing meter — zones, per-turn sweet spot, freeze, keyboard
 
 **Files:**
+
 - Modify: `src/config.js` (add `sweetCenter`), `src/ui/render.js` (add `meterZones`, rewrite meter markup in `renderFight` — full fight rewrite is Task 7; this task touches only the meter block), `src/main.js`, `tests/render.test.js`
 - Modify: `src/styles/components.css`
 
@@ -826,11 +1130,11 @@ In `renderFight`, replace the `timing-meter` div with (leave the rest of the tem
 for now — the fight template also needs `state` fields already in scope):
 
 ```js
-  const eff = effectiveStats(state, config);
-  const width = timingWindowWidth(eff.speed, config); // add: import { timingWindowWidth } from '../combat.js';
-  const zones = meterZones(state.combat.sweet ?? 0.5, width, config);
-  const pct = (x) => `${(x * 100).toFixed(2)}%`;
-  const meterHtml = `
+const eff = effectiveStats(state, config);
+const width = timingWindowWidth(eff.speed, config); // add: import { timingWindowWidth } from '../combat.js';
+const zones = meterZones(state.combat.sweet ?? 0.5, width, config);
+const pct = (x) => `${(x * 100).toFixed(2)}%`;
+const meterHtml = `
     <div class="meter" data-meter="1" role="application"
       aria-label="Timing meter — press Space or click to strike">
       <div class="meter__zone meter__zone--graze" style="left:${pct(zones.graze.start)};width:${pct(zones.graze.size)}"></div>
@@ -906,13 +1210,27 @@ Copy the `.meter` block from spec **§6.4** verbatim (track, zones, gold-ramp co
 notches + glow, cursor), then add:
 
 ```css
-.meter.is-captured .meter-cursor { background: var(--blood); width: 4px; }
-.meter__labels { display: flex; justify-content: space-between;
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--bone); text-shadow: 0 1px 0 rgba(31,22,12,0.8);
-  padding: 2px var(--space-1) 0; }
-.meter__taunt { text-align: center; font-size: var(--text-md); color: var(--bone);
-  text-shadow: 0 1px 0 rgba(31,22,12,0.8); }
+.meter.is-captured .meter-cursor {
+  background: var(--blood);
+  width: 4px;
+}
+.meter__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bone);
+  text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+  padding: 2px var(--space-1) 0;
+}
+.meter__taunt {
+  text-align: center;
+  font-size: var(--text-md);
+  color: var(--bone);
+  text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+}
 ```
 
 (The chicken cursor is a content asset — the ink cursor line is the specced fallback and ships
@@ -937,6 +1255,7 @@ git commit -m "feat(ui): meter zones, seeded sweet spot, freeze-on-capture, keyb
 ### Task 7: Fight screen layout + combat log
 
 **Files:**
+
 - Modify: `src/ui/render.js` (rewrite `renderFight` around the Task-6 meter block), `tests/render.test.js`
 - Modify: `src/styles/components.css`, `src/styles/screens.css`
 
@@ -946,23 +1265,23 @@ In the existing `renderFight` test, change `expect(html).toContain('class="timin
 `expect(html).toContain('data-meter')`. Add:
 
 ```js
-  it('renders posters for both fighters and turn-numbered log entries', () => {
-    const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = ['You strike (hit) for 13 damage.', 'The Brute hits back.'];
-    const html = renderFight(s, CONFIG);
-    expect((html.match(/class="poster tape/g) || []).length).toBe(2);
-    expect(html).toContain('log__turn');
-    expect(html).toContain('screen--fight');
-  });
+it('renders posters for both fighters and turn-numbered log entries', () => {
+  const s = startFight(createGameState(1, CONFIG), CONFIG);
+  s.combat.log = ['You strike (hit) for 13 damage.', 'The Brute hits back.'];
+  const html = renderFight(s, CONFIG);
+  expect((html.match(/class="poster tape/g) || []).length).toBe(2);
+  expect(html).toContain('log__turn');
+  expect(html).toContain('screen--fight');
+});
 
-  it('renders Press the Attack as a commit banner only when pressable', () => {
-    const s = startFight(createGameState(1, CONFIG), CONFIG);
-    expect(renderFight(s, CONFIG)).not.toContain('data-action="press"');
-    s.combat.canPress = true;
-    const html = renderFight(s, CONFIG);
-    expect(html).toContain('data-action="press"');
-    expect(html).toContain('btn--commit');
-  });
+it('renders Press the Attack as a commit banner only when pressable', () => {
+  const s = startFight(createGameState(1, CONFIG), CONFIG);
+  expect(renderFight(s, CONFIG)).not.toContain('data-action="press"');
+  s.combat.canPress = true;
+  const html = renderFight(s, CONFIG);
+  expect(html).toContain('data-action="press"');
+  expect(html).toContain('btn--commit');
+});
 ```
 
 - [ ] **Step 2: Run to verify failure** — `npx vitest run tests/render.test.js`
@@ -972,19 +1291,28 @@ In the existing `renderFight` test, change `expect(html).toContain('class="timin
 ```js
 export function renderFight(state, config) {
   const c = state.combat;
-  const logHtml = c.log.slice(-8).map((l, i, arr) => {
-    const turn = c.log.length - arr.length + i + 1;
-    return `<li class="log__entry"><span class="log__turn">T${turn}</span> ${escapeHtml(l)}</li>`;
-  }).join('');
+  const logHtml = c.log
+    .slice(-8)
+    .map((l, i, arr) => {
+      const turn = c.log.length - arr.length + i + 1;
+      return `<li class="log__entry"><span class="log__turn">T${turn}</span> ${escapeHtml(l)}</li>`;
+    })
+    .join('');
   // … meterHtml exactly as built in Task 6 (drop the legacy `timing-meter` class now) …
   return `
     ${renderHud(state, config)}
     <section class="screen screen--fight">
-      <div class="fight__you">${poster({ name: 'You', tilt: 1,
-        hp: { value: c.player.health, max: c.player.maxHealth } })}</div>
+      <div class="fight__you">${poster({
+        name: 'You',
+        tilt: 1,
+        hp: { value: c.player.health, max: c.player.maxHealth },
+      })}</div>
       <div class="fight__stage">${meterHtml}</div>
-      <div class="fight__foe">${poster({ name: c.enemy.name, tilt: 2,
-        hp: { value: c.enemy.health, max: c.enemy.maxHealth } })}</div>
+      <div class="fight__foe">${poster({
+        name: c.enemy.name,
+        tilt: 2,
+        hp: { value: c.enemy.health, max: c.enemy.maxHealth },
+      })}</div>
       <div class="fight__log"><h2>Commentary</h2><ul class="log" aria-live="polite">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
@@ -1006,24 +1334,63 @@ export function renderFight(state, config) {
 `components.css`:
 
 ```css
-.log { list-style: none; margin: 0; padding: var(--space-3);
-  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-2); box-shadow: var(--shadow-paper);
-  max-height: 160px; overflow-y: auto; font-size: var(--text-sm); }
-.log__entry { padding: 2px 0; border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25); }
-.log__entry:last-child { border-bottom: none; }
-.log__turn { font-weight: 700; color: var(--color-text-muted); font-variant-numeric: tabular-nums;
-  margin-right: var(--space-1); }
-.fight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.fight__actions { display: flex; flex-direction: column; gap: var(--space-3); align-items: stretch; }
+.log {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2);
+  box-shadow: var(--shadow-paper);
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: var(--text-sm);
+}
+.log__entry {
+  padding: 2px 0;
+  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
+}
+.log__entry:last-child {
+  border-bottom: none;
+}
+.log__turn {
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: var(--space-1);
+}
+.fight__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.fight__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
 ```
 
 `screens.css`: copy `.screen--fight` grid from spec **§7** verbatim, plus:
 
 ```css
-.fight__you { grid-area: you; } .fight__stage { grid-area: stage; align-self: center; }
-.fight__foe { grid-area: foe; } .fight__log { grid-area: log; }
-.fight__actions { grid-area: actions; }
+.fight__you {
+  grid-area: you;
+}
+.fight__stage {
+  grid-area: stage;
+  align-self: center;
+}
+.fight__foe {
+  grid-area: foe;
+}
+.fight__log {
+  grid-area: log;
+}
+.fight__actions {
+  grid-area: actions;
+}
 ```
 
 and the fight rules inside the existing `@media (max-width: 900px)` block.
@@ -1043,6 +1410,7 @@ git commit -m "feat(ui): fight screen layout with flanking posters, parchment lo
 ### Task 8: Result screen — ledger, theater, delta chips, purse ticker
 
 **Files:**
+
 - Create: `src/ui/effects.js`, `tests/effects.test.js`
 - Modify: `src/ui/render.js` (rewrite `renderResult`), `src/main.js`, `tests/render.test.js`
 - Modify: `src/styles/components.css`, `src/styles/screens.css`, `src/styles.css` (delete LEGACY block)
@@ -1098,7 +1466,9 @@ describe('spawnDeltaChip', () => {
   it('caps visible chips at two', () => {
     vi.useFakeTimers();
     const host = document.createElement('div');
-    spawnDeltaChip(host, 10); spawnDeltaChip(host, 20); spawnDeltaChip(host, 30);
+    spawnDeltaChip(host, 10);
+    spawnDeltaChip(host, 20);
+    spawnDeltaChip(host, 30);
     expect(host.querySelectorAll('.delta-chip').length).toBe(2);
   });
 });
@@ -1120,13 +1490,21 @@ const reducedMotion = () =>
 // Reveal .ledger__row.is-hidden rows one per beat; any click completes instantly.
 export function runLedgerTheater(container, { beatMs = 350 } = {}) {
   const rows = [...container.querySelectorAll('.ledger__row.is-hidden')];
-  if (reducedMotion()) { rows.forEach((r) => r.classList.remove('is-hidden')); return; }
-  const timers = rows.map((row, i) =>
-    setTimeout(() => row.classList.remove('is-hidden'), beatMs * (i + 1)));
-  container.addEventListener('click', () => {
-    timers.forEach(clearTimeout);
+  if (reducedMotion()) {
     rows.forEach((r) => r.classList.remove('is-hidden'));
-  }, { once: true });
+    return;
+  }
+  const timers = rows.map((row, i) =>
+    setTimeout(() => row.classList.remove('is-hidden'), beatMs * (i + 1))
+  );
+  container.addEventListener(
+    'click',
+    () => {
+      timers.forEach(clearTimeout);
+      rows.forEach((r) => r.classList.remove('is-hidden'));
+    },
+    { once: true }
+  );
 }
 
 // Floating +/− chip near the purse. Max 2 visible; oldest evicted.
@@ -1167,15 +1545,19 @@ export function renderResult(state, config) {
       <dt>${label}${snark ? ` <span class="snark">(${escapeHtml(snark)})</span>` : ''}</dt>
       <dd class="amount${amount > 0 ? ' amount--pos' : amount < 0 ? ' amount--neg' : ''}">${formatGold(amount, { signed: true })}</dd>
     </div>`;
-  const winRows = r.won ? [
-    row('Purse', r.purse),
-    row(`Tax`, -r.tax, { snark: 'Ouch!' }),
-    r.sponsorIncome ? row('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward }) : '',
-    row('Net gold', r.netGold, { cls: ' ledger__row--net' }),
-  ] : [
-    row('Purse', 0),
-    row('Injuries gained', 0 - 0, { snark: '' }) // structure only; see loss block below
-  ];
+  const winRows = r.won
+    ? [
+        row('Purse', r.purse),
+        row(`Tax`, -r.tax, { snark: 'Ouch!' }),
+        r.sponsorIncome
+          ? row('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward })
+          : '',
+        row('Net gold', r.netGold, { cls: ' ledger__row--net' }),
+      ]
+    : [
+        row('Purse', 0),
+        row('Injuries gained', 0 - 0, { snark: '' }), // structure only; see loss block below
+      ];
   const lossList = `<div class="ledger__row is-hidden"><dt>Injuries gained</dt>
       <dd class="amount">${r.injuriesGained}</dd></div>
     <div class="ledger__row is-hidden"><dt>Weapon wear</dt>
@@ -1244,32 +1626,99 @@ repair: () => {
 `components.css` — copy the `.ledger` block from spec **§6.6** verbatim, then add:
 
 ```css
-.ledger__row.is-hidden { visibility: hidden; }
-.banner-stamp { font-family: var(--font-display); font-size: var(--text-3xl);
-  line-height: 1; margin: 0 0 var(--space-3); transform: rotate(var(--tilt-3));
-  animation: stamp-in var(--dur-stamp) var(--ease-drop); display: inline-block; }
-.banner-stamp--victory { color: var(--moss-ink); }
-.banner-stamp--defeat { color: var(--blood-ink); }
-.banner-stamp--death { color: var(--blood); font-size: var(--text-4xl); }
-@keyframes stamp-in { from { transform: scale(1.5) rotate(var(--tilt-3)); } }
-.result__recap { position: relative; }
-.result__cross { position: absolute; inset: 0; pointer-events: none; }
-.result__cross::before, .result__cross::after { content: ""; position: absolute;
-  left: 10%; right: 10%; top: 45%; height: 12px; background: var(--blood);
-  border-radius: 6px; opacity: 0.85; }
-.result__cross::before { transform: rotate(18deg); }
-.result__cross::after { transform: rotate(-18deg); }
-.delta-chip { position: absolute; top: 100%; left: var(--space-2);
-  font-weight: 700; font-variant-numeric: tabular-nums; font-size: var(--text-sm);
-  padding: 1px 6px; background: var(--grad-paper); border: 2px solid var(--border-ink);
-  border-radius: var(--wobble-bar); z-index: var(--z-chip);
-  animation: chip-fall var(--dur-chip) steps(4, end) forwards; }
-.delta-chip--pos { color: var(--color-income); }
-.delta-chip--neg { color: var(--color-expense); }
-@keyframes chip-fall { to { transform: translateY(14px); opacity: 0; } }
-.hud__purse { position: relative; }
-.hud__purse.is-shaking { animation: purse-shake 300ms steps(3, end); }
-@keyframes purse-shake { 33% { transform: translateX(-3px); } 66% { transform: translateX(3px); } }
+.ledger__row.is-hidden {
+  visibility: hidden;
+}
+.banner-stamp {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  line-height: 1;
+  margin: 0 0 var(--space-3);
+  transform: rotate(var(--tilt-3));
+  animation: stamp-in var(--dur-stamp) var(--ease-drop);
+  display: inline-block;
+}
+.banner-stamp--victory {
+  color: var(--moss-ink);
+}
+.banner-stamp--defeat {
+  color: var(--blood-ink);
+}
+.banner-stamp--death {
+  color: var(--blood);
+  font-size: var(--text-4xl);
+}
+@keyframes stamp-in {
+  from {
+    transform: scale(1.5) rotate(var(--tilt-3));
+  }
+}
+.result__recap {
+  position: relative;
+}
+.result__cross {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.result__cross::before,
+.result__cross::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 45%;
+  height: 12px;
+  background: var(--blood);
+  border-radius: 6px;
+  opacity: 0.85;
+}
+.result__cross::before {
+  transform: rotate(18deg);
+}
+.result__cross::after {
+  transform: rotate(-18deg);
+}
+.delta-chip {
+  position: absolute;
+  top: 100%;
+  left: var(--space-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  padding: 1px 6px;
+  background: var(--grad-paper);
+  border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  z-index: var(--z-chip);
+  animation: chip-fall var(--dur-chip) steps(4, end) forwards;
+}
+.delta-chip--pos {
+  color: var(--color-income);
+}
+.delta-chip--neg {
+  color: var(--color-expense);
+}
+@keyframes chip-fall {
+  to {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+.hud__purse {
+  position: relative;
+}
+.hud__purse.is-shaking {
+  animation: purse-shake 300ms steps(3, end);
+}
+@keyframes purse-shake {
+  33% {
+    transform: translateX(-3px);
+  }
+  66% {
+    transform: translateX(3px);
+  }
+}
 ```
 
 `screens.css` — `.screen--result` grid from spec §7 + area classes
@@ -1297,21 +1746,22 @@ git commit -m "feat(ui): ledger theater, delta chips, purse shake, result screen
 ### Task 9: Game Over — endings gallery, cause of death, final cleanup
 
 **Files:**
+
 - Modify: `src/config.js` (ending epitaphs), `src/ui/render.js` (rewrite `renderGameOver`), `tests/render.test.js`
 - Modify: `src/styles/components.css`, `src/styles/screens.css`, `src/styles.css` (delete last legacy lines)
 
 - [ ] **Step 1: Add failing tests**
 
 ```js
-  it('renders three ending cards with the achieved one unlocked', () => {
-    const s = createGameState(1, CONFIG);
-    s.ended = 'dead';
-    s.lastResult = { died: true, causeOfDeath: 'Tripped on a turnip.', opponentName: 'X' };
-    const html = renderGameOver(s, CONFIG);
-    expect((html.match(/ending-card/g) || []).length).toBeGreaterThanOrEqual(3);
-    expect((html.match(/ending-card--locked/g) || []).length).toBe(2);
-    expect(html).toContain('banner-stamp--death');
-  });
+it('renders three ending cards with the achieved one unlocked', () => {
+  const s = createGameState(1, CONFIG);
+  s.ended = 'dead';
+  s.lastResult = { died: true, causeOfDeath: 'Tripped on a turnip.', opponentName: 'X' };
+  const html = renderGameOver(s, CONFIG);
+  expect((html.match(/ending-card/g) || []).length).toBeGreaterThanOrEqual(3);
+  expect((html.match(/ending-card--locked/g) || []).length).toBe(2);
+  expect(html).toContain('banner-stamp--death');
+});
 ```
 
 - [ ] **Step 2: Run to verify failure** — `npx vitest run tests/render.test.js`
@@ -1343,11 +1793,16 @@ export function renderGameOver(state, config) {
       <span class="snark">(${escapeHtml(e[key].epitaph)})</span>${extra}
     </article>`;
   };
-  const stampText = state.ended === 'dead' ? 'YOU DIED'
-    : state.ended === 'win-circuit' ? 'CHAMPION!' : 'RETIRED RICH';
-  const cause = state.ended === 'dead'
-    ? `<p class="cause-of-death"><strong>Cause of death:</strong> ${escapeHtml(state.lastResult.causeOfDeath)}</p>`
-    : `<p class="cause-of-death">Final purse: <span class="amount">${formatGold(state.gold)}</span></p>`;
+  const stampText =
+    state.ended === 'dead'
+      ? 'YOU DIED'
+      : state.ended === 'win-circuit'
+        ? 'CHAMPION!'
+        : 'RETIRED RICH';
+  const cause =
+    state.ended === 'dead'
+      ? `<p class="cause-of-death"><strong>Cause of death:</strong> ${escapeHtml(state.lastResult.causeOfDeath)}</p>`
+      : `<p class="cause-of-death">Final purse: <span class="amount">${formatGold(state.gold)}</span></p>`;
   return `
     ${renderHud(state, config)}
     <section class="screen screen--gameover">
@@ -1363,8 +1818,8 @@ export function renderGameOver(state, config) {
 }
 ```
 
-**Note:** the achieved ending renders as the *center stamp*, so the two side cards are always
-the *other* two endings. When `state.ended === 'dead'`, sides = champion + retired (both
+**Note:** the achieved ending renders as the _center stamp_, so the two side cards are always
+the _other_ two endings. When `state.ended === 'dead'`, sides = champion + retired (both
 locked). When champion or retired, swap the achieved one out of the side slots: side cards are
 `['win-circuit', 'retired', 'dead'].filter(k => k !== state.ended)` — implement with that
 filter, first card left, second card right, rather than hardcoding as sketched above. Existing
@@ -1377,12 +1832,26 @@ tests (`/champion|circuit/i`, cause-of-death string, `data-action="restart"`) mu
 `components.css`:
 
 ```css
-.ending-card { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-1); padding: var(--space-4); box-shadow: var(--shadow-paper);
-  text-align: center; }
-.ending-card--locked { filter: grayscale(0.8); opacity: 0.55; }
-.cause-of-death { font-size: var(--text-lg); max-width: 40ch; margin: var(--space-3) auto; }
-.gameover__stamp { text-align: center; }
+.ending-card {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-1);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-paper);
+  text-align: center;
+}
+.ending-card--locked {
+  filter: grayscale(0.8);
+  opacity: 0.55;
+}
+.cause-of-death {
+  font-size: var(--text-lg);
+  max-width: 40ch;
+  margin: var(--space-3) auto;
+}
+.gameover__stamp {
+  text-align: center;
+}
 ```
 
 `screens.css`: `.screen--gameover` grid from spec §7 + area classes.

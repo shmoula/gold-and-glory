@@ -12,7 +12,9 @@ export const REPAIR_URGENT_FRACTION = 0.5;
 
 export function escapeHtml(s) {
   return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
 
@@ -48,12 +50,26 @@ export function snarkAside(snark, missing = '') {
 // `disabled` (native; a true no-op such as nothing to repair) and `owned` (inert plank for an
 // already-taken option — aria-disabled so it is announced, not focus-trapped out of the tab order).
 // Exported so the guard below can be exercised directly; screens use the render* wrappers.
-export function btn(action, label, { cost = null, price = null, gold, variant = '', snark = '',
-  urgent = false, disabled = false, owned = false } = {}) {
+export function btn(
+  action,
+  label,
+  {
+    cost = null,
+    price = null,
+    gold,
+    variant = '',
+    snark = '',
+    urgent = false,
+    disabled = false,
+    owned = false,
+  } = {}
+) {
   // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
   // would render a full-price button as unaffordable — wrong pixels, no error, green suite.
   if (cost != null && !Number.isFinite(gold)) {
-    throw new TypeError(`btn(${JSON.stringify(action)}): a priced button needs \`gold\`, got ${gold}`);
+    throw new TypeError(
+      `btn(${JSON.stringify(action)}): a priced button needs \`gold\`, got ${gold}`
+    );
   }
   const classes = ['btn'];
   if (variant) classes.push(`btn--${variant}`);
@@ -78,8 +94,10 @@ export function btn(action, label, { cost = null, price = null, gold, variant = 
   // purchase spelling and its `gold` guard; this one is presentation only.
   const shown = cost ?? price;
   const priceSlot = shown != null ? `<span class="btn__price">${formatGold(shown)}</span>` : '';
-  return `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr)}</button>`;
+  return (
+    `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
+    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr)}</button>`
+  );
 }
 
 // Fill width as a whole percent, clamped to the track. Shared with the purely decorative
@@ -100,8 +118,12 @@ export function fillPct(value, max) {
 // numeral: a meter drawn against a *display-only* denominator must not claim a real maximum,
 // and its call site (spec §6.11's training row) states the true number in its own label. The
 // bar chrome still comes from here, so the decorative spelling cannot drift from the real one.
-export function meter(label, value, max, {
-  fillClass = '', urgent = false, barClass = '', decorative = false } = {}) {
+export function meter(
+  label,
+  value,
+  max,
+  { fillClass = '', urgent = false, barClass = '', decorative = false } = {}
+) {
   // role="meter" is invalid ARIA when valuenow falls outside [valuemin, valuemax], and the
   // visible numeral must match it or sighted and screen-reader users read different numbers.
   const now = Math.min(max, Math.max(0, value));
@@ -135,7 +157,9 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   // Same guard as btn(): a purchasable card with no purse would silently price itself as
   // unaffordable (canAfford(undefined, cost) is false): wrong pixels, no error, green suite.
   if (!Number.isFinite(gold)) {
-    throw new TypeError(`shopItem(${JSON.stringify(item.id)}): a buyable card needs \`gold\`, got ${gold}`);
+    throw new TypeError(
+      `shopItem(${JSON.stringify(item.id)}): a buyable card needs \`gold\`, got ${gold}`
+    );
   }
   const missingAttr = shortfallAttr(item.cost, gold);
   return `<button data-action="buy-${item.id}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
@@ -177,16 +201,19 @@ function logClause(entry, skin) {
   const paint = SKINS[skin];
   const clause = skin === 'html' ? escapeHtml(entry.text) : String(entry.text);
   // A replacement function's output is never rescanned, so a value containing `{dmg}` is inert.
-  return clause.replace(SLOT, (match, key) => (
-    entry[key] == null ? match : paint[key](entry[key])));
+  return clause.replace(SLOT, (match, key) =>
+    entry[key] == null ? match : paint[key](entry[key])
+  );
 }
 
 export function logEntry(entry) {
   const clause = logClause(entry, 'html');
   const body = entry.kind === 'status' ? `<em>${clause}</em>` : clause;
   const snark = entry.snark ? ` <span class="snark">(${escapeHtml(entry.snark)})</span>` : '';
-  return `<li class="log__entry"><span class="log__turn">T${Number(entry.turn)}</span> ` +
-    `${body}${snark}</li>`;
+  return (
+    `<li class="log__entry"><span class="log__turn">T${Number(entry.turn)}</span> ` +
+    `${body}${snark}</li>`
+  );
 }
 
 // The speakable twin, for main.js's live region (spec §8). No markup, no decorative glyph,
@@ -204,8 +231,10 @@ export function logEntryText(entry) {
 // from config, and config is not markup.
 export function bannerStamp(variant, text, { status = false } = {}) {
   const role = status ? ' role="status"' : '';
-  return `<p class="banner-stamp banner-stamp--${escapeHtml(variant)}"${role}>` +
-    `${escapeHtml(text)}</p>`;
+  return (
+    `<p class="banner-stamp banner-stamp--${escapeHtml(variant)}"${role}>` +
+    `${escapeHtml(text)}</p>`
+  );
 }
 
 // Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.
@@ -222,8 +251,9 @@ export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent
   // re-arms the derivation): the result and game-over screens mount 0-HP plates, and a corpse
   // whose plate pulses forever is noise, not an alarm.
   const hpBar = hp
-    ? meter(`${name} health`, hp.value, hp.max,
-      { urgent: urgent ?? (hp.value / hp.max < URGENT_FRACTION) })
+    ? meter(`${name} health`, hp.value, hp.max, {
+        urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION,
+      })
     : '';
   return `<article class="poster tape poster--tilt-${tilt}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>

@@ -38,7 +38,10 @@ function parseRules(text, sheet, out) {
     if (c === '{') {
       const prelude = buf.trim();
       buf = '';
-      if (prelude.startsWith('@')) { media.push(prelude); continue; }
+      if (prelude.startsWith('@')) {
+        media.push(prelude);
+        continue;
+      }
       let depth = 1;
       let body = '';
       i++;
@@ -50,24 +53,34 @@ function parseRules(text, sheet, out) {
       }
       out.push({
         sheet,
-        selectors: prelude.split(',').map((s) => s.trim()).filter(Boolean),
+        selectors: prelude
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
         decls: readDecls(body),
         media: [...media],
         order: out.length,
       });
-    } else if (c === '}') { media.pop(); buf = ''; } else buf += c;
+    } else if (c === '}') {
+      media.pop();
+      buf = '';
+    } else buf += c;
   }
 }
 
 function readDecls(body) {
-  return body.split(';').map((d) => d.trim()).filter(Boolean).flatMap((d) => {
-    const i = d.indexOf(':');
-    if (i < 0) return [];
-    let value = d.slice(i + 1).trim();
-    const important = /!\s*important$/i.test(value);
-    if (important) value = value.replace(/!\s*important$/i, '').trim();
-    return [{ prop: d.slice(0, i).trim().toLowerCase(), value, important }];
-  });
+  return body
+    .split(';')
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .flatMap((d) => {
+      const i = d.indexOf(':');
+      if (i < 0) return [];
+      let value = d.slice(i + 1).trim();
+      const important = /!\s*important$/i.test(value);
+      if (important) value = value.replace(/!\s*important$/i, '').trim();
+      return [{ prop: d.slice(0, i).trim().toLowerCase(), value, important }];
+    });
 }
 
 const RULES = [];
@@ -78,17 +91,26 @@ const WIDTH_FEATURE = /\((max|min)-width:\s*(\d+)px\)/g;
 function mediaActive(stack, width) {
   return stack.every((q) => {
     const feats = [...q.matchAll(WIDTH_FEATURE)];
-    const bare = q.replace(/^@media/, '').replace(WIDTH_FEATURE, '').replace(/\band\b|\s|,/g, '');
+    const bare = q
+      .replace(/^@media/, '')
+      .replace(WIDTH_FEATURE, '')
+      .replace(/\band\b|\s|,/g, '');
     if (bare !== '' || feats.length === 0) return false; // e.g. prefers-reduced-motion
     return feats.every(([, kind, px]) => (kind === 'max' ? width <= +px : width >= +px));
   });
 }
 
 // Every declared breakpoint edge, from both sides, plus a wide desktop.
-const WIDTHS = [...new Set(
-  [1280, ...[...RULES.flatMap((r) => r.media).join(' ').matchAll(WIDTH_FEATURE)]
-    .flatMap(([, kind, px]) => (kind === 'max' ? [+px, +px + 1] : [+px, +px - 1]))],
-)].sort((a, b) => b - a);
+const WIDTHS = [
+  ...new Set([
+    1280,
+    ...[
+      ...RULES.flatMap((r) => r.media)
+        .join(' ')
+        .matchAll(WIDTH_FEATURE),
+    ].flatMap(([, kind, px]) => (kind === 'max' ? [+px, +px + 1] : [+px, +px - 1])),
+  ]),
+].sort((a, b) => b - a);
 
 // --- specificity: deliberately narrow. Selector forms it cannot score correctly throw. ---
 function specificity(sel) {
@@ -122,9 +144,15 @@ function winner(el, prop, width) {
 }
 
 // --- value readers ---
-const areaNames = (value) => new Set(
-  value ? [...value.matchAll(/"([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)).filter((n) => n && n !== '.') : [],
-);
+const areaNames = (value) =>
+  new Set(
+    value
+      ? // Quote style is Prettier's to own, so read either spelling of the area strings.
+        [...value.matchAll(/["']([^"']*)["']/g)]
+          .flatMap((m) => m[1].split(/\s+/))
+          .filter((n) => n && n !== '.')
+      : []
+  );
 
 // Only the single-custom-ident spelling of `grid-area` names an area. Anything else that
 // carries an ident is refused rather than silently passed.
@@ -149,8 +177,16 @@ function makeChild(doc, sel) {
   return el;
 }
 
-const VARIANTS = ['screen', ...new Set([...RULES.flatMap((r) => r.selectors).join(' ')
-  .matchAll(/\.(screen--[\w-]+)/g)].map((m) => m[1]))];
+const VARIANTS = [
+  'screen',
+  ...new Set(
+    [
+      ...RULES.flatMap((r) => r.selectors)
+        .join(' ')
+        .matchAll(/\.(screen--[\w-]+)/g),
+    ].map((m) => m[1])
+  ),
+];
 
 function container(variant) {
   const el = document.createElement('section');
@@ -160,12 +196,16 @@ function container(variant) {
 }
 
 // areasOf[variant][width] = Set of area names that variant's grid actually defines there.
-const areasOf = Object.fromEntries(VARIANTS.map((v) => {
-  const el = container(v);
-  const byWidth = Object.fromEntries(WIDTHS.map((w) => [w, areaNames(winner(el, 'grid-template-areas', w))]));
-  el.remove();
-  return [v, byWidth];
-}));
+const areasOf = Object.fromEntries(
+  VARIANTS.map((v) => {
+    const el = container(v);
+    const byWidth = Object.fromEntries(
+      WIDTHS.map((w) => [w, areaNames(winner(el, 'grid-template-areas', w))])
+    );
+    el.remove();
+    return [v, byWidth];
+  })
+);
 
 // Every (selector, area name) pair any rule in the sheets asks for.
 const CLAIMS = [];
@@ -174,7 +214,8 @@ for (const rule of RULES) {
   if (!decl) continue;
   const area = namedArea(decl.value);
   if (!area) continue;
-  for (const sel of rule.selectors) if (!CLAIMS.some((c) => c.sel === sel && c.area === area)) CLAIMS.push({ sel, area });
+  for (const sel of rule.selectors)
+    if (!CLAIMS.some((c) => c.sel === sel && c.area === area)) CLAIMS.push({ sel, area });
 }
 
 // One representative state per phase, so the markup walk below can be driven off `PHASE`
@@ -199,7 +240,9 @@ describe('screen grid areas', () => {
   });
 
   it('never places a named area no .screen variant defines', () => {
-    const orphans = CLAIMS.filter(({ area }) => !VARIANTS.some((v) => WIDTHS.some((w) => areasOf[v][w].has(area))));
+    const orphans = CLAIMS.filter(
+      ({ area }) => !VARIANTS.some((v) => WIDTHS.some((w) => areasOf[v][w].has(area)))
+    );
     expect(orphans).toEqual([]);
   });
 
@@ -217,7 +260,9 @@ describe('screen grid areas', () => {
         for (const width of WIDTHS) {
           const resolved = namedArea(winner(child, 'grid-area', width));
           if (resolved && !areasOf[variant][width].has(resolved)) {
-            broken.push(`${width}px: .${variant} > ${sel} keeps "grid-area: ${resolved}" but .${variant} defines no such area`);
+            broken.push(
+              `${width}px: .${variant} > ${sel} keeps "grid-area: ${resolved}" but .${variant} defines no such area`
+            );
           }
         }
         parent.remove();
@@ -256,10 +301,12 @@ describe('screen grid areas', () => {
         const areas = winner(el, 'grid-template-areas', width);
         const rows = winner(el, 'grid-template-rows', width);
         if (!rows || rows === 'none' || !areas || areas === 'none') continue;
-        const named = [...areas.matchAll(/"[^"]*"/g)].length;
+        const named = [...areas.matchAll(/["'][^"']*["']/g)].length;
         const tracks = rows.trim().split(/\s+/).length;
         if (named !== tracks) {
-          mismatched.push(`${width}px: .${variant} names ${named} area rows but sizes ${tracks} (${rows})`);
+          mismatched.push(
+            `${width}px: .${variant} names ${named} area rows but sizes ${tracks} (${rows})`
+          );
         }
       }
       el.remove();
@@ -287,7 +334,10 @@ describe('screen grid areas', () => {
       document.body.appendChild(host);
       const section = host.querySelector('.screen');
       // Not yet a §7 grid screen (result/gameover until Tasks 8/9). Nothing to place.
-      if (!section) { host.remove(); continue; }
+      if (!section) {
+        host.remove();
+        continue;
+      }
       const variant = [...section.classList].find((c) => c.startsWith('screen--'));
       expect(variant, `${phase} renders a .screen with no --variant`).toBeDefined();
       seen.push(variant);
@@ -297,7 +347,9 @@ describe('screen grid areas', () => {
           const area = namedArea(winner(child, 'grid-area', width));
           checked += 1;
           if (!area || !areasOf[variant][width].has(area)) {
-            misplaced.push(`${width}px: .${variant} > .${[...child.classList].join('.')} → ${area}`);
+            misplaced.push(
+              `${width}px: .${variant} > .${[...child.classList].join('.')} → ${area}`
+            );
           }
         }
       }
@@ -344,7 +396,9 @@ const MOBILE_WIDTHS = [640, 375];
 const DESKTOP_WIDTHS = [1280, 900];
 // The page gutter: `#app` pads by --space-4 on each side (base.css). Read from the token rather
 // than restated, so lowering the token cannot leave the budget below silently generous.
-const SPACE_4 = Number(/--space-4:\s*(\d+)px/.exec(readFileSync('src/styles/tokens.css', 'utf8'))[1]);
+const SPACE_4 = Number(
+  /--space-4:\s*(\d+)px/.exec(readFileSync('src/styles/tokens.css', 'utf8'))[1]
+);
 
 // Track lists this reader can size. Anything else is refused rather than silently measured as
 // 0px, which is how a `repeat()` or a `var()` would sneak an overflowing track past the check.
@@ -352,7 +406,9 @@ const OPAQUE_TRACK = /(repeat|minmax|clamp|calc|fit-content|var|min|max)\(/;
 function fixedTrackPx(value) {
   if (!value || value === 'none') return 0;
   if (OPAQUE_TRACK.test(value)) {
-    throw new Error(`grid-areas.test.js cannot size "grid-template-columns: ${value}" - extend fixedTrackPx()`);
+    throw new Error(
+      `grid-areas.test.js cannot size "grid-template-columns: ${value}" - extend fixedTrackPx()`
+    );
   }
   return [...value.matchAll(/(-?[\d.]+)px/g)].reduce((sum, m) => sum + Number(m[1]), 0);
 }
@@ -362,9 +418,13 @@ const MOUNTED = mountAll();
 // Only elements a rule could give a column list to are worth resolving, and there are eight such
 // selectors against ~100 elements per screen — the filter is what keeps this from being 4 × 10 ×
 // 100 full cascade resolutions.
-const GRID_COL_SELS = [...new Set(RULES
-  .filter((r) => r.decls.some((d) => d.prop === 'grid-template-columns'))
-  .flatMap((r) => r.selectors))];
+const GRID_COL_SELS = [
+  ...new Set(
+    RULES.filter((r) => r.decls.some((d) => d.prop === 'grid-template-columns')).flatMap(
+      (r) => r.selectors
+    )
+  ),
+];
 
 describe('responsive pass (spec §7, plan Step 4)', () => {
   it('has a screen matrix and column-declaring selectors to walk', () => {
@@ -400,7 +460,8 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
         const areas = winner(el, 'grid-template-areas', width);
         const cols = winner(el, 'grid-template-columns', width);
         if (areas !== 'none') wrong.push(`${width}px: .${variant} still names areas (${areas})`);
-        if (trackCount(cols) !== 1) wrong.push(`${width}px: .${variant} keeps ${trackCount(cols)} columns (${cols})`);
+        if (trackCount(cols) !== 1)
+          wrong.push(`${width}px: .${variant} keeps ${trackCount(cols)} columns (${cols})`);
       }
       el.remove();
     }
@@ -423,9 +484,13 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
   // 173px in a browser and 0 in jsdom, so the only decidable form of the claim is that no
   // content-sizing `justify-self` survives at the sticky breakpoint.
   it('lifts every rendered commit bar into a sticky footer below 640px, and only there', () => {
-    const bars = Object.entries(MOUNTED)
-      .flatMap(([name, host]) => [...host.querySelectorAll('.commit-bar')].map((el) => [name, el]));
-    expect(bars.length, 'no .commit-bar is rendered anywhere - the sticky rule is dead').toBeGreaterThan(0);
+    const bars = Object.entries(MOUNTED).flatMap(([name, host]) =>
+      [...host.querySelectorAll('.commit-bar')].map((el) => [name, el])
+    );
+    expect(
+      bars.length,
+      'no .commit-bar is rendered anywhere - the sticky rule is dead'
+    ).toBeGreaterThan(0);
     // Allowlist, not a denylist of the alignment keywords: `justify-self` has a dozen of them
     // (`self-end`, `flex-end`, `right`, `anchor-center`, …) and a denylist would let the next one
     // through. `null` means nothing declares it, which is the initial `normal` — stretch, for a
@@ -442,9 +507,12 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
         const bottom = winner(bar, 'bottom', width);
         const justify = winner(bar, 'justify-self', width);
         if (pos !== 'sticky') wrong.push(`${width}px: ${name} commit bar is "${pos}", not sticky`);
-        if (bottom !== '0') wrong.push(`${width}px: ${name} commit bar sticks at bottom "${bottom}"`);
+        if (bottom !== '0')
+          wrong.push(`${width}px: ${name} commit bar sticks at bottom "${bottom}"`);
         if (!STRETCHES.includes(justify)) {
-          wrong.push(`${width}px: ${name} commit bar keeps "justify-self: ${justify}", so the sticky footer is content-sized`);
+          wrong.push(
+            `${width}px: ${name} commit bar keeps "justify-self: ${justify}", so the sticky footer is content-sized`
+          );
         }
       }
     }
@@ -452,9 +520,11 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
     // and `justify-items` on the container sets the item's `justify-self` when it computes to
     // `auto` - either one could content-size the bar behind the check above without tripping it.
     // Nothing in the sheets uses either today, so refuse them loudly rather than silently.
-    const invisible = RULES.flatMap((r) => r.decls
-      .filter((d) => d.prop === 'place-self' || d.prop === 'justify-items')
-      .map((d) => `${r.sheet}: ${r.selectors.join(', ')} { ${d.prop}: ${d.value} }`));
+    const invisible = RULES.flatMap((r) =>
+      r.decls
+        .filter((d) => d.prop === 'place-self' || d.prop === 'justify-items')
+        .map((d) => `${r.sheet}: ${r.selectors.join(', ')} { ${d.prop}: ${d.value} }`)
+    );
     expect(invisible, 'extend the commit-bar alignment check to read this spelling').toEqual([]);
     expect(wrong).toEqual([]);
   });
@@ -470,10 +540,14 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
       const hud = host.querySelector('.hud');
       expect(hud, `${name} renders no .hud`).not.toBeNull();
       for (const width of STEP4_WIDTHS) {
-        if (winner(hud, 'flex-wrap', width) !== 'wrap') wrong.push(`${width}px: ${name} .hud does not wrap`);
+        if (winner(hud, 'flex-wrap', width) !== 'wrap')
+          wrong.push(`${width}px: ${name} .hud does not wrap`);
         for (const prop of ['overflow', 'overflow-x', 'overflow-y', 'height', 'max-height']) {
           const value = winner(hud, prop, width);
-          if (value) wrong.push(`${width}px: ${name} .hud sets ${prop}: ${value}, which clips a wrapped row`);
+          if (value)
+            wrong.push(
+              `${width}px: ${name} .hud sets ${prop}: ${value}, which clips a wrapped row`
+            );
         }
       }
     }
@@ -497,7 +571,9 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
           checked += 1;
           const budget = width - 2 * SPACE_4;
           if (px > budget) {
-            overflowing.push(`${width}px: ${name} .${[...el.classList].join('.')} fixes ${px}px of track in a ${budget}px page`);
+            overflowing.push(
+              `${width}px: ${name} .${[...el.classList].join('.')} fixes ${px}px of track in a ${budget}px page`
+            );
           }
         }
       }

@@ -12,8 +12,18 @@
 // other side: derive from the clock, never from the number of callbacks that happened to run.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  tickTo, runLedgerTheater, spawnDeltaChip, spawnShortfallChip, purseShake,
-  BEAT_MS, THEATER_MAX_MS, TICKER_MS, CHIP_LIFE_MS, CHIP_MERGE_MS, CHIP_MAX, SHAKE_MS,
+  tickTo,
+  runLedgerTheater,
+  spawnDeltaChip,
+  spawnShortfallChip,
+  purseShake,
+  BEAT_MS,
+  THEATER_MAX_MS,
+  TICKER_MS,
+  CHIP_LIFE_MS,
+  CHIP_MERGE_MS,
+  CHIP_MAX,
+  SHAKE_MS,
 } from '../src/ui/effects.js';
 import { formatGold } from '../src/ui/format.js';
 
@@ -40,7 +50,10 @@ function advance(ms) {
 }
 
 const reduceMotion = (matches) =>
-  vi.stubGlobal('matchMedia', vi.fn((q) => ({ media: q, matches })));
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((q) => ({ media: q, matches }))
+  );
 
 const ledger = (rows) => {
   const el = document.createElement('div');
@@ -164,8 +177,7 @@ describe('runLedgerTheater (spec §6.6)', () => {
     advance(BEAT_MS); // first row revealed and mid-count
     el.click();
     const amounts = [...el.querySelectorAll('.amount')].map((a) => a.textContent);
-    expect(amounts).toEqual([
-      formatGold(600, { signed: true }), formatGold(-90, { signed: true })]);
+    expect(amounts).toEqual([formatGold(600, { signed: true }), formatGold(-90, { signed: true })]);
   });
 
   // §6.6: "Total sequence ≤ 2.5s." A fixed 350ms beat blows that budget on a long ledger,
@@ -201,9 +213,13 @@ describe('runLedgerTheater (spec §6.6)', () => {
       el.click(); // the skip reveals every remaining row pre-tallied
       expect(scheduled).not.toHaveBeenCalled();
       expect([...el.querySelectorAll('.amount')].map((a) => a.textContent)).toEqual([
-        formatGold(600, { signed: true }), formatGold(-90, { signed: true })]);
-      expect([...el.querySelectorAll('.amount')].map((a) => a.getAttribute('data-value')))
-        .toEqual(['600', '-90']); // …and still agree with the value they were counted from
+        formatGold(600, { signed: true }),
+        formatGold(-90, { signed: true }),
+      ]);
+      expect([...el.querySelectorAll('.amount')].map((a) => a.getAttribute('data-value'))).toEqual([
+        '600',
+        '-90',
+      ]); // …and still agree with the value they were counted from
     } finally {
       scheduled.mockRestore();
     }
@@ -264,7 +280,9 @@ describe('spawnDeltaChip (spec §6.7)', () => {
     advance(CHIP_MERGE_MS - 1); // now well past 300ms from the first chip
     spawnDeltaChip(host, 10, { now });
     expect([...host.querySelectorAll('.delta-chip')].map((c) => c.textContent)).toEqual([
-      formatGold(20, { signed: true }), formatGold(10, { signed: true })]);
+      formatGold(20, { signed: true }),
+      formatGold(10, { signed: true }),
+    ]);
   });
 
   it('does not consolidate across a sign change or past the window', () => {
@@ -300,7 +318,9 @@ describe('spawnDeltaChip (spec §6.7)', () => {
     const chips = [...host.querySelectorAll('.delta-chip')];
     expect(chips.length).toBe(CHIP_MAX);
     expect(chips.map((c) => c.textContent)).toEqual([
-      formatGold(-20, { signed: true }), formatGold(30, { signed: true })]);
+      formatGold(-20, { signed: true }),
+      formatGold(30, { signed: true }),
+    ]);
   });
 
   it('paints no frames', () => {

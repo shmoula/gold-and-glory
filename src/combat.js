@@ -122,8 +122,10 @@ export function applyPlayerAction(combat, action, timing, config) {
   next.enemy.health -= dmg;
   next.pendingBonus = 0;
   // A swing that lands for nothing gets the §6.9 aside; a swing that hurts speaks for itself.
-  pushEntry(next, 'attack', `You ${action} (${timing}) for {dmg} damage.`,
-    { dmg, ...(dmg === 0 ? { snark: config.snark.logWhiff } : {}) });
+  pushEntry(next, 'attack', `You ${action} (${timing}) for {dmg} damage.`, {
+    dmg,
+    ...(dmg === 0 ? { snark: config.snark.logWhiff } : {}),
+  });
   return next;
 }
 
@@ -170,8 +172,12 @@ export function applyPress(combat, timing, config) {
   next.guardDropped = true;
   // \u2014 EM DASH written as an escape: this project has already shipped one bug from a
   // pasted lookalike character (see the U+00A0 post-mortem).
-  pushEntry(next, 'attack', `You PRESS the attack (${timing}) for {dmg} \u2014 but drop your guard!`,
-    { dmg, snark: config.snark.logPress });
+  pushEntry(
+    next,
+    'attack',
+    `You PRESS the attack (${timing}) for {dmg} \u2014 but drop your guard!`,
+    { dmg, snark: config.snark.logPress }
+  );
   return next;
 }
 
@@ -205,8 +211,10 @@ export function enemyTurn(combat, rng, config) {
     pushEntry(next, 'status', 'Counter! You absorb the blow, taking {taken}.', { taken: dmg });
   } else {
     // The name is a value, not part of the template: the renderer escapes it exactly once.
-    pushEntry(next, 'attack', `{who} strikes (${tier}) for {taken}.`,
-      { who: next.enemy.name, taken: dmg });
+    pushEntry(next, 'attack', `{who} strikes (${tier}) for {taken}.`, {
+      who: next.enemy.name,
+      taken: dmg,
+    });
   }
 
   next.player.health -= dmg;

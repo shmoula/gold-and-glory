@@ -149,15 +149,18 @@ export const CONFIG = {
   // screen), death gets neither irony nor softening.
   endings: {
     'win-circuit': {
-      title: 'Champion of the Circuit', epitaph: "You got a belt. It doesn't fit.",
+      title: 'Champion of the Circuit',
+      epitaph: "You got a belt. It doesn't fit.",
       stamp: { variant: 'victory', text: 'CHAMPION!' },
     },
     retired: {
-      title: 'Retired Rich', epitaph: 'You have all the gold. And no friends.',
+      title: 'Retired Rich',
+      epitaph: 'You have all the gold. And no friends.',
       stamp: { variant: 'victory', text: 'RETIRED RICH!' },
     },
     dead: {
-      title: 'You Died', epitaph: 'The crowd loved it.',
+      title: 'You Died',
+      epitaph: 'The crowd loved it.',
       stamp: { variant: 'death', text: 'YOU DIED' },
     },
   },

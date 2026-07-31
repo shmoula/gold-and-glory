@@ -61,8 +61,12 @@ function writeAmount(el, value, format) {
 // Count `el` from `from` to `to` over `durationMs`, writing whole gold (§6.7). Returns a
 // finish function: calling it stops the count and writes the final value, so a skip or a
 // superseding render can never leave a half-counted number on screen.
-export function tickTo(el, from, to, {
-  durationMs = TICKER_MS, stepMs = TICKER_STEP_MS, format = UNITS.gold, now = defaultNow } = {}) {
+export function tickTo(
+  el,
+  from,
+  to,
+  { durationMs = TICKER_MS, stepMs = TICKER_STEP_MS, format = UNITS.gold, now = defaultNow } = {}
+) {
   const write = (v) => writeAmount(el, v, format);
   if (!el) return () => {};
   const timers = [];
@@ -78,14 +82,19 @@ export function tickTo(el, from, to, {
   const t0 = now();
   const steps = Math.max(1, Math.ceil(durationMs / stepMs));
   for (let i = 1; i <= steps; i += 1) {
-    timers.push(setTimeout(() => {
-      // The last step writes the target outright. Everything before it is a function of the
-      // clock, so a coarse timer, a stalled tab or a dropped step lands on the right number
-      // anyway — and the final write means the count completes even where the clock does not
-      // move at all (fake timers without a faked `performance`).
-      if (i === steps) finish();
-      else write(Math.round(from + (to - from) * clamp01((now() - t0) / durationMs)));
-    }, (durationMs * i) / steps));
+    timers.push(
+      setTimeout(
+        () => {
+          // The last step writes the target outright. Everything before it is a function of the
+          // clock, so a coarse timer, a stalled tab or a dropped step lands on the right number
+          // anyway — and the final write means the count completes even where the clock does not
+          // move at all (fake timers without a faked `performance`).
+          if (i === steps) finish();
+          else write(Math.round(from + (to - from) * clamp01((now() - t0) / durationMs)));
+        },
+        (durationMs * i) / steps
+      )
+    );
   }
   write(from);
   return finish;
@@ -94,8 +103,10 @@ export function tickTo(el, from, to, {
 // Reveal `.ledger__row.is-hidden` rows one beat apart, top to bottom, counting each money row
 // up from zero as it lands (§6.6). Any click completes the sequence instantly — the spec is
 // explicit that the player is never trapped in theater. Returns that same skip function.
-export function runLedgerTheater(container, {
-  beatMs = BEAT_MS, maxMs = THEATER_MAX_MS, now = defaultNow } = {}) {
+export function runLedgerTheater(
+  container,
+  { beatMs = BEAT_MS, maxMs = THEATER_MAX_MS, now = defaultNow } = {}
+) {
   const noop = () => {};
   if (!container) return noop;
   const rows = [...container.querySelectorAll('.ledger__row.is-hidden')];
@@ -117,9 +128,14 @@ export function runLedgerTheater(container, {
   // budget is shared between (rows.length) beats of reveal and one final beat of counting.
   const beat = Math.min(beatMs, maxMs / (rows.length + 1));
   rows.forEach((row, i) => {
-    timers.push(setTimeout(() => {
-      counters.push(...revealRow(row, { durationMs: beat, now }));
-    }, beat * (i + 1)));
+    timers.push(
+      setTimeout(
+        () => {
+          counters.push(...revealRow(row, { durationMs: beat, now }));
+        },
+        beat * (i + 1)
+      )
+    );
   });
   container.addEventListener('click', finish, { once: true });
   return finish;
@@ -166,7 +182,11 @@ function mountChip(host, { text, negative, amount = null, lifeMs, now, spawnedAt
     if (now() - opened <= CHIP_MERGE_MS && Math.sign(previous) === Math.sign(amount)) {
       dropChip(last);
       return mountChip(host, {
-        ...signed(previous + amount), amount: previous + amount, lifeMs, now, spawnedAt: opened,
+        ...signed(previous + amount),
+        amount: previous + amount,
+        lifeMs,
+        now,
+        spawnedAt: opened,
       });
     }
   }
@@ -180,8 +200,10 @@ function mountChip(host, { text, negative, amount = null, lifeMs, now, spawnedAt
   chip.dataset.spawnedAt = String(spawnedAt ?? now());
   if (amount != null) chip.dataset.amount = String(amount);
   host.appendChild(chip);
-  chipTimers.set(chip, setTimeout(() => dropChip(chip),
-    reducedMotion() ? REDUCED_CHIP_LIFE_MS : lifeMs));
+  chipTimers.set(
+    chip,
+    setTimeout(() => dropChip(chip), reducedMotion() ? REDUCED_CHIP_LIFE_MS : lifeMs)
+  );
   return chip;
 }
 
@@ -192,7 +214,8 @@ function dropChip(chip) {
 }
 
 const signed = (amount) => ({
-  text: formatGold(amount, { signed: true }), negative: amount < 0,
+  text: formatGold(amount, { signed: true }),
+  negative: amount < 0,
 });
 
 // A floating +/- chip beside the purse, spawned on every gold change (§6.7).
@@ -204,9 +227,16 @@ export function spawnDeltaChip(host, amount, { lifeMs = CHIP_LIFE_MS, now = defa
 // is an already-formatted amount (`btn()`'s `data-missing`). The leading U+2212 is the
 // non-colour channel §3 demands — the chip is red, and red is never the only signal. Written
 // as an escape: a pasted minus sign is indistinguishable from a hyphen in review.
-export function spawnShortfallChip(host, missing, { lifeMs = CHIP_LIFE_MS, now = defaultNow } = {}) {
+export function spawnShortfallChip(
+  host,
+  missing,
+  { lifeMs = CHIP_LIFE_MS, now = defaultNow } = {}
+) {
   return mountChip(host, {
-    text: `${MINUS}need ${missing} more`, negative: true, lifeMs, now,
+    text: `${MINUS}need ${missing} more`,
+    negative: true,
+    lifeMs,
+    now,
   });
 }
 
@@ -218,5 +248,8 @@ export function purseShake(hudPurse) {
   hudPurse.classList.remove('is-shaking');
   void hudPurse.offsetWidth; // reflow, so a shake already in flight restarts instead of ending
   hudPurse.classList.add('is-shaking');
-  shakeTimers.set(hudPurse, setTimeout(() => hudPurse.classList.remove('is-shaking'), SHAKE_MS));
+  shakeTimers.set(
+    hudPurse,
+    setTimeout(() => hudPurse.classList.remove('is-shaking'), SHAKE_MS)
+  );
 }

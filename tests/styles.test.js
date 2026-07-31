@@ -15,8 +15,11 @@ const css = SHEETS.map((f) => readFileSync(f, 'utf8')).join('\n');
 // from the `@font-face` rules rather than from a hand-kept list, so a fourth family cannot be
 // vendored without its own upstream OFL.txt arriving beside it (scripts/fetch-fonts.mjs).
 describe('font attribution (OFL)', () => {
-  const faces = [...readFileSync('src/styles/tokens.css', 'utf8')
-    .matchAll(/@font-face\s*\{[^}]*font-family:\s*'([^']+)'[^}]*url\('\.\.\/assets\/([^']+)'/g)];
+  const faces = [
+    ...readFileSync('src/styles/tokens.css', 'utf8').matchAll(
+      /@font-face\s*\{[^}]*font-family:\s*'([^']+)'[^}]*url\('\.\.\/assets\/([^']+)'/g
+    ),
+  ];
 
   it('finds every declared face', () => {
     expect(faces.length).toBe(4);
@@ -31,8 +34,9 @@ describe('font attribution (OFL)', () => {
       expect(text, `${path} is not OFL 1.1`).toContain('SIL OPEN FONT LICENSE Version 1.1');
       // The placeholder is the whole point of the step: its absence is what separates an
       // attribution from a template that merely looks like one.
-      expect(text, `${path} still carries the template placeholder`)
-        .not.toMatch(/<Copyright Holder>|<dates>/);
+      expect(text, `${path} still carries the template placeholder`).not.toMatch(
+        /<Copyright Holder>|<dates>/
+      );
       expect(text, `${path} names no copyright holder`).toMatch(/^Copyright \S+/m);
     }
     // The template must be gone, not merely joined: leaving it means the tree still ships a
@@ -80,8 +84,9 @@ function contrast(a, b) {
 const tokensCss = readFileSync('src/styles/tokens.css', 'utf8');
 // Literal hexes only: a token defined as `var(--other)` is an alias and is followed through
 // separately, so nothing here silently compares a string to itself.
-const HEXES = Object.fromEntries([...tokensCss.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)]
-  .map((m) => [m[1], m[2]]));
+const HEXES = Object.fromEntries(
+  [...tokensCss.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)].map((m) => [m[1], m[2]])
+);
 // Follow `--a: var(--b)` chains so a semantic token can be measured as the primitive it is.
 function hexOf(token, seen = new Set()) {
   if (HEXES[token]) return HEXES[token];
@@ -95,10 +100,14 @@ const round2 = (x) => Math.round(x * 100) / 100;
 describe('contrast claims are recomputed, not trusted (spec §3)', () => {
   // The spec's own table is the calibration. If this passes, `luminance` above *is* the
   // function §3 was written with, and every other assertion in this describe inherits that.
-  const specTable = [...readFileSync('docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md', 'utf8')
-    .matchAll(/^\|\s*`(--[\w-]+)`\s+on\s+`(--[\w-]+)`\s*\|\s*(\d+\.\d\d):1\s*\|/gm)];
+  const specTable = [
+    ...readFileSync(
+      'docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md',
+      'utf8'
+    ).matchAll(/^\|\s*`(--[\w-]+)`\s+on\s+`(--[\w-]+)`\s*\|\s*(\d+\.\d\d):1\s*\|/gm),
+  ];
 
-  it('reproduces every row of spec §3\'s published table', () => {
+  it("reproduces every row of spec §3's published table", () => {
     expect(specTable.length).toBe(16);
     const wrong = [];
     for (const [, fg, bg, claimed] of specTable) {
@@ -106,7 +115,8 @@ describe('contrast claims are recomputed, not trusted (spec §3)', () => {
       expect(a, `${fg} resolves to no hex`).toMatch(HEX);
       expect(b, `${bg} resolves to no hex`).toMatch(HEX);
       const actual = round2(contrast(a, b));
-      if (actual !== Number(claimed)) wrong.push(`${fg} on ${bg}: spec says ${claimed}, is ${actual}`);
+      if (actual !== Number(claimed))
+        wrong.push(`${fg} on ${bg}: spec says ${claimed}, is ${actual}`);
     }
     expect(wrong).toEqual([]);
   });
@@ -176,7 +186,9 @@ describe('focus ring reads on every §8 surface', () => {
     for (const [name, ground] of Object.entries(GROUNDS)) {
       const best = Math.max(contrast(ring, ground), contrast(halo, ground));
       if (best < FLOOR) {
-        failed.push(`${name}: ring ${round2(contrast(ring, ground))}, halo ${round2(contrast(halo, ground))}`);
+        failed.push(
+          `${name}: ring ${round2(contrast(ring, ground))}, halo ${round2(contrast(halo, ground))}`
+        );
       }
     }
     expect(failed).toEqual([]);
@@ -196,7 +208,7 @@ describe('focus ring reads on every §8 surface', () => {
     expect(contrast(ring, halo)).toBeGreaterThanOrEqual(FLOOR);
   });
 
-  it('states the halo once, as the sheets\' only !important box-shadow', () => {
+  it("states the halo once, as the sheets' only !important box-shadow", () => {
     expect(focusRule, 'no bare :focus-visible rule').not.toBeNull();
     expect(focusRule[0]).toMatch(/outline:\s*3px solid var\(--color-focus\)/);
     expect(focusRule[0]).toMatch(/outline-offset:/);
@@ -231,7 +243,9 @@ describe('focus ring reads on every §8 surface', () => {
 // reduced-motion player saw no money move at all.
 describe('reduced motion (spec §5)', () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  const block = bare.match(/@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/);
+  const block = bare.match(
+    /@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/
+  );
 
   it('has the blanket block spec §5 mandates', () => {
     expect(block, 'no prefers-reduced-motion block').not.toBeNull();
@@ -244,8 +258,9 @@ describe('reduced motion (spec §5)', () => {
   });
 
   it('leaves every infinite pulse to that iteration-count clamp', () => {
-    const infinite = [...bare.matchAll(/([^{}]+)\{([^{}]*animation[^{}]*infinite[^{}]*)\}/g)]
-      .map((m) => m[1].trim());
+    const infinite = [...bare.matchAll(/([^{}]+)\{([^{}]*animation[^{}]*infinite[^{}]*)\}/g)].map(
+      (m) => m[1].trim()
+    );
     // Vacuity guard: if the game ever stops pulsing, this test should be deleted, not passing.
     expect(infinite.length).toBeGreaterThan(0);
     expect(infinite).toContain('.btn.is-urgent');
@@ -256,7 +271,9 @@ describe('reduced motion (spec §5)', () => {
   // such animation must be cancelled outright inside the reduced-motion block.
   it('cancels, rather than shortens, any forwards animation that ends hidden', () => {
     const vanishing = new Set();
-    for (const [, name, body] of bare.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)) {
+    for (const [, name, body] of bare.matchAll(
+      /@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g
+    )) {
       const last = [...body.matchAll(/(to|100%)\s*\{([^{}]*)\}/g)].pop();
       if (last && /opacity:\s*0(\D|$)/.test(last[2])) vanishing.add(name);
     }
@@ -278,14 +295,16 @@ describe('reduced motion (spec §5)', () => {
   // so no CSS timing function is in the path. The moment the cursor gains a CSS animation the
   // blanket 1ms rule freezes gameplay, and no unit test would notice.
   it('keeps the meter sweeping by leaving the cursor to JS', () => {
-    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-      .filter(([, prelude]) => /\.meter-cursor\b/.test(prelude));
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, prelude]) =>
+      /\.meter-cursor\b/.test(prelude)
+    );
     expect(rules.length).toBeGreaterThan(0);
     for (const [, prelude, body] of rules) {
       expect(body, `${prelude.trim()} animates the cursor in CSS`).not.toMatch(/animation\s*:/);
     }
-    expect(readFileSync('src/main.js', 'utf8'), 'the sweep must be JS-driven')
-      .toMatch(/requestAnimationFrame/);
+    expect(readFileSync('src/main.js', 'utf8'), 'the sweep must be JS-driven').toMatch(
+      /requestAnimationFrame/
+    );
   });
 });
 
@@ -295,7 +314,8 @@ describe('reduced motion (spec §5)', () => {
 // enforced afterwards — the token could be lowered, or a new rule could restate a literal.
 describe('type floor (spec §8)', () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  const px = (token) => Number(/(\d+(?:\.\d+)?)px/.exec(tokensCss.match(new RegExp(`${token}\\s*:\\s*[^;]+`))[0])[1]);
+  const px = (token) =>
+    Number(/(\d+(?:\.\d+)?)px/.exec(tokensCss.match(new RegExp(`${token}\\s*:\\s*[^;]+`))[0])[1]);
 
   it('keeps --text-xs at or above 12.5px', () => {
     expect(px('--text-xs')).toBeGreaterThanOrEqual(12.5);
@@ -400,14 +420,15 @@ describe('the bar track is a block box (spec §6.1/§6.5)', () => {
   });
 
   it('declares a block-level display on the track itself', () => {
-    const declared = RULES
-      .filter(([sel]) => TARGETS_A_BAR.test(sel))
-      .flatMap(([sel, body]) => [...body.matchAll(/(^|;)\s*display:\s*([^;]+)/g)]
-        .map((m) => [sel, m[2].trim()]));
+    const declared = RULES.filter(([sel]) => TARGETS_A_BAR.test(sel)).flatMap(([sel, body]) =>
+      [...body.matchAll(/(^|;)\s*display:\s*([^;]+)/g)].map((m) => [sel, m[2].trim()])
+    );
     // At least one rule must state it, or `width: 108px` is silently ignored on any bar whose
     // parent is not a flex or grid container.
-    expect(declared.length, '`.bar` declares no `display` - its width will not apply')
-      .toBeGreaterThan(0);
+    expect(
+      declared.length,
+      '`.bar` declares no `display` - its width will not apply'
+    ).toBeGreaterThan(0);
     // ...and every such rule must keep it block-level, so a later override cannot re-collapse
     // the track. Allowlist, so an unrecognised value fails rather than slips through.
     expect(declared.filter(([, value]) => !BLOCK_LEVEL.includes(value))).toEqual([]);
@@ -456,7 +477,10 @@ describe('rules inherited from the deleted legacy sheet', () => {
       return Number(value);
     };
     const native = opacityOf(/button:disabled\s*\{[^}]*\}/, 'button:disabled');
-    const aria = opacityOf(/\.btn\[aria-disabled="true"\]\s*\{[^}]*\}/, '.btn[aria-disabled]');
+    const aria = opacityOf(
+      /\.btn\[aria-disabled=["']true["']\]\s*\{[^}]*\}/,
+      '.btn[aria-disabled]'
+    );
     expect(native).toBe(aria);
   });
 });
@@ -478,7 +502,8 @@ describe('selector coverage — every unaffordable surface is painted', () => {
     .flatMap((prelude) => prelude.split(',').map((s) => s.trim()));
   // `::after` is where the shortfall text lives; the element it hangs off is what must match.
   const priceArms = arms.filter((a) => a.endsWith('.btn__price'));
-  const snarkArms = arms.filter((a) => /\.btn__snark::after$/.test(a))
+  const snarkArms = arms
+    .filter((a) => /\.btn__snark::after$/.test(a))
     .map((a) => a.replace(/::after$/, ''));
 
   it('states both halves of the treatment', () => {
@@ -494,18 +519,27 @@ describe('selector coverage — every unaffordable surface is painted', () => {
         seen.push(where);
         const price = el.querySelector('.btn__price');
         expect(price, `${where} renders no price`).not.toBeNull();
-        expect(priceArms.some((a) => price.matches(a)), `${where}: price matched by no rule`)
-          .toBe(true);
+        expect(
+          priceArms.some((a) => price.matches(a)),
+          `${where}: price matched by no rule`
+        ).toBe(true);
         const snark = el.querySelector('.btn__snark');
         expect(snark, `${where} renders no shortfall slot`).not.toBeNull();
-        expect(snarkArms.some((a) => snark.matches(a)), `${where}: shortfall matched by no rule`)
-          .toBe(true);
+        expect(
+          snarkArms.some((a) => snark.matches(a)),
+          `${where}: shortfall matched by no rule`
+        ).toBe(true);
       }
     }
     // Both commerce surfaces must be in the matrix, or the net above has nothing to catch.
-    expect(seen.some((s) => /\.shop-item\b/.test(s)), 'no unaffordable gear card rendered')
-      .toBe(true);
-    expect(seen.some((s) => /\.btn\b/.test(s)), 'no unaffordable button rendered').toBe(true);
+    expect(
+      seen.some((s) => /\.shop-item\b/.test(s)),
+      'no unaffordable gear card rendered'
+    ).toBe(true);
+    expect(
+      seen.some((s) => /\.btn\b/.test(s)),
+      'no unaffordable button rendered'
+    ).toBe(true);
   });
 });
 
@@ -524,7 +558,8 @@ describe('selector coverage — every unaffordable surface is painted', () => {
 // §8's 4.5:1 floor on paper either. Pinning 4.5 here would fail the shipped result screen as
 // well, so it would be a claim this code does not make. Law 4 is the line this fix is about.
 describe('Law 4 — text never sits on stone', () => {
-  const PAPER_OR_WOOD = /background(-color|-image)?\s*:[^;]*var\(--(grad-paper|grad-wood[\w-]*|grad-commit|paper-\d|wood-\d|surface-paper|surface-wood)\)/;
+  const PAPER_OR_WOOD =
+    /background(-color|-image)?\s*:[^;]*var\(--(grad-paper|grad-wood[\w-]*|grad-commit|paper-\d|wood-\d|surface-paper|surface-wood)\)/;
   // Only the plain class-chain spelling: those are the material rules, and anything else
   // (pseudo-elements, `50%` keyframe stops, at-rule preludes) is not an element to stand on.
   const PLAIN_CLASS = /^\.[\w-]+(\.[\w-]+)*$/;
@@ -579,15 +614,15 @@ describe('Law 4 — text never sits on stone', () => {
   // The waiver is a *closed list*, so it is the opposite of switching the check off: any new
   // ungrounded text fails here, and an entry that gets a ground fails too and must be removed.
   const WAIVED = [
-    'div.hub__sinks > h2',      // "The Ludus", --ink 4.15:1 (clears 3:1 as large text, not Law 4)
-    'div.hub__develop > h2',    // "Training" / "Gear shop", --ink 4.15:1
-    'div.fight__log > h2',      // "Commentary", --ink 4.15:1
-    'div.hub__sinks > p',       // hub "Wins: N", --ink 4.15:1
-    'span.train-row__label',    // --ink 4.15:1
-    'span.hub__next-label',     // --bone 2.99:1
-    'div.meter__labels > span',  // --bone 2.99:1
-    'p.meter__taunt.snark',     // --bone 2.99:1
-    'p.snark.result__flavor',   // --ink-soft 1.89:1
+    'div.hub__sinks > h2', // "The Ludus", --ink 4.15:1 (clears 3:1 as large text, not Law 4)
+    'div.hub__develop > h2', // "Training" / "Gear shop", --ink 4.15:1
+    'div.fight__log > h2', // "Commentary", --ink 4.15:1
+    'div.hub__sinks > p', // hub "Wins: N", --ink 4.15:1
+    'span.train-row__label', // --ink 4.15:1
+    'span.hub__next-label', // --bone 2.99:1
+    'div.meter__labels > span', // --bone 2.99:1
+    'p.meter__taunt.snark', // --bone 2.99:1
+    'p.snark.result__flavor', // --ink-soft 1.89:1
   ];
 
   const describeEl = (el) => {
@@ -639,13 +674,18 @@ describe('Law 2 — gold appears only on money', () => {
   const GOLD = /var\(--(gold[\w-]*|grad-coin|color-money[\w-]*)\)/;
 
   it('paints gold text on money surfaces and nothing else', () => {
-    const asText = rules.filter((r) => new RegExp(`(^|[^-])color\\s*:[^;]*${GOLD.source}`).test(r.body))
+    const asText = rules
+      .filter((r) => new RegExp(`(^|[^-])color\\s*:[^;]*${GOLD.source}`).test(r.body))
       .map((r) => r.sel);
     // Every one of these is a currency figure: the HUD purse, a price slot, a poster's fight
     // purse, the log's money clause, the ledger's closing balance, the final purse on game over.
     expect(asText.sort()).toEqual([
-      '.btn__price', '.cause-of-death .amount', '.hud__purse',
-      '.ledger__row--balance .amount', '.log .amount', '.poster__sub .amount',
+      '.btn__price',
+      '.cause-of-death .amount',
+      '.hud__purse',
+      '.ledger__row--balance .amount',
+      '.log .amount',
+      '.poster__sub .amount',
     ]);
   });
 
@@ -659,10 +699,16 @@ describe('Law 2 — gold appears only on money', () => {
     //  - the three `.meter__zone--*` bands are §6.4's monochromatic gold ramp, where brighter
     //    means closer to glory. Not money either, and argued for in components.css.
     //  - `urgent-pulse`'s 50% stop rings a nagging button in `--gold-deep`.
-    expect(fills.sort()).toEqual([
-      '.bar__fill--dur', '.coin', '.meter__zone--crit', '.meter__zone--graze',
-      '.meter__zone--hit', '50%',
-    ].sort());
+    expect(fills.sort()).toEqual(
+      [
+        '.bar__fill--dur',
+        '.coin',
+        '.meter__zone--crit',
+        '.meter__zone--graze',
+        '.meter__zone--hit',
+        '50%',
+      ].sort()
+    );
   });
 });
 
@@ -678,12 +724,12 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
     const blue = rules
       .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
       .map((r) => r.sel);
-    expect(blue.sort()).toEqual([
-      ':focus-visible', '.btn--commit', '.btn:focus-visible',
-    ].sort());
+    expect(blue.sort()).toEqual([':focus-visible', '.btn--commit', '.btn:focus-visible'].sort());
     // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
     // rather than reaching for more blue. Named here so "three selectors" is not read as a gap.
-    expect(css).toMatch(/\.btn--commit:focus-visible \{ outline-color: var\(--bone-bright\); \}/);
+    expect(css).toMatch(
+      /\.btn--commit:focus-visible\s*\{\s*outline-color:\s*var\(--bone-bright\);\s*\}/
+    );
   });
 });
 
@@ -710,8 +756,9 @@ describe('endings gallery (spec §6.14)', () => {
   it('lets the slot pick the tilt through a variable, not by overriding transform', () => {
     expect(ruleFor('.ending-card')).toMatch(/transform:\s*rotate\(var\(--card-tilt/);
     const screens = readFileSync('src/styles/screens.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(screens, 'a screen must not override a component transform')
-      .not.toMatch(/\.ending-card\s*\{[^}]*transform:/);
+    expect(screens, 'a screen must not override a component transform').not.toMatch(
+      /\.ending-card\s*\{[^}]*transform:/
+    );
     expect(screens).toMatch(/\.gameover__stamp\s*\{[^}]*--card-tilt:/);
     expect(screens).toMatch(/\.gameover__right\s*\{[^}]*--card-tilt:/);
   });
@@ -725,8 +772,11 @@ describe('endings gallery (spec §6.14)', () => {
 // The two screens now build the stamp through one component (backlog item 29); this is the guard
 // that a second spelling cannot quietly reappear with a variant of its own.
 describe('banner stamps (spec §6.13)', () => {
-  const painted = new Set([...css.replace(/\/\*[\s\S]*?\*\//g, '')
-    .matchAll(/\.banner-stamp--([\w-]+)\s*\{/g)].map((m) => m[1]));
+  const painted = new Set(
+    [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/\.banner-stamp--([\w-]+)\s*\{/g)].map(
+      (m) => m[1]
+    )
+  );
 
   it('paints the three variants §6.13 names', () => {
     expect([...painted].sort()).toEqual(['death', 'defeat', 'victory']);
@@ -736,7 +786,8 @@ describe('banner stamps (spec §6.13)', () => {
     const seen = [];
     for (const [screen, host] of Object.entries(mountAll())) {
       for (const el of host.querySelectorAll('.banner-stamp')) {
-        const variants = [...el.classList].filter((c) => c.startsWith('banner-stamp--'))
+        const variants = [...el.classList]
+          .filter((c) => c.startsWith('banner-stamp--'))
           .map((c) => c.replace('banner-stamp--', ''));
         expect(variants.length, `${screen}: stamp names ${variants.length} variants`).toBe(1);
         expect(painted.has(variants[0]), `${screen}: no rule paints --${variants[0]}`).toBe(true);

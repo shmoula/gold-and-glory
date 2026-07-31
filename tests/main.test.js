@@ -263,12 +263,20 @@ describe('capture and freeze', () => {
 function driveFrames() {
   let nextId = 1;
   const pending = new Map();
-  vi.stubGlobal('requestAnimationFrame', vi.fn((cb) => {
-    const id = nextId++;
-    pending.set(id, cb);
-    return id;
-  }));
-  vi.stubGlobal('cancelAnimationFrame', vi.fn((id) => { pending.delete(id); }));
+  vi.stubGlobal(
+    'requestAnimationFrame',
+    vi.fn((cb) => {
+      const id = nextId++;
+      pending.set(id, cb);
+      return id;
+    })
+  );
+  vi.stubGlobal(
+    'cancelAnimationFrame',
+    vi.fn((id) => {
+      pending.delete(id);
+    })
+  );
   return {
     // Run exactly one frame: every callback queued right now, none of their continuations.
     frame() {
@@ -277,7 +285,9 @@ function driveFrames() {
       for (const cb of due) cb();
       return due.length;
     },
-    get queued() { return pending.size; },
+    get queued() {
+      return pending.size;
+    },
   };
 }
 
@@ -317,7 +327,10 @@ describe('the sweep loop (one at a time)', () => {
   it('stops every loop on capture, leaving nothing scheduled', () => {
     const frames = driveFrames();
     enterFight();
-    for (let turn = 0; turn < 3; turn += 1) { frames.frame(); act('1'); }
+    for (let turn = 0; turn < 3; turn += 1) {
+      frames.frame();
+      act('1');
+    }
     frames.frame();
     captureAt(renderedCenter());
     expect(frames.queued).toBe(0);
@@ -359,7 +372,10 @@ describe('keyboard parity (spec §8)', () => {
     // throws inside the listener, where jsdom swallows it — so the throw is captured here and
     // asserted on, rather than left to surface as an unattributed run error.
     const errors = [];
-    const onError = (e) => { errors.push(e.error ?? e.message); e.preventDefault(); };
+    const onError = (e) => {
+      errors.push(e.error ?? e.message);
+      e.preventDefault();
+    };
     window.addEventListener('error', onError);
     const before = app().innerHTML;
     press('1');
@@ -433,7 +449,9 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     const HEIGHT = 431;
     const real = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight');
     Object.defineProperty(Element.prototype, 'scrollHeight', {
-      configurable: true, get: () => HEIGHT });
+      configurable: true,
+      get: () => HEIGHT,
+    });
     try {
       enterFight();
       expect(q('.log').scrollTop).toBe(HEIGHT);
@@ -524,8 +542,11 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
   }
 
   // The rows as the card states them, so the announcement can be held to the card's own words.
-  const cardLines = () => [...app().querySelectorAll('.ledger__row')].map((row) =>
-    `${row.querySelector('dt').firstChild.textContent.trim()}: ${row.querySelector('dd').textContent}`);
+  const cardLines = () =>
+    [...app().querySelectorAll('.ledger__row')].map(
+      (row) =>
+        `${row.querySelector('dt').firstChild.textContent.trim()}: ${row.querySelector('dd').textContent}`
+    );
 
   // The silence guard. Every assertion is about *when* the text lands relative to the region's
   // insertion: the region must pre-date the result screen and still be the same node once the
@@ -576,8 +597,7 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
     for (const cell of cells) {
       for (let el = cell; el; el = el.parentElement) {
         expect(el.getAttribute('aria-live'), `${el.nodeName}.${el.className}`).toBeNull();
-        expect(el.getAttribute('role'), `${el.nodeName}.${el.className}`)
-          .not.toBe('status');
+        expect(el.getAttribute('role'), `${el.nodeName}.${el.className}`).not.toBe('status');
         expect(el.getAttribute('aria-hidden'), `${el.nodeName}.${el.className}`).toBeNull();
       }
     }
@@ -608,9 +628,16 @@ describe('money theater (spec §6.6 / §6.7)', () => {
     vi.useFakeTimers({
       toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
     });
-    try { body(); } finally { vi.useRealTimers(); }
+    try {
+      body();
+    } finally {
+      vi.useRealTimers();
+    }
   }
-  const tick = (ms) => { clock += ms; vi.advanceTimersByTime(ms); };
+  const tick = (ms) => {
+    clock += ms;
+    vi.advanceTimersByTime(ms);
+  };
 
   const TRAIN_COST = 80; // config: training.baseCost at level 0
   const START = CONFIG.startingGold;
@@ -660,8 +687,9 @@ describe('money theater (spec §6.6 / §6.7)', () => {
     withTimers(() => {
       expect(chips()).toEqual([]); // …but not on the first render of a run
       click('[data-action="train-power"]');
-      expect(chips().map((c) => c.textContent))
-        .toEqual([formatGold(-TRAIN_COST, { signed: true })]);
+      expect(chips().map((c) => c.textContent)).toEqual([
+        formatGold(-TRAIN_COST, { signed: true }),
+      ]);
       expect(chips()[0].className).toContain('delta-chip--neg');
       expect(purse().contains(chips()[0])).toBe(true);
     });
@@ -674,7 +702,8 @@ describe('money theater (spec §6.6 / §6.7)', () => {
       act('1');
       captureAt(renderedCenter());
       act('2'); // the Brute goes down; the result screen opens on a fatter purse
-      const won = CONFIG.opponents[0].purse - Math.round(CONFIG.opponents[0].purse * CONFIG.arena.taxRate);
+      const won =
+        CONFIG.opponents[0].purse - Math.round(CONFIG.opponents[0].purse * CONFIG.arena.taxRate);
       expect(chips().map((c) => c.textContent)).toEqual([formatGold(won, { signed: true })]);
       expect(chips()[0].className).toContain('delta-chip--pos');
     });
@@ -696,8 +725,7 @@ describe('money theater (spec §6.6 / §6.7)', () => {
       // codepoint rather than compared against a pasted glyph — U+2212 and a hyphen are
       // indistinguishable in source, so that comparison passes when both sides are wrong.
       expect(chips().length).toBe(1);
-      expect(chips()[0].textContent)
-        .toContain(`need ${button.getAttribute('data-missing')} more`);
+      expect(chips()[0].textContent).toContain(`need ${button.getAttribute('data-missing')} more`);
       expect(chips()[0].textContent.codePointAt(0)).toBe(0x2212);
       expect(chips()[0].className).toContain('delta-chip--neg');
       tick(300);
@@ -767,8 +795,9 @@ describe('money theater (spec §6.6 / §6.7)', () => {
       act('1');
       captureAt(renderedCenter());
       act('2'); // the result screen opens, mid-theater
-      const speaking = () =>
-        [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"]')];
+      const speaking = () => [
+        ...document.querySelectorAll('[aria-live], [role="status"], [role="alert"]'),
+      ];
       expect(app().querySelectorAll('.amount[data-unit]').length).toBeGreaterThan(2);
       expect(speaking().filter((el) => el.querySelector('.amount[data-unit]'))).toEqual([]);
       const before = speaking().map((el) => el.textContent);
@@ -870,7 +899,10 @@ describe('reduced motion, end to end (spec §5, plan Step 3)', () => {
   const cells = () => [...app().querySelectorAll('.amount[data-unit]')];
 
   const reduceMotion = () =>
-    vi.stubGlobal('matchMedia', vi.fn((media) => ({ media, matches: true })));
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((media) => ({ media, matches: true }))
+    );
 
   function withTimers(body) {
     // Exclude `performance` from the faked set: vitest's fake timers otherwise stub it too,
@@ -879,9 +911,16 @@ describe('reduced motion, end to end (spec §5, plan Step 3)', () => {
     vi.useFakeTimers({
       toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
     });
-    try { body(); } finally { vi.useRealTimers(); }
+    try {
+      body();
+    } finally {
+      vi.useRealTimers();
+    }
   }
-  const tick = (ms) => { clock += ms; vi.advanceTimersByTime(ms); };
+  const tick = (ms) => {
+    clock += ms;
+    vi.advanceTimersByTime(ms);
+  };
 
   const TRAIN_COST = 80; // config: training.baseCost at level 0
   const START = CONFIG.startingGold;
@@ -933,8 +972,9 @@ describe('reduced motion, end to end (spec §5, plan Step 3)', () => {
     reduceMotion();
     withTimers(() => {
       click('[data-action="train-power"]');
-      expect(chips().map((c) => c.textContent))
-        .toEqual([formatGold(-TRAIN_COST, { signed: true })]);
+      expect(chips().map((c) => c.textContent)).toEqual([
+        formatGold(-TRAIN_COST, { signed: true }),
+      ]);
       tick(CHIP_LIFE_MS + 10);
       expect(chips().length, 'the chip is gone before it could be read').toBe(1);
       tick(REDUCED_CHIP_LIFE_MS - CHIP_LIFE_MS);
@@ -954,8 +994,7 @@ describe('reduced motion, end to end (spec §5, plan Step 3)', () => {
       button.click();
       expect(purse().classList.contains('is-shaking')).toBe(false);
       expect(chips().length).toBe(1);
-      expect(chips()[0].textContent)
-        .toContain(`need ${button.getAttribute('data-missing')} more`);
+      expect(chips()[0].textContent).toContain(`need ${button.getAttribute('data-missing')} more`);
       expect(chips()[0].textContent.codePointAt(0)).toBe(0x2212);
     });
   });

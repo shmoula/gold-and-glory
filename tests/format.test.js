@@ -29,7 +29,7 @@ describe('formatGold', () => {
   // them by codepoint — an assertion against a pasted character cannot catch a swap.
   it('pins the two significant codepoints', () => {
     expect([...formatGold(5)].map((c) => c.codePointAt(0))).toContain(0x00a0); // NBSP, not U+0020
-    expect(formatGold(-5).codePointAt(0)).toBe(0x2212);                        // minus, not U+002D
+    expect(formatGold(-5).codePointAt(0)).toBe(0x2212); // minus, not U+002D
   });
 });
 
@@ -52,8 +52,10 @@ describe('MINUS', () => {
   // fourth spelling of the same character, rendered on screen beside the three the JS spells,
   // and one that would never show up in a formatGold assertion.
   it('is the only place in src/ that spells the character out', () => {
-    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-      (e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]));
+    const walk = (dir) =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]
+      );
     // Three spellings of one character: the raw glyph, JS's escape, and CSS's escape.
     const spelled = /\u2212|\\u2212|\\2212/;
     const offenders = walk('src')

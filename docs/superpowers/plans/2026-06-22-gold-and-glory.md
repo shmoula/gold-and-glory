@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the shippable MVP slice of *Gold & Glory* — a turn-based arena fighter with a faucet/sink economy, runnable in a browser with one command.
+**Goal:** Build the shippable MVP slice of _Gold & Glory_ — a turn-based arena fighter with a faucet/sink economy, runnable in a browser with one command.
 
 **Architecture:** Pure-logic core (RNG, config, economy, combat, state, game orchestrator) with zero DOM dependencies, unit-tested with Vitest. A thin UI layer renders state to HTML strings and wires events. A single `main.js` bootstraps the game loop through the `HUB → FIGHT → RESULT → HUB (+ GAMEOVER)` state machine. All balance values live in one config object for fast tuning. Combat uses seeded randomness so runs are reproducible.
 
@@ -12,22 +12,22 @@
 
 ## File Structure
 
-| File | Responsibility |
-|---|---|
-| `package.json` | Scripts + dev dependencies (Vite, Vitest, jsdom) |
-| `vite.config.js` | Vitest config (jsdom environment, globals) |
-| `index.html` | Single page; mounts `#app`, loads `src/main.js` |
-| `src/config.js` | All balance values — the single tuning object |
-| `src/rng.js` | Seeded RNG (mulberry32) + helpers |
-| `src/economy.js` | Pure faucet/sink math: costs, payouts, tax, bribe, sponsor |
-| `src/combat.js` | Pure combat: timing, damage, turn resolution, enemy AI, win check |
-| `src/state.js` | Game-state factory + phase-transition state machine |
-| `src/game.js` | Orchestrator: effective stats, purchases, fight start/resolve, end states |
-| `src/ui/render.js` | Pure render-to-string helpers (HUD, hub, fight, result, gameover) |
-| `src/ui/screens.js` | Mounts rendered HTML + wires DOM event listeners to game actions |
-| `src/main.js` | Bootstrap: create state, drive the screen loop |
-| `src/styles.css` | Minimal layout + screenshot-friendly result cards |
-| `tests/*.test.js` | One test file per logic module |
+| File                | Responsibility                                                            |
+| ------------------- | ------------------------------------------------------------------------- |
+| `package.json`      | Scripts + dev dependencies (Vite, Vitest, jsdom)                          |
+| `vite.config.js`    | Vitest config (jsdom environment, globals)                                |
+| `index.html`        | Single page; mounts `#app`, loads `src/main.js`                           |
+| `src/config.js`     | All balance values — the single tuning object                             |
+| `src/rng.js`        | Seeded RNG (mulberry32) + helpers                                         |
+| `src/economy.js`    | Pure faucet/sink math: costs, payouts, tax, bribe, sponsor                |
+| `src/combat.js`     | Pure combat: timing, damage, turn resolution, enemy AI, win check         |
+| `src/state.js`      | Game-state factory + phase-transition state machine                       |
+| `src/game.js`       | Orchestrator: effective stats, purchases, fight start/resolve, end states |
+| `src/ui/render.js`  | Pure render-to-string helpers (HUD, hub, fight, result, gameover)         |
+| `src/ui/screens.js` | Mounts rendered HTML + wires DOM event listeners to game actions          |
+| `src/main.js`       | Bootstrap: create state, drive the screen loop                            |
+| `src/styles.css`    | Minimal layout + screenshot-friendly result cards                         |
+| `tests/*.test.js`   | One test file per logic module                                            |
 
 Each logic module is a pure function set (state in → new values out) so it can be tested without a browser. The UI never contains game rules — it only reads state and calls `game.js`/`economy.js`.
 
@@ -36,6 +36,7 @@ Each logic module is a pure function set (state in → new values out) so it can
 ## Data Model (shared types — keep names consistent across all tasks)
 
 **Game state** (from `createGameState`):
+
 ```js
 {
   seed: number,
@@ -59,6 +60,7 @@ Each logic module is a pure function set (state in → new values out) so it can
 ```
 
 **Combat state** (from `createCombat`):
+
 ```js
 {
   player: { health, maxHealth, power, guard, speed, critWindowMult, weaponBroken },
@@ -71,6 +73,7 @@ Each logic module is a pure function set (state in → new values out) so it can
 ```
 
 **Result card** (from `resolveFightOutcome`):
+
 ```js
 {
   won: boolean,
@@ -94,6 +97,7 @@ Each logic module is a pure function set (state in → new values out) so it can
 ## Task 1: Project scaffolding
 
 **Files:**
+
 - Create: `package.json`
 - Create: `vite.config.js`
 - Create: `index.html`
@@ -172,10 +176,24 @@ if (app) app.textContent = 'Gold & Glory — loading…';
   --good: #5a8a4a;
   font-family: system-ui, sans-serif;
 }
-body { background: var(--bg); color: var(--text); margin: 0; }
-#app { max-width: 720px; margin: 0 auto; padding: 16px; }
-button { font: inherit; cursor: pointer; }
-button:disabled { opacity: 0.4; cursor: not-allowed; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+}
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 ```
 
 - [ ] **Step 6: Install dependencies**
@@ -202,6 +220,7 @@ git commit -m "chore: scaffold Gold & Glory project (Vite + Vitest)"
 ## Task 2: Seeded RNG
 
 **Files:**
+
 - Create: `src/rng.js`
 - Test: `tests/rng.test.js`
 
@@ -302,6 +321,7 @@ git commit -m "feat: seeded RNG (mulberry32) with int/chance helpers"
 ## Task 3: Config / balance object
 
 **Files:**
+
 - Create: `src/config.js`
 - Test: `tests/config.test.js`
 
@@ -350,7 +370,10 @@ describe('CONFIG', () => {
     expect(CONFIG.opponents).toHaveLength(4);
     expect(CONFIG.opponents.map((o) => o.purse)).toEqual([50, 120, 280, 700]);
     expect(CONFIG.opponents.map((o) => o.tier)).toEqual([
-      'safe', 'standard', 'hard', 'death-match',
+      'safe',
+      'standard',
+      'hard',
+      'death-match',
     ]);
   });
 
@@ -432,24 +455,48 @@ export const CONFIG = {
 
   opponents: [
     {
-      id: 'brute', name: 'The Brute', tier: 'safe',
-      health: 40, power: 4, guard: 2, speed: 3,
-      purse: 50, deathRisk: 0,
+      id: 'brute',
+      name: 'The Brute',
+      tier: 'safe',
+      health: 40,
+      power: 4,
+      guard: 2,
+      speed: 3,
+      purse: 50,
+      deathRisk: 0,
     },
     {
-      id: 'journeyman', name: 'The Journeyman', tier: 'standard',
-      health: 70, power: 7, guard: 4, speed: 5,
-      purse: 120, deathRisk: 0.05,
+      id: 'journeyman',
+      name: 'The Journeyman',
+      tier: 'standard',
+      health: 70,
+      power: 7,
+      guard: 4,
+      speed: 5,
+      purse: 120,
+      deathRisk: 0.05,
     },
     {
-      id: 'veteran', name: 'The Veteran', tier: 'hard',
-      health: 110, power: 11, guard: 7, speed: 7,
-      purse: 280, deathRisk: 0.15,
+      id: 'veteran',
+      name: 'The Veteran',
+      tier: 'hard',
+      health: 110,
+      power: 11,
+      guard: 7,
+      speed: 7,
+      purse: 280,
+      deathRisk: 0.15,
     },
     {
-      id: 'champion', name: 'The Champion', tier: 'death-match',
-      health: 170, power: 16, guard: 10, speed: 10,
-      purse: 700, deathRisk: 0.35,
+      id: 'champion',
+      name: 'The Champion',
+      tier: 'death-match',
+      health: 170,
+      power: 16,
+      guard: 10,
+      speed: 10,
+      purse: 700,
+      deathRisk: 0.35,
     },
   ],
 
@@ -479,6 +526,7 @@ git commit -m "feat: central balance config from spec starter table"
 ## Task 4: Economy — sink cost functions
 
 **Files:**
+
 - Create: `src/economy.js`
 - Test: `tests/economy.test.js`
 
@@ -488,9 +536,7 @@ git commit -m "feat: central balance config from spec starter table"
 // tests/economy.test.js
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
-import {
-  trainingCost, repairCost, healCost, canAfford,
-} from '../src/economy.js';
+import { trainingCost, repairCost, healCost, canAfford } from '../src/economy.js';
 
 describe('trainingCost', () => {
   it('costs base at level 0 and scales x1.6 per level', () => {
@@ -567,6 +613,7 @@ git commit -m "feat: economy sink cost functions (train/repair/heal)"
 ## Task 5: Economy — payout, tax, bribe, sponsor
 
 **Files:**
+
 - Modify: `src/economy.js`
 - Test: `tests/economy.test.js` (add cases)
 
@@ -586,8 +633,8 @@ describe('arenaTax', () => {
 
 describe('fightPayout', () => {
   it('is purse minus tax', () => {
-    expect(fightPayout(120, false, CONFIG)).toBe(96);  // 120 - 24
-    expect(fightPayout(120, true, CONFIG)).toBe(114);  // 120 - 6
+    expect(fightPayout(120, false, CONFIG)).toBe(96); // 120 - 24
+    expect(fightPayout(120, true, CONFIG)).toBe(114); // 120 - 6
   });
 });
 
@@ -640,6 +687,7 @@ git commit -m "feat: economy faucet functions (payout/tax/bribe/sponsor)"
 ## Task 6: Combat — timing resolution
 
 **Files:**
+
 - Create: `src/combat.js`
 - Test: `tests/combat.test.js`
 
@@ -731,6 +779,7 @@ git commit -m "feat: combat timing window + tier resolution"
 ## Task 7: Combat — damage computation
 
 **Files:**
+
 - Modify: `src/combat.js`
 - Test: `tests/combat.test.js` (add cases)
 
@@ -764,8 +813,9 @@ describe('computeDamage', () => {
   });
 
   it('never goes below zero', () => {
-    expect(computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config: CONFIG }))
-      .toBe(0);
+    expect(
+      computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config: CONFIG })
+    ).toBe(0);
   });
 
   it('applies the press-attack bonus multiplier', () => {
@@ -791,8 +841,13 @@ Append to `src/combat.js`:
 
 ```js
 export function computeDamage({
-  baseDamage, power, guard, timing,
-  pressMultiplier = 1, weaponBroken = false, config,
+  baseDamage,
+  power,
+  guard,
+  timing,
+  pressMultiplier = 1,
+  weaponBroken = false,
+  config,
 }) {
   const mult = config.combat.timingMult[timing];
   if (mult === 0) return 0;
@@ -820,6 +875,7 @@ git commit -m "feat: combat damage computation (timing/press/broken/guard)"
 ## Task 8: Combat — create state and player actions
 
 **Files:**
+
 - Modify: `src/combat.js`
 - Test: `tests/combat.test.js` (add cases)
 
@@ -833,8 +889,13 @@ Append to `tests/combat.test.js`:
 import { createCombat, applyPlayerAction, isFightOver, fightWinner } from '../src/combat.js';
 
 const playerStats = {
-  health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-  critWindowMult: 1, weaponBroken: false,
+  health: 100,
+  maxHealth: 100,
+  power: 5,
+  guard: 5,
+  speed: 5,
+  critWindowMult: 1,
+  weaponBroken: false,
 };
 const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -945,8 +1006,12 @@ export function applyPlayerAction(combat, action, timing, config) {
   if (action === 'feint') {
     next.pendingBonus = def.nextHitBonus;
     const dmg = computeDamage({
-      baseDamage: def.baseDamage, power: next.player.power,
-      guard: next.enemy.guard, timing, weaponBroken: next.player.weaponBroken, config,
+      baseDamage: def.baseDamage,
+      power: next.player.power,
+      guard: next.enemy.guard,
+      timing,
+      weaponBroken: next.player.weaponBroken,
+      config,
     });
     next.enemy.health -= dmg;
     next.log.push(`You feint (${timing}) for ${dmg}, baiting their guard.`);
@@ -956,9 +1021,13 @@ export function applyPlayerAction(combat, action, timing, config) {
   // strike / heavy
   const pressMultiplier = 1 + (combat.pendingBonus || 0);
   const dmg = computeDamage({
-    baseDamage: def.baseDamage, power: next.player.power,
-    guard: next.enemy.guard, timing, pressMultiplier,
-    weaponBroken: next.player.weaponBroken, config,
+    baseDamage: def.baseDamage,
+    power: next.player.power,
+    guard: next.enemy.guard,
+    timing,
+    pressMultiplier,
+    weaponBroken: next.player.weaponBroken,
+    config,
   });
   next.enemy.health -= dmg;
   next.pendingBonus = 0;
@@ -1003,6 +1072,7 @@ git commit -m "feat: combat state, player actions, win detection"
 ## Task 9: Combat — press the attack + enemy turn
 
 **Files:**
+
 - Modify: `src/combat.js`
 - Test: `tests/combat.test.js` (add cases)
 
@@ -1080,9 +1150,12 @@ export function applyPress(combat, timing, config) {
   const next = cloneCombat(combat);
   const dmg = computeDamage({
     baseDamage: config.combat.actions.strike.baseDamage,
-    power: next.player.power, guard: next.enemy.guard, timing,
+    power: next.player.power,
+    guard: next.enemy.guard,
+    timing,
     pressMultiplier: config.combat.pressAttack.bonusMultiplier,
-    weaponBroken: next.player.weaponBroken, config,
+    weaponBroken: next.player.weaponBroken,
+    config,
   });
   next.enemy.health -= dmg;
   next.guardDropped = true;
@@ -1108,7 +1181,10 @@ export function enemyTurn(combat, rng, config) {
 
   let dmg = computeDamage({
     baseDamage: config.combat.actions.strike.baseDamage,
-    power: next.enemy.power, guard: next.player.guard, timing: tier, config,
+    power: next.enemy.power,
+    guard: next.player.guard,
+    timing: tier,
+    config,
   });
 
   if (next.counterReady) {
@@ -1142,6 +1218,7 @@ git commit -m "feat: press-the-attack and enemy turn resolution"
 ## Task 10: Game state factory + phase transitions
 
 **Files:**
+
 - Create: `src/state.js`
 - Test: `tests/state.test.js`
 
@@ -1270,6 +1347,7 @@ git commit -m "feat: game state factory and phase state machine"
 ## Task 11: Game orchestrator — effective stats + purchases
 
 **Files:**
+
 - Create: `src/game.js`
 - Test: `tests/game.test.js`
 
@@ -1283,7 +1361,12 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  effectiveStats, trainStat, repairWeapon, healInjuries, buyGear, bribeOfficial,
+  effectiveStats,
+  trainStat,
+  repairWeapon,
+  healInjuries,
+  buyGear,
+  bribeOfficial,
 } from '../src/game.js';
 
 describe('effectiveStats', () => {
@@ -1298,7 +1381,7 @@ describe('effectiveStats', () => {
 
   it('adds training (statPerLevel) and gear bonuses', () => {
     const s = createGameState(1, CONFIG);
-    s.trainingLevels.power = 2;     // +4 power
+    s.trainingLevels.power = 2; // +4 power
     s.gear = ['blade', 'shield', 'charm']; // +4 power, +3 guard, x1.5 crit window
     const e = effectiveStats(s, CONFIG);
     expect(e.power).toBe(5 + 4 + 4);
@@ -1338,7 +1421,9 @@ describe('repairWeapon', () => {
 describe('healInjuries', () => {
   it('clears injuries, restores health, charges per injury', () => {
     const s = createGameState(1, CONFIG);
-    s.injuries = 2; s.health = 60; s.gold = 100;
+    s.injuries = 2;
+    s.health = 60;
+    s.gold = 100;
     const next = healInjuries(s, CONFIG);
     expect(next.injuries).toBe(0);
     expect(next.health).toBe(100);
@@ -1357,7 +1442,8 @@ describe('buyGear', () => {
 
   it('refuses to buy the same gear twice', () => {
     const s = createGameState(1, CONFIG);
-    s.gold = 400; s.gear = ['shield'];
+    s.gold = 400;
+    s.gear = ['shield'];
     const next = buyGear(s, 'shield', CONFIG);
     expect(next.gold).toBe(400);
   });
@@ -1466,6 +1552,7 @@ git commit -m "feat: game orchestrator effective stats + purchases"
 ## Task 12: Game orchestrator — start fight, resolve outcome, end states
 
 **Files:**
+
 - Modify: `src/game.js`
 - Test: `tests/game.test.js` (add cases)
 
@@ -1631,9 +1718,15 @@ export function resolveFightOutcome(state, won, rng, config) {
     const durabilityLost = Math.min(config.weapon.durabilityLossPerFight, state.weaponDurability);
 
     const result = {
-      won: true, died: false, opponentName: opponent.name,
-      purse: opponent.purse, tax, sponsorIncome: sponsor,
-      netGold: net + sponsor, durabilityLost, injuriesGained: 0,
+      won: true,
+      died: false,
+      opponentName: opponent.name,
+      purse: opponent.purse,
+      tax,
+      sponsorIncome: sponsor,
+      netGold: net + sponsor,
+      durabilityLost,
+      injuriesGained: 0,
       causeOfDeath: null,
       commentary: `${opponent.name} falls. The crowd wants more.`,
     };
@@ -1652,7 +1745,12 @@ export function resolveFightOutcome(state, won, rng, config) {
     };
 
     if (isLast) {
-      return { ...transition(base, PHASE.RESULT), phase: PHASE.GAMEOVER, ended: 'win-circuit', lastResult: result };
+      return {
+        ...transition(base, PHASE.RESULT),
+        phase: PHASE.GAMEOVER,
+        ended: 'win-circuit',
+        lastResult: result,
+      };
     }
     return { ...transition(base, PHASE.RESULT), lastResult: result };
   }
@@ -1660,14 +1758,18 @@ export function resolveFightOutcome(state, won, rng, config) {
   // loss
   const died = rngChance(rng, opponent.deathRisk);
   const durabilityLost = Math.min(config.weapon.durabilityLossPerFight, state.weaponDurability);
-  const cause = died
-    ? config.deathRecaps[rngInt(rng, 0, config.deathRecaps.length - 1)]
-    : null;
+  const cause = died ? config.deathRecaps[rngInt(rng, 0, config.deathRecaps.length - 1)] : null;
 
   const result = {
-    won: false, died, opponentName: opponent.name,
-    purse: 0, tax: 0, sponsorIncome: 0, netGold: 0,
-    durabilityLost, injuriesGained: died ? 0 : 1,
+    won: false,
+    died,
+    opponentName: opponent.name,
+    purse: 0,
+    tax: 0,
+    sponsorIncome: 0,
+    netGold: 0,
+    durabilityLost,
+    injuriesGained: died ? 0 : 1,
     causeOfDeath: cause,
     commentary: died
       ? `And that's the end of that gladiator.`
@@ -1685,7 +1787,12 @@ export function resolveFightOutcome(state, won, rng, config) {
   };
 
   if (died) {
-    return { ...transition(base, PHASE.RESULT), phase: PHASE.GAMEOVER, ended: 'dead', lastResult: result };
+    return {
+      ...transition(base, PHASE.RESULT),
+      phase: PHASE.GAMEOVER,
+      ended: 'dead',
+      lastResult: result,
+    };
   }
   return { ...transition(base, PHASE.RESULT), lastResult: result };
 }
@@ -1719,6 +1826,7 @@ git commit -m "feat: fight start/resolve, sponsor unlock, death roll, end states
 ## Task 13: UI — pure render functions
 
 **Files:**
+
 - Create: `src/ui/render.js`
 - Test: `tests/render.test.js`
 
@@ -1767,9 +1875,16 @@ describe('renderResult', () => {
   it('renders a win recap card', () => {
     const s = createGameState(1, CONFIG);
     s.lastResult = {
-      won: true, died: false, opponentName: 'The Brute',
-      purse: 50, tax: 10, sponsorIncome: 0, netGold: 40,
-      durabilityLost: 3, injuriesGained: 0, causeOfDeath: null,
+      won: true,
+      died: false,
+      opponentName: 'The Brute',
+      purse: 50,
+      tax: 10,
+      sponsorIncome: 0,
+      netGold: 40,
+      durabilityLost: 3,
+      injuriesGained: 0,
+      causeOfDeath: null,
       commentary: 'The Brute falls.',
     };
     const html = renderResult(s, CONFIG);
@@ -1811,7 +1926,9 @@ import { effectiveStats } from '../game.js';
 
 export function escapeHtml(s) {
   return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
 
@@ -1836,15 +1953,19 @@ export function renderHub(state, config) {
   const missing = config.weapon.maxDurability - state.weaponDurability;
   const opponent = config.opponents[state.currentOpponentIndex];
 
-  const trainButtons = ['power', 'guard', 'speed'].map((stat) => {
-    const cost = trainingCost(state.trainingLevels[stat], config);
-    return btn(`train-${stat}`, `Train ${stat} → ${eff[stat]}`, cost, state.gold);
-  }).join('');
+  const trainButtons = ['power', 'guard', 'speed']
+    .map((stat) => {
+      const cost = trainingCost(state.trainingLevels[stat], config);
+      return btn(`train-${stat}`, `Train ${stat} → ${eff[stat]}`, cost, state.gold);
+    })
+    .join('');
 
-  const gearButtons = Object.values(config.gear).map((g) => {
-    if (state.gear.includes(g.id)) return `<button disabled>${escapeHtml(g.name)} ✓</button>`;
-    return btn(`buy-${g.id}`, g.name, g.cost, state.gold);
-  }).join('');
+  const gearButtons = Object.values(config.gear)
+    .map((g) => {
+      if (state.gear.includes(g.id)) return `<button disabled>${escapeHtml(g.name)} ✓</button>`;
+      return btn(`buy-${g.id}`, g.name, g.cost, state.gold);
+    })
+    .join('');
 
   return `
     ${renderHud(state, config)}
@@ -1854,9 +1975,11 @@ export function renderHub(state, config) {
       <div class="row">
         ${btn('repair', 'Repair weapon', repairCost(missing, config), state.gold, missing <= 0 ? ' data-noop="1"' : '')}
         ${btn('heal', `Heal ${state.injuries} injuries`, healCost(state.injuries, config), state.gold)}
-        ${state.bribedThisFight
-          ? '<button disabled>Bribed ✓</button>'
-          : btn('bribe', 'Bribe official', config.arena.bribeCost, state.gold)}
+        ${
+          state.bribedThisFight
+            ? '<button disabled>Bribed ✓</button>'
+            : btn('bribe', 'Bribe official', config.arena.bribeCost, state.gold)
+        }
       </div>
       <div class="row">${gearButtons}</div>
       ${state.sponsorUnlocked ? `<p class="sponsor">Sponsor active: +${config.sponsor.stipendPerFight}g/fight. Objective: ${escapeHtml(config.sponsor.objective)}</p>` : ''}
@@ -1875,15 +1998,19 @@ export function renderResult(state, config) {
     <section class="result ${cls}">
       <h2>${r.won ? 'VICTORY' : 'DEFEAT'} — ${escapeHtml(r.opponentName)}</h2>
       <p>${escapeHtml(r.commentary)}</p>
-      ${r.won ? `<ul>
+      ${
+        r.won
+          ? `<ul>
         <li>Purse: ${r.purse}g (tax ${r.tax}g)</li>
         ${r.sponsorIncome ? `<li>Sponsor: +${r.sponsorIncome}g</li>` : ''}
         <li><strong>Net: +${r.netGold}g</strong></li>
         <li>Weapon wear: -${r.durabilityLost} durability</li>
-      </ul>` : `<ul>
+      </ul>`
+          : `<ul>
         <li>Injuries gained: ${r.injuriesGained}</li>
         <li>Weapon wear: -${r.durabilityLost} durability</li>
-      </ul>`}
+      </ul>`
+      }
       <button data-action="to-hub">Back to the Ludus</button>
     </section>`;
 }
@@ -1925,6 +2052,7 @@ git commit -m "feat: pure HTML render functions for HUD/hub/result/gameover"
 ## Task 14: UI — fight screen render + timing meter helper
 
 **Files:**
+
 - Modify: `src/ui/render.js`
 - Test: `tests/render.test.js` (add cases)
 
@@ -1982,7 +2110,10 @@ export function meterDistance(clickPos, sweetSpot) {
 
 export function renderFight(state, config) {
   const c = state.combat;
-  const logHtml = c.log.slice(-6).map((l) => `<li>${escapeHtml(l)}</li>`).join('');
+  const logHtml = c.log
+    .slice(-6)
+    .map((l) => `<li>${escapeHtml(l)}</li>`)
+    .join('');
   return `
     ${renderHud(state, config)}
     <section class="fight">
@@ -2024,6 +2155,7 @@ git commit -m "feat: fight screen render + timing meter distance helper"
 ## Task 15: UI — screen mounting + event wiring
 
 **Files:**
+
 - Create: `src/ui/screens.js`
 - Test: `tests/screens.test.js`
 
@@ -2100,11 +2232,20 @@ import { renderHub, renderFight, renderResult, renderGameOver } from './render.j
 export function mount(container, state, config) {
   let html;
   switch (state.phase) {
-    case PHASE.HUB: html = renderHub(state, config); break;
-    case PHASE.FIGHT: html = renderFight(state, config); break;
-    case PHASE.RESULT: html = renderResult(state, config); break;
-    case PHASE.GAMEOVER: html = renderGameOver(state, config); break;
-    default: html = '<p>Unknown phase</p>';
+    case PHASE.HUB:
+      html = renderHub(state, config);
+      break;
+    case PHASE.FIGHT:
+      html = renderFight(state, config);
+      break;
+    case PHASE.RESULT:
+      html = renderResult(state, config);
+      break;
+    case PHASE.GAMEOVER:
+      html = renderGameOver(state, config);
+      break;
+    default:
+      html = '<p>Unknown phase</p>';
   }
   container.innerHTML = html;
 }
@@ -2138,6 +2279,7 @@ git commit -m "feat: screen mounting + delegated event wiring"
 ## Task 16: Timing meter animation + press-the-attack flow
 
 **Files:**
+
 - Modify: `src/combat.js`
 - Test: `tests/combat.test.js` (add cases)
 
@@ -2183,7 +2325,7 @@ Append to `src/combat.js`:
 
 ```js
 export function markPressable(combat, action, timing) {
-  const damaging = (action === 'strike' || action === 'heavy' || action === 'feint');
+  const damaging = action === 'strike' || action === 'heavy' || action === 'feint';
   const landed = timing !== TIMING.MISS;
   return { ...combat, canPress: damaging && landed && combat.enemy.health > 0 };
 }
@@ -2206,6 +2348,7 @@ git commit -m "feat: pressable flag after a landed player hit"
 ## Task 17: Bootstrap — wire the full game loop in main.js
 
 **Files:**
+
 - Modify: `src/main.js`
 - Modify: `src/styles.css` (add screen styles)
 
@@ -2219,12 +2362,25 @@ import { CONFIG } from './config.js';
 import { createGameState, transition, PHASE } from './state.js';
 import { makeRng } from './rng.js';
 import {
-  effectiveStats, trainStat, repairWeapon, healInjuries, buyGear, bribeOfficial,
-  startFight, resolveFightOutcome, retire,
+  effectiveStats,
+  trainStat,
+  repairWeapon,
+  healInjuries,
+  buyGear,
+  bribeOfficial,
+  startFight,
+  resolveFightOutcome,
+  retire,
 } from './game.js';
 import {
-  resolveTiming, timingWindowWidth, applyPlayerAction, applyPress,
-  enemyTurn, isFightOver, fightWinner, markPressable,
+  resolveTiming,
+  timingWindowWidth,
+  applyPlayerAction,
+  applyPress,
+  enemyTurn,
+  isFightOver,
+  fightWinner,
+  markPressable,
 } from './combat.js';
 import { meterDistance } from './ui/render.js';
 import { mount, wire } from './ui/screens.js';
@@ -2264,8 +2420,14 @@ function startMeter() {
   function step() {
     if (!meter.running) return;
     meter.pos += meter.dir * speed;
-    if (meter.pos >= 1) { meter.pos = 1; meter.dir = -1; }
-    if (meter.pos <= 0) { meter.pos = 0; meter.dir = 1; }
+    if (meter.pos >= 1) {
+      meter.pos = 1;
+      meter.dir = -1;
+    }
+    if (meter.pos <= 0) {
+      meter.pos = 0;
+      meter.dir = 1;
+    }
     cursor.style.left = `${meter.pos * 100}%`;
     meter.raf = requestAnimationFrame(step);
   }
@@ -2296,7 +2458,10 @@ function doPlayerAction(action) {
   state = { ...state, combat };
 
   if (isFightOver(state.combat)) return endFight();
-  if (state.combat.canPress) { render(); return; } // offer press before enemy acts
+  if (state.combat.canPress) {
+    render();
+    return;
+  } // offer press before enemy acts
   enemyResponds();
 }
 
@@ -2324,23 +2489,59 @@ function endFight() {
 
 // --- Action handlers ---
 const handlers = {
-  'train-power': () => { state = trainStat(state, 'power', CONFIG); render(); },
-  'train-guard': () => { state = trainStat(state, 'guard', CONFIG); render(); },
-  'train-speed': () => { state = trainStat(state, 'speed', CONFIG); render(); },
-  repair: () => { state = repairWeapon(state, CONFIG); render(); },
-  heal: () => { state = healInjuries(state, CONFIG); render(); },
-  'buy-shield': () => { state = buyGear(state, 'shield', CONFIG); render(); },
-  'buy-blade': () => { state = buyGear(state, 'blade', CONFIG); render(); },
-  'buy-charm': () => { state = buyGear(state, 'charm', CONFIG); render(); },
-  bribe: () => { state = bribeOfficial(state, CONFIG); render(); },
-  'next-fight': () => { state = startFight(state, CONFIG); render(); },
-  retire: () => { state = retire(state); render(); },
+  'train-power': () => {
+    state = trainStat(state, 'power', CONFIG);
+    render();
+  },
+  'train-guard': () => {
+    state = trainStat(state, 'guard', CONFIG);
+    render();
+  },
+  'train-speed': () => {
+    state = trainStat(state, 'speed', CONFIG);
+    render();
+  },
+  repair: () => {
+    state = repairWeapon(state, CONFIG);
+    render();
+  },
+  heal: () => {
+    state = healInjuries(state, CONFIG);
+    render();
+  },
+  'buy-shield': () => {
+    state = buyGear(state, 'shield', CONFIG);
+    render();
+  },
+  'buy-blade': () => {
+    state = buyGear(state, 'blade', CONFIG);
+    render();
+  },
+  'buy-charm': () => {
+    state = buyGear(state, 'charm', CONFIG);
+    render();
+  },
+  bribe: () => {
+    state = bribeOfficial(state, CONFIG);
+    render();
+  },
+  'next-fight': () => {
+    state = startFight(state, CONFIG);
+    render();
+  },
+  retire: () => {
+    state = retire(state);
+    render();
+  },
   strike: () => doPlayerAction('strike'),
   heavy: () => doPlayerAction('heavy'),
   block: () => doPlayerAction('block'),
   feint: () => doPlayerAction('feint'),
   press: () => doPress(),
-  'to-hub': () => { state = transition(state, PHASE.HUB); render(); },
+  'to-hub': () => {
+    state = transition(state, PHASE.HUB);
+    render();
+  },
   restart: () => newRun(),
 };
 
@@ -2351,22 +2552,99 @@ newRun();
 - [ ] **Step 2: Append screen styles to `src/styles.css`**
 
 ```css
-.hud { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #463829; margin-bottom: 12px; }
-.hud .gold { color: var(--gold); font-weight: 700; }
-.hub .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-.hub button, .actions button, .result button, .gameover button { background: var(--panel); color: var(--text); border: 1px solid #5a4632; border-radius: 6px; padding: 8px 12px; }
-.sponsor { color: var(--gold); }
-.combatants { display: flex; justify-content: space-between; font-size: 1.2rem; margin: 16px 0; }
-.timing-meter { position: relative; height: 28px; background: #120d09; border: 1px solid #5a4632; border-radius: 6px; margin: 12px 0; cursor: crosshair; }
-.meter-sweet { position: absolute; top: 0; bottom: 0; width: 14%; transform: translateX(-50%); background: rgba(90,138,74,0.5); }
-.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--gold); }
-.actions { display: flex; gap: 8px; }
-.press { background: var(--danger); color: #fff; margin-top: 8px; }
-.log { font-size: 0.85rem; color: #b8a888; list-style: none; padding: 0; }
-.result.good { border-left: 4px solid var(--good); padding-left: 12px; }
-.result.danger { border-left: 4px solid var(--danger); padding-left: 12px; }
-.result .cause, .gameover .cause { font-style: italic; color: var(--danger); }
-.gameover { text-align: center; padding: 32px 0; }
+.hud {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid #463829;
+  margin-bottom: 12px;
+}
+.hud .gold {
+  color: var(--gold);
+  font-weight: 700;
+}
+.hub .row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.hub button,
+.actions button,
+.result button,
+.gameover button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #5a4632;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.sponsor {
+  color: var(--gold);
+}
+.combatants {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.2rem;
+  margin: 16px 0;
+}
+.timing-meter {
+  position: relative;
+  height: 28px;
+  background: #120d09;
+  border: 1px solid #5a4632;
+  border-radius: 6px;
+  margin: 12px 0;
+  cursor: crosshair;
+}
+.meter-sweet {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  transform: translateX(-50%);
+  background: rgba(90, 138, 74, 0.5);
+}
+.meter-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gold);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.press {
+  background: var(--danger);
+  color: #fff;
+  margin-top: 8px;
+}
+.log {
+  font-size: 0.85rem;
+  color: #b8a888;
+  list-style: none;
+  padding: 0;
+}
+.result.good {
+  border-left: 4px solid var(--good);
+  padding-left: 12px;
+}
+.result.danger {
+  border-left: 4px solid var(--danger);
+  padding-left: 12px;
+}
+.result .cause,
+.gameover .cause {
+  font-style: italic;
+  color: var(--danger);
+}
+.gameover {
+  text-align: center;
+  padding: 32px 0;
+}
 ```
 
 - [ ] **Step 3: Run the full test suite (ensure nothing regressed)**
@@ -2378,6 +2656,7 @@ Expected: PASS — all test files green.
 
 Run: `npm run dev`
 Then open the printed URL. Verify, unprompted-player style:
+
 1. HUB shows gold 100, the Brute as next opponent, training/repair/heal/bribe/gear buttons.
 2. Clicking **Next Fight** shows the fight screen with a sweeping meter.
 3. Clicking the meter then **Strike** damages the Brute and logs it; a **PRESS THE ATTACK!** button appears after a landed hit.
@@ -2399,6 +2678,7 @@ git commit -m "feat: wire full game loop, timing meter animation, and styles"
 ## Task 18: Build verification + README
 
 **Files:**
+
 - Create: `README.md`
 
 - [ ] **Step 1: Verify a production build succeeds**
@@ -2413,10 +2693,10 @@ Open the printed URL and confirm the game loads and a full fight plays. Ctrl-C w
 
 - [ ] **Step 3: Write `README.md`**
 
-```markdown
+````markdown
 # Gold & Glory
 
-*Death or glory, and a small administrative fee.*
+_Death or glory, and a small administrative fee._
 
 A turn-based arena fighter with a faucet/sink economy. Climb a corrupt fight
 circuit: win gold, but every fight wears your weapon and body while opponents
@@ -2431,6 +2711,7 @@ npm run dev      # play locally
 npm test         # run the logic test suite
 npm run build    # production bundle in dist/
 ```
+````
 
 ## Architecture
 
@@ -2445,20 +2726,22 @@ npm run build    # production bundle in dist/
 
 All game rules live in the pure core (tested with Vitest); the UI only reads
 state and calls into the core.
-```
+
+````
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add README.md
 git commit -m "docs: add README with run instructions and architecture"
-```
+````
 
 ---
 
 ## Self-Review
 
 **Spec coverage check (§-by-§):**
+
 - §2 Core loop — state machine (Task 10) + main loop (Task 17). ✓
 - §3/§6 Economy faucets & sinks — Tasks 4–5 (costs, tax, payout, bribe, sponsor), Task 11 (purchases), Task 12 (payout/sponsor/durability applied). ✓
 - §4 Combat (strike/heavy/block/feint, timing meter, push-your-luck, stats) — Tasks 6–9, 16, 17. ✓

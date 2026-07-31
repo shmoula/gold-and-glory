@@ -55,7 +55,13 @@ const fightPress = { ...fight, combat: markPressable(fight.combat, 'strike', 'hi
 // A fresh veteran rather than `hubRich`: health is bound to injuries between bouts
 // (`maxHealth - 20 * injuries`), so hubRich's 60 does not survive four answered exchanges, and a
 // log this long belongs to a fighter who has been winning.
-const hubVeteran = { ...hubFresh, gold: 900, wins: 3, sponsorUnlocked: true, currentOpponentIndex: 2 };
+const hubVeteran = {
+  ...hubFresh,
+  gold: 900,
+  wins: 3,
+  sponsorUnlocked: true,
+  currentOpponentIndex: 2,
+};
 // Seed 3 leaves both fighters comfortably alive (41/100 and 41/110) and above §6.1's urgent
 // fraction, so the strip is what this state adds and nothing else changes underneath it.
 const battleRng = makeRng(3);
@@ -68,13 +74,23 @@ function playedOut() {
   const acts = (action, timing) => {
     c = markPressable(applyPlayerAction(c, action, timing, CONFIG), action, timing);
   };
-  const presses = (timing) => { c = { ...applyPress(c, timing, CONFIG), canPress: false }; };
-  const answers = () => { c = enemyTurn(c, battleRng, CONFIG); };
+  const presses = (timing) => {
+    c = { ...applyPress(c, timing, CONFIG), canPress: false };
+  };
+  const answers = () => {
+    c = enemyTurn(c, battleRng, CONFIG);
+  };
 
-  acts('strike', 'miss'); answers(); // a whiff, so §6.9's snark aside fires, then a blow taken
-  acts('block', 'hit'); answers(); // two italic status clauses: the guard and the counter
-  acts('feint', 'graze'); presses('hit'); answers(); // the feint's status clause, then a press
-  acts('heavy', 'crit'); presses('graze'); answers(); // the bold blood-ink damage figure
+  acts('strike', 'miss');
+  answers(); // a whiff, so §6.9's snark aside fires, then a blow taken
+  acts('block', 'hit');
+  answers(); // two italic status clauses: the guard and the counter
+  acts('feint', 'graze');
+  presses('hit');
+  answers(); // the feint's status clause, then a press
+  acts('heavy', 'crit');
+  presses('graze');
+  answers(); // the bold blood-ink damage figure
   return c;
 }
 
@@ -85,7 +101,10 @@ function playedOut() {
 // outside every markup-driven guard, exactly the gap this state exists to close. Delete it the
 // day combat.js pushes a real money clause, and put the real clause in the sequence above.
 const MONEY_ENTRY = {
-  turn: 5, kind: 'attack', text: 'A patron tosses {gold} into the sand.', gold: 45,
+  turn: 5,
+  kind: 'attack',
+  text: 'A patron tosses {gold} into the sand.',
+  gold: 45,
 };
 const fightLogged = (() => {
   const combat = playedOut();
@@ -119,9 +138,11 @@ export const ALL_PHASES = Object.values(PHASE);
 
 // name -> a detached element with the screen mounted inside it.
 export function mountAll(doc = document) {
-  return Object.fromEntries(Object.entries(SCREEN_STATES).map(([name, state]) => {
-    const host = doc.createElement('div');
-    mount(host, state, CONFIG);
-    return [name, host];
-  }));
+  return Object.fromEntries(
+    Object.entries(SCREEN_STATES).map(([name, state]) => {
+      const host = doc.createElement('div');
+      mount(host, state, CONFIG);
+      return [name, host];
+    })
+  );
 }

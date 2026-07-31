@@ -6,15 +6,34 @@ import { effectiveStats, playerHealth } from '../game.js';
 import { timingWindowWidth } from '../combat.js';
 import { formatGold, MINUS } from './format.js';
 import {
-  URGENT_FRACTION, REPAIR_URGENT_FRACTION,
-  escapeHtml, btn, meter, bar, poster, shopItem, logEntry, bannerStamp,
+  URGENT_FRACTION,
+  REPAIR_URGENT_FRACTION,
+  escapeHtml,
+  btn,
+  meter,
+  bar,
+  poster,
+  shopItem,
+  logEntry,
+  bannerStamp,
 } from './components.js';
 import { meterZones } from './timing.js';
 
 export {
-  URGENT_FRACTION, REPAIR_URGENT_FRACTION,
-  escapeHtml, shortfallAttr, snarkAside, btn, fillPct, meter, bar, poster, shopItem,
-  logEntry, logEntryText, bannerStamp,
+  URGENT_FRACTION,
+  REPAIR_URGENT_FRACTION,
+  escapeHtml,
+  shortfallAttr,
+  snarkAside,
+  btn,
+  fillPct,
+  meter,
+  bar,
+  poster,
+  shopItem,
+  logEntry,
+  logEntryText,
+  bannerStamp,
 } from './components.js';
 export { meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter } from './timing.js';
 
@@ -50,12 +69,14 @@ export function renderHud(state, config, { urgent } = {}) {
   // here showed a full beam beside a wounded poster and could never flash mid-fight.
   const hp = playerHealth(state);
   const pipCount = Math.max(PIP_MIN_SLOTS, state.injuries);
-  const pips = Array.from({ length: pipCount }, (_, i) =>
-    `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`).join('');
+  const pips = Array.from(
+    { length: pipCount },
+    (_, i) => `<i class="pip${i < state.injuries ? ' pip--filled' : ''}"></i>`
+  ).join('');
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
-      ${bar('Health', hp.value, hp.max, { urgent: urgent ?? (hp.value / hp.max < URGENT_FRACTION) })}
+      ${bar('Health', hp.value, hp.max, { urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION })}
       ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
       <span class="hud__stat"><span class="hud__label">Injuries</span>
         <span class="pips" role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}">${pips}</span></span>
@@ -71,27 +92,40 @@ export function renderHub(state, config) {
 
   // Spec §6.11: one label format per row, the meter beside it, the priced button at the end.
   // The meter is decorative: TRAIN_METER_CAP is a drawing denominator, not a real maximum.
-  const trainRows = ['power', 'guard', 'speed'].map((stat) => {
-    const cost = trainingCost(state.trainingLevels[stat], config);
-    return `<div class="train-row">
+  const trainRows = ['power', 'guard', 'speed']
+    .map((stat) => {
+      const cost = trainingCost(state.trainingLevels[stat], config);
+      return `<div class="train-row">
       <span class="train-row__label">${stat[0].toUpperCase() + stat.slice(1)} ${eff[stat]}</span>
-      ${meter(`${stat} training`, eff[stat], TRAIN_METER_CAP,
-        { fillClass: ' bar__fill--dur', barClass: 'train-row__meter', decorative: true })}
+      ${meter(`${stat} training`, eff[stat], TRAIN_METER_CAP, {
+        fillClass: ' bar__fill--dur',
+        barClass: 'train-row__meter',
+        decorative: true,
+      })}
       ${btn(`train-${stat}`, `Train +${config.training.statPerLevel}`, { cost, gold: state.gold })}
     </div>`;
-  }).join('');
+    })
+    .join('');
 
-  const gearCards = Object.values(config.gear).map((g) => shopItem(g, {
-    owned: state.gear.includes(g.id), gold: state.gold, snark: config.snark[g.id] ?? '',
-  })).join('');
+  const gearCards = Object.values(config.gear)
+    .map((g) =>
+      shopItem(g, {
+        owned: state.gear.includes(g.id),
+        gold: state.gold,
+        snark: config.snark[g.id] ?? '',
+      })
+    )
+    .join('');
 
-  const sponsorCard = state.sponsorUnlocked ? `<aside class="sponsor-card tape">
+  const sponsorCard = state.sponsorUnlocked
+    ? `<aside class="sponsor-card tape">
       <span class="sponsor-card__eyebrow">Sponsor</span>
       <h3 class="sponsor-card__name">Lord Biggus</h3>
       <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
       <p>Reward: <span class="amount amount--pos">${formatGold(config.sponsor.stipendPerFight + config.sponsor.objectiveBonus, { signed: true })}</span>
         <span class="snark">(${escapeHtml(config.snark.sponsorReward)})</span></p>
-    </aside>` : '';
+    </aside>`
+    : '';
 
   return `
     ${renderHud(state, config)}
@@ -99,16 +133,29 @@ export function renderHub(state, config) {
       <div class="hub__sinks">
         <h2>The Ludus</h2>
         <p>Wins: ${state.wins}</p>
-        ${btn('repair', 'Repair weapon', { cost: repairCost(missing, config), gold: state.gold,
+        ${btn('repair', 'Repair weapon', {
+          cost: repairCost(missing, config),
+          gold: state.gold,
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
-          disabled: missing <= 0 })}
-        ${btn('heal', `Heal ${state.injuries} injuries`, { cost: healCost(state.injuries, config),
-          gold: state.gold, snark: config.snark.heal, urgent: hurt, disabled: !hurt })}
-        ${state.bribedThisFight
-          ? btn(null, 'Bribed ✓', { disabled: true })
-          : btn('bribe', `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
-              { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe })}
+          disabled: missing <= 0,
+        })}
+        ${btn('heal', `Heal ${state.injuries} injuries`, {
+          cost: healCost(state.injuries, config),
+          gold: state.gold,
+          snark: config.snark.heal,
+          urgent: hurt,
+          disabled: !hurt,
+        })}
+        ${
+          state.bribedThisFight
+            ? btn(null, 'Bribed ✓', { disabled: true })
+            : btn(
+                'bribe',
+                `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
+                { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe }
+              )
+        }
       </div>
       <div class="hub__develop">
         <h2>Training</h2>
@@ -151,14 +198,16 @@ const moneyRow = (label, amount, opts = {}) => ({
   text: formatGold(amount, { signed: true }),
   value: amount,
   unit: 'gold-signed',
-  tone: amount > 0 ? ' amount--pos' : (amount < 0 ? ' amount--neg' : ''),
+  tone: amount > 0 ? ' amount--pos' : amount < 0 ? ' amount--neg' : '',
   ...opts,
 });
 
 // A line that counts something that is not gold — injuries, durability. Never gold-coloured
 // (Law 2 reserves the gold hues for currency), and red only when there is something to regret.
 const tallyRow = (label, count, text) => ({
-  label, text, tone: count > 0 ? ' amount--neg' : '',
+  label,
+  text,
+  tone: count > 0 ? ' amount--neg' : '',
 });
 
 // The bout being reported, by name rather than by index: resolveFightOutcome has already
@@ -186,7 +235,9 @@ function ledgerLines(state, config) {
     tallyRow('Weapon wear', r.durabilityLost, `${MINUS}${r.durabilityLost} durability`),
     {
       label: 'New balance',
-      text: formatGold(state.gold), value: state.gold, unit: 'gold',
+      text: formatGold(state.gold),
+      value: state.gold,
+      unit: 'gold',
       cls: ' ledger__row--balance',
     },
   ].filter(Boolean);
@@ -207,7 +258,9 @@ function ledgerLines(state, config) {
 // So the renderer's job ends at the *string*: this states every line the card states, in the
 // card's own words, and main.js writes it into a region that already exists.
 export function ledgerSummary(state, config) {
-  return `${ledgerLines(state, config).map((l) => `${l.label}: ${l.text}`).join('. ')}.`;
+  return `${ledgerLines(state, config)
+    .map((l) => `${l.label}: ${l.text}`)
+    .join('. ')}.`;
 }
 
 export function renderResult(state, config) {
@@ -248,8 +301,10 @@ export function renderResult(state, config) {
           <span class="wordmark">GOLD &amp; GLORY</span>
         </section>
       </div>
-      <div class="result__cta commit-bar">${btn('to-hub', 'Return to Ludus',
-        { variant: 'commit', price: state.gold })}</div>
+      <div class="result__cta commit-bar">${btn('to-hub', 'Return to Ludus', {
+        variant: 'commit',
+        price: state.gold,
+      })}</div>
     </section>`;
 }
 
@@ -275,7 +330,8 @@ function endingCard(key, config, achieved) {
   const ending = config.endings[key];
   const locked = key !== achieved;
   return `<article class="ending-card tape${locked ? ' ending-card--locked' : ''}"${
-    locked ? ' aria-disabled="true"' : ''}>
+    locked ? ' aria-disabled="true"' : ''
+  }>
         <h3 class="poster__name">${escapeHtml(ending.title)}${locked ? '?' : ''}</h3>
         <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
         <span class="snark">(${escapeHtml(ending.epitaph)})</span>
@@ -301,9 +357,10 @@ export function renderGameOver(state, config) {
   // on `achieved`, not on the raw `state.ended`, so the whole screen tells one story: an ending
   // the config does not know is not half-recognised into a cause of death under a locked
   // gallery with no stamp.
-  const payload = achieved === 'dead'
-    ? `<strong>Cause of Death:</strong> ${escapeHtml(state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE)}`
-    : `<strong>Final purse:</strong> <span class="amount">${formatGold(state.gold)}</span>`;
+  const payload =
+    achieved === 'dead'
+      ? `<strong>Cause of Death:</strong> ${escapeHtml(state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE)}`
+      : `<strong>Final purse:</strong> <span class="amount">${formatGold(state.gold)}</span>`;
   // §6.1: "On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate
   // storytelling." It reads the same playerHealth() selector as every other screen, so the
   // corpse's beam states the number the fight left behind rather than a fresh one — but not
@@ -373,13 +430,21 @@ export function renderFight(state, config) {
   return `
     ${renderHud(state, config)}
     <section class="screen screen--fight">
-      <div class="fight__you">${poster({ name: 'You', tilt: 1,
+      <div class="fight__you">${poster({
+        name: 'You',
+        tilt: 1,
         hp: playerHealth(state),
-        sub: playerSub(state), snark: config.snark.player })}</div>
+        sub: playerSub(state),
+        snark: config.snark.player,
+      })}</div>
       <div class="fight__stage">${renderMeter(state, config)}</div>
-      <div class="fight__foe">${poster({ name: c.enemy.name, tilt: 2,
+      <div class="fight__foe">${poster({
+        name: c.enemy.name,
+        tilt: 2,
         hp: { value: c.enemy.health, max: c.enemy.maxHealth },
-        sub: opponentSub(opponent), snark: config.snark[opponent.id] ?? '' })}</div>
+        sub: opponentSub(opponent),
+        snark: config.snark[opponent.id] ?? '',
+      })}</div>
       <div class="fight__log"><h2>Commentary</h2><ul class="log" aria-live="polite">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}

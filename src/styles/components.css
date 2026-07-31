@@ -2,21 +2,39 @@
 
 /* ---- 6.1 HUD beam ---- */
 .hud {
-  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
   background: linear-gradient(var(--wood-3), var(--wood-4));
-  border: var(--border-w) solid var(--border-ink); border-radius: 10px 14px 9px 15px;
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: 10px 14px 9px 15px;
   padding: var(--space-2) var(--space-4);
   box-shadow: var(--shadow-plank);
   color: var(--color-text-inverse);
-  font-family: var(--font-body); font-weight: 700; font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--text-sm);
 }
 /* `position: relative` is the delta chip's anchor (§6.7): the chip is spawned *into* the purse
    and positioned against it, so the money that just moved appears where the money lives. */
-.hud__purse { color: var(--color-money-on-dark); display: inline-flex; align-items: center;
-  gap: var(--space-2); font-variant-numeric: tabular-nums; text-transform: uppercase;
-  position: relative; }
-.coin { width: 15px; height: 15px; border-radius: 50%; display: inline-block;
-  background: var(--grad-coin); border: 1.5px solid var(--border-ink); }
+.hud__purse {
+  color: var(--color-money-on-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  position: relative;
+}
+.coin {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--grad-coin);
+  border: 1.5px solid var(--border-ink);
+}
 /* `display: block` is load-bearing, not tidiness. `meter()` emits the track as a `<span>`, and
    both of its children are absolutely positioned — so the track carries no in-flow content and
    its whole size comes from `width`/`height`, neither of which applies to a non-replaced inline
@@ -27,11 +45,25 @@
    unstyled text. Blockification means stating it here changes nothing in the HUD or the training
    row; tests/styles.test.js asserts the declaration, because jsdom lays nothing out and so
    cannot see the collapse. */
-.bar { display: block; position: relative; width: 108px; height: 16px; background: var(--track);
-  border: 2px solid var(--border-ink); border-radius: var(--wobble-bar); overflow: hidden; }
-.bar__fill { position: absolute; inset: 0 auto 0 0; background: var(--blood);
-  transition: width 150ms ease-out; }
-.bar__fill--dur { background: var(--gold-deep); }
+.bar {
+  display: block;
+  position: relative;
+  width: 108px;
+  height: 16px;
+  background: var(--track);
+  border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  overflow: hidden;
+}
+.bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--blood);
+  transition: width 150ms ease-out;
+}
+.bar__fill--dur {
+  background: var(--gold-deep);
+}
 /* §8 over §6.1. Spec §6.1's verbatim block sets `font-size: 11px`, which is below §8's own
    floor ("all text >= --text-xs (12.5px)"). The spec contradicts itself; §8 is ship-blocking,
    so §8 wins and the numeral takes the token (backlog item 1). It still fits: the narrowest
@@ -40,45 +72,117 @@
    renders ("100/100" in the HUD, "170/170" on the toughest opponent's poster) is six Nunito
    digits at 0.6em plus a solidus at 0.256em = 3.856em = 48.2px at 12.5px. 55.8px of slack;
    tests/styles.test.js recomputes it. */
-.bar__num { position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: var(--text-xs); color: var(--bone); font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 0 rgba(31,22,12,0.9); }
-.pips { display: inline-flex; gap: 3px; }
-.pip { width: 11px; height: 14px; border: 1.5px solid var(--border-ink);
-  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: var(--track); }
-.pip--filled { background: var(--blood); }
-.hud__label { letter-spacing: 0.06em; text-transform: uppercase; }
-.hud__stat { display: inline-flex; align-items: center; gap: var(--space-2); }
-.hud__purse .ticker { font-variant-numeric: tabular-nums; }
-.bar.is-urgent .bar__fill { animation: bar-urgent 900ms var(--ease-drop) infinite; }
-@keyframes bar-urgent { 50% { opacity: 0.55; } }
+.bar__num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xs);
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(31, 22, 12, 0.9);
+}
+.pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.pip {
+  width: 11px;
+  height: 14px;
+  border: 1.5px solid var(--border-ink);
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: var(--track);
+}
+.pip--filled {
+  background: var(--blood);
+}
+.hud__label {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hud__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.hud__purse .ticker {
+  font-variant-numeric: tabular-nums;
+}
+.bar.is-urgent .bar__fill {
+  animation: bar-urgent 900ms var(--ease-drop) infinite;
+}
+@keyframes bar-urgent {
+  50% {
+    opacity: 0.55;
+  }
+}
 
 /* ---- 6.2 Buttons ---- */
-.btn { display: inline-flex; align-items: baseline; gap: var(--space-3);
-  font: 700 var(--text-md)/1.2 var(--font-body); color: var(--color-text-inverse);
-  background: var(--grad-wood); border: var(--border-w) solid var(--border-ink);
-  border-radius: 9px 13px 8px 14px; padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-plank); min-height: 44px; }
-.btn:hover { background: var(--grad-wood-hover); }
-.btn:active { transform: translateY(2.5px); box-shadow: var(--shadow-plank-pressed); }
-.btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
-.btn__price { color: var(--color-money-on-dark); font-variant-numeric: tabular-nums; font-size: var(--text-lg); }
+.btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font: 700 var(--text-md)/1.2 var(--font-body);
+  color: var(--color-text-inverse);
+  background: var(--grad-wood);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: 9px 13px 8px 14px;
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-plank);
+  min-height: 44px;
+}
+.btn:hover {
+  background: var(--grad-wood-hover);
+}
+.btn:active {
+  transform: translateY(2.5px);
+  box-shadow: var(--shadow-plank-pressed);
+}
+.btn:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.btn__price {
+  color: var(--color-money-on-dark);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
+}
 /* Law 5 forbids a literal hex in a component rule, but spec §6.2's own block spelled this one
    `#cdb98e` and Task 4 kept the block byte-exact to the fence. Same colour, now a token
    (backlog item 6). */
-.btn__snark { font-family: var(--font-snark); font-weight: 400; font-size: var(--text-sm); color: var(--bone-dim); }
+.btn__snark {
+  font-family: var(--font-snark);
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--bone-dim);
+}
 
 /* The display face's size is `--text-commit`, not the 21px literal spec §6.2's block carries:
    Law 5 gives a component tokens only, and 21px is a real step of the scale (§6.2 is the only
    place that uses it) rather than a nudge of --text-lg. Same pixels (backlog item 6). */
-.btn--commit { font: 400 var(--text-commit)/1 var(--font-display); letter-spacing: 0.05em;
-  color: var(--bone-bright); background: var(--grad-commit); border-radius: var(--wobble-1);
-  padding: var(--space-2) var(--space-5); text-shadow: 0 1.5px 0 rgba(20,30,50,0.55); }
-.btn--commit:focus-visible { outline-color: var(--bone-bright); }
+.btn--commit {
+  font: 400 var(--text-commit)/1 var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--bone-bright);
+  background: var(--grad-commit);
+  border-radius: var(--wobble-1);
+  padding: var(--space-2) var(--space-5);
+  text-shadow: 0 1.5px 0 rgba(20, 30, 50, 0.55);
+}
+.btn--commit:focus-visible {
+  outline-color: var(--bone-bright);
+}
 
-.btn--danger { background: linear-gradient(var(--blood-hi), var(--blood)); }
+.btn--danger {
+  background: linear-gradient(var(--blood-hi), var(--blood));
+}
 
-.btn.is-disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.btn.is-disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 /* `.is-unaffordable` stays full-strength EXCEPT the price: §6.2 spells that as an empty rule,
    which declares nothing and is therefore a rule the sheet does not need. Kept as prose
    (backlog item 6) — the two rules below are the whole treatment. */
@@ -87,59 +191,166 @@
    surface (Task 7/8) joins the list here instead of copying the declarations again.
    attr() resolves against the pseudo-element's own originating element, i.e. the snark span. */
 .btn.is-unaffordable .btn__price,
-.shop-item.is-unaffordable .btn__price { color: var(--blood-hi); }
+.shop-item.is-unaffordable .btn__price {
+  color: var(--blood-hi);
+}
 .btn.is-unaffordable .btn__snark::after,
-.shop-item.is-unaffordable .btn__snark::after { content: " (need " attr(data-missing) " more)"; }
-.btn.is-urgent { animation: urgent-pulse 1.2s var(--ease-drop) infinite; }
-@keyframes urgent-pulse { 50% { box-shadow: var(--shadow-plank), 0 0 0 3px var(--gold-deep); } }
+.shop-item.is-unaffordable .btn__snark::after {
+  content: ' (need ' attr(data-missing) ' more)';
+}
+.btn.is-urgent {
+  animation: urgent-pulse 1.2s var(--ease-drop) infinite;
+}
+@keyframes urgent-pulse {
+  50% {
+    box-shadow:
+      var(--shadow-plank),
+      0 0 0 3px var(--gold-deep);
+  }
+}
 
-.btn.is-owned { opacity: 0.6; cursor: default; box-shadow: none; }
-.btn.is-owned:hover { background: var(--grad-wood); }
+.btn.is-owned {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+}
+.btn.is-owned:hover {
+  background: var(--grad-wood);
+}
 
 /* ---- 6.5 Wanted poster ---- */
-.poster { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-1); padding: var(--space-4); box-shadow: var(--shadow-paper); }
-.poster--tilt-1 { transform: rotate(var(--tilt-1)); }
-.poster--tilt-2 { transform: rotate(var(--tilt-2)); }
-.poster--tilt-3 { transform: rotate(var(--tilt-3)); }
-.poster__name { font-size: var(--text-2xl); text-align: center; margin-bottom: var(--space-3); }
-.poster__portrait { position: relative; height: 104px; margin: 0 var(--space-1);
+.poster {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-1);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-paper);
+}
+.poster--tilt-1 {
+  transform: rotate(var(--tilt-1));
+}
+.poster--tilt-2 {
+  transform: rotate(var(--tilt-2));
+}
+.poster--tilt-3 {
+  transform: rotate(var(--tilt-3));
+}
+.poster__name {
+  font-size: var(--text-2xl);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+.poster__portrait {
+  position: relative;
+  height: 104px;
+  margin: 0 var(--space-1);
   background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
-  border: 2px solid var(--border-ink); border-radius: 10px 13px 11px 14px; overflow: hidden; }
-.poster__silhouette { position: absolute; left: 50%; top: 30px; width: 54px; height: 60px;
-  transform: translateX(-50%); background: var(--silhouette); border-radius: 46% 46% 40% 40%; }
-.poster__sub { font-size: var(--text-sm); font-weight: 700; text-align: center;
-  margin: var(--space-2) 0 0; }
+  border: 2px solid var(--border-ink);
+  border-radius: 10px 13px 11px 14px;
+  overflow: hidden;
+}
+.poster__silhouette {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 54px;
+  height: 60px;
+  transform: translateX(-50%);
+  background: var(--silhouette);
+  border-radius: 46% 46% 40% 40%;
+}
+.poster__sub {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+  margin: var(--space-2) 0 0;
+}
 /* §6.5: the fight purse on a poster is a gold-ink amount. */
-.poster__sub .amount { color: var(--color-money); }
-.poster .bar { width: 100%; margin-top: var(--space-2); }
-.poster .snark { display: block; text-align: center; }
+.poster__sub .amount {
+  color: var(--color-money);
+}
+.poster .bar {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+.poster .snark {
+  display: block;
+  text-align: center;
+}
 
 /* ---- 6.11 Training row ---- */
-.train-row { display: grid; grid-template-columns: 90px 1fr auto; align-items: center;
-  gap: var(--space-3); margin: var(--space-2) 0; }
-.train-row__label { font-weight: 700; font-size: var(--text-sm); }
-.train-row__meter { width: 100%; }
+.train-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+}
+.train-row__label {
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.train-row__meter {
+  width: 100%;
+}
 
 /* ---- 6.12 Shop item card (state triad) ---- */
-.hub__shop { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.shop-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-3); padding: var(--space-3); text-align: left;
-  box-shadow: var(--shadow-paper); font: inherit; min-height: 44px; }
-.shop-item:not(.is-owned):hover { transform: translateY(-2px); }
-.shop-item__name { font-weight: 700; }
+.hub__shop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3);
+  padding: var(--space-3);
+  text-align: left;
+  box-shadow: var(--shadow-paper);
+  font: inherit;
+  min-height: 44px;
+}
+.shop-item:not(.is-owned):hover {
+  transform: translateY(-2px);
+}
+.shop-item__name {
+  font-weight: 700;
+}
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
-.shop-item.is-owned { opacity: 0.6; filter: grayscale(0.6); box-shadow: none; }
-.shop-item__owned { font-weight: 700; color: var(--color-text-muted); }
+.shop-item.is-owned {
+  opacity: 0.6;
+  filter: grayscale(0.6);
+  box-shadow: none;
+}
+.shop-item__owned {
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
 
 /* ---- 6.10 Sponsor notice ---- */
-.sponsor-card { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-2); padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-paper); transform: rotate(var(--tilt-3)); margin-top: var(--space-4); }
-.sponsor-card__eyebrow { font-size: var(--text-xs); font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
-.sponsor-card__name { font-size: var(--text-xl); }
+.sponsor-card {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-paper);
+  transform: rotate(var(--tilt-3));
+  margin-top: var(--space-4);
+}
+.sponsor-card__eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.sponsor-card__name {
+  font-size: var(--text-xl);
+}
 
 /* ---- 6.4 Timing meter (the core verb) ----
    Track, zones and cursor are spec §6.4's block verbatim. The zone hierarchy is a
@@ -147,25 +358,60 @@
    the label row below, so it survives grayscale and every CVD type — colour is never the only
    channel. `.meter-chicken` is omitted: the asset does not exist yet and the ink cursor line
    is the spec's own stated fallback. */
-.meter { position: relative; height: 48px; background: var(--track);
-  border: var(--border-w) solid var(--border-ink); border-radius: var(--wobble-bar);
-  cursor: crosshair; }
-.meter__zone { position: absolute; top: 0; bottom: 0; }
-.meter__zone--graze { background: var(--gold-mid); }
-.meter__zone--hit   { background: var(--gold); }
-.meter__zone--crit  { background: var(--gold-hi);
-  border-inline: 2px solid var(--border-ink);            /* notches: not color-only */
-  box-shadow: 0 0 12px rgba(244, 207, 122, 0.8); }       /* the one permitted glow */
-.meter-cursor { position: absolute; top: 0; bottom: 0; width: 3px;
-  background: var(--ink); will-change: transform; }
+.meter {
+  position: relative;
+  height: 48px;
+  background: var(--track);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  cursor: crosshair;
+}
+.meter__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.meter__zone--graze {
+  background: var(--gold-mid);
+}
+.meter__zone--hit {
+  background: var(--gold);
+}
+.meter__zone--crit {
+  background: var(--gold-hi);
+  border-inline: 2px solid var(--border-ink); /* notches: not color-only */
+  box-shadow: 0 0 12px rgba(244, 207, 122, 0.8);
+} /* the one permitted glow */
+.meter-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ink);
+  will-change: transform;
+}
 /* The freeze is the feedback: the cursor stops where it was caught and turns blood-red. */
-.meter.is-captured .meter-cursor { background: var(--blood); width: 4px; }
-.meter__labels { display: flex; justify-content: space-between;
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--bone); text-shadow: 0 1px 0 rgba(31,22,12,0.8);
-  padding: 2px var(--space-1) 0; }
-.meter__taunt { text-align: center; font-size: var(--text-md); color: var(--bone);
-  text-shadow: 0 1px 0 rgba(31,22,12,0.8); }
+.meter.is-captured .meter-cursor {
+  background: var(--blood);
+  width: 4px;
+}
+.meter__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bone);
+  text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+  padding: 2px var(--space-1) 0;
+}
+.meter__taunt {
+  text-align: center;
+  font-size: var(--text-md);
+  color: var(--bone);
+  text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+}
 
 /* ---- 6.9 Combat log ---- */
 /* `color` is not in the plan's block: legacy.css's zero-specificity `:where(.log)` still paints
@@ -175,22 +421,50 @@
    `max-height` + `overflow-y` are spec §6.9's strip and the *sole* truncation of the log:
    ui/render.js renders every entry and main.js scrolls to the bottom, so this rule decides
    how much is visible and how far back the player can scroll. Do not re-add a slice(). */
-.log { list-style: none; margin: 0; padding: var(--space-3);
-  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-2); box-shadow: var(--shadow-paper); color: var(--color-text);
-  max-height: 160px; overflow-y: auto; font-size: var(--text-sm); }
-.log__entry { padding: 2px 0; border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25); }
-.log__entry:last-child { border-bottom: none; }
-.log__turn { font-weight: 700; color: var(--color-text-muted); font-variant-numeric: tabular-nums;
-  margin-right: var(--space-1); }
+.log {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2);
+  box-shadow: var(--shadow-paper);
+  color: var(--color-text);
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: var(--text-sm);
+}
+.log__entry {
+  padding: 2px 0;
+  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
+}
+.log__entry:last-child {
+  border-bottom: none;
+}
+.log__turn {
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: var(--space-1);
+}
 /* §6.9's four typographic channels. Selected by element, not by new classes: the entry is
    built by one component (ui/components.js logEntry) and §6.0's class index is closed.
    Damage dealt is the blood-ink bold value; damage taken stays plain ink and is marked by the
    sword glyph instead; money is gold ink; a status clause (block, counter, feint) is italic. */
-.log__entry b { color: var(--blood-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-.log__entry em { font-style: italic; }
-.log .amount { color: var(--color-money); }
-.log__entry .snark { font-size: var(--text-xs); }
+.log__entry b {
+  color: var(--blood-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.log__entry em {
+  font-style: italic;
+}
+.log .amount {
+  color: var(--color-money);
+}
+.log__entry .snark {
+  font-size: var(--text-xs);
+}
 /* `.fight__grid` and `.fight__actions` are screen layout, not §6 catalog entries — they live
    with the rest of the `.fight__*` placement in screens.css. Same for `.result__*` below. */
 
@@ -202,46 +476,93 @@
    once, in the recap column, rather than printing "VICTORY!" twice on one screen.
    §6.6 asks for "Parchment M2, --tilt-2" but its CSS block never states it, so the card's own
    treatment is written here the way .poster and .sponsor-card state theirs. */
-.ledger { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-3); padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-paper); transform: rotate(var(--tilt-2)); }
-.ledger dl { margin: var(--space-3) 0 0; }
-.ledger__row { display: flex; justify-content: space-between; align-items: baseline;
-  gap: var(--space-4); padding: var(--space-1) 0;
-  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25); }
-.ledger__row--net { border-top: var(--border-w) solid var(--border-ink); margin-top: var(--space-2); }
-.ledger__row--balance .amount { color: var(--color-money); font-size: var(--text-lg); }
-.ledger .wordmark { display: block; text-align: right; margin-top: var(--space-3); }
+.ledger {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-paper);
+  transform: rotate(var(--tilt-2));
+}
+.ledger dl {
+  margin: var(--space-3) 0 0;
+}
+.ledger__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-1) 0;
+  border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
+}
+.ledger__row--net {
+  border-top: var(--border-w) solid var(--border-ink);
+  margin-top: var(--space-2);
+}
+.ledger__row--balance .amount {
+  color: var(--color-money);
+  font-size: var(--text-lg);
+}
+.ledger .wordmark {
+  display: block;
+  text-align: right;
+  margin-top: var(--space-3);
+}
 /* The theater (ui/effects.js) reveals one row per --dur-tally beat. `visibility`, not
    `display`, so the card is its final height from the first beat and the rows below do not
    shuffle upward as each one lands. */
-.ledger__row.is-hidden { visibility: hidden; }
+.ledger__row.is-hidden {
+  visibility: hidden;
+}
 /* §6.6: "The tax row lands with a stamp animation on its amount — the player must *feel* the
    cut, every fight." Scoped by `[data-unit]`, which only the money cells carry, so the injury
    and durability lines stay still; the tax line is the ledger's only negative money row. The
    animation starts when the row stops matching `.is-hidden`, i.e. on the beat it is revealed. */
 .ledger__row:not(.is-hidden) .amount--neg[data-unit] {
-  animation: amount-stamp var(--dur-stamp) var(--ease-drop); display: inline-block; }
-@keyframes amount-stamp { from { transform: scale(1.4); } }
+  animation: amount-stamp var(--dur-stamp) var(--ease-drop);
+  display: inline-block;
+}
+@keyframes amount-stamp {
+  from {
+    transform: scale(1.4);
+  }
+}
 
 /* ---- 6.13 Banner stamps ----
    §6.13 wants a tilted parchment ribbon with an ink border, not bare text: Law 4 forbids text
    sitting straight on the stone page, and this stamp is the one piece of copy on the result
    screen with no card under it. Entrance is scale 1.5→1.0 over two frames with one rotation
    settle frame. */
-.banner-stamp { display: inline-block; margin: 0 0 var(--space-3);
-  font: 400 var(--text-3xl)/1 var(--font-display); letter-spacing: 0.03em;
+.banner-stamp {
+  display: inline-block;
+  margin: 0 0 var(--space-3);
+  font: 400 var(--text-3xl)/1 var(--font-display);
+  letter-spacing: 0.03em;
   padding: var(--space-1) var(--space-5);
-  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-2); box-shadow: var(--shadow-paper);
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-2);
+  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-3));
-  animation: stamp-in var(--dur-stamp) var(--ease-drop); }
-.banner-stamp--victory { color: var(--moss-ink); }
-.banner-stamp--defeat { color: var(--blood-ink); }
-.banner-stamp--death { color: var(--blood); font-size: var(--text-4xl); }
+  animation: stamp-in var(--dur-stamp) var(--ease-drop);
+}
+.banner-stamp--victory {
+  color: var(--moss-ink);
+}
+.banner-stamp--defeat {
+  color: var(--blood-ink);
+}
+.banner-stamp--death {
+  color: var(--blood);
+  font-size: var(--text-4xl);
+}
 @keyframes stamp-in {
-  from { transform: scale(1.5) rotate(var(--tilt-3)); }
-  50% { transform: scale(1) rotate(2deg); }
+  from {
+    transform: scale(1.5) rotate(var(--tilt-3));
+  }
+  50% {
+    transform: scale(1) rotate(2deg);
+  }
 }
 
 /* ---- 6.14 Endings gallery ----
@@ -254,40 +575,95 @@
    §6.13's giant sandal — a content image descending behind the death stamp — is omitted along
    with the chicken: the asset does not exist, and spec §10 requires the UI to look complete
    with zero content assets present. */
-.ending-card { background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-1); padding: var(--space-4); box-shadow: var(--shadow-paper);
-  text-align: center; transform: rotate(var(--card-tilt, var(--tilt-1))); }
-.ending-card--locked { filter: grayscale(0.8); opacity: 0.55; }
-.ending-card .snark { display: block; margin-top: var(--space-2); }
+.ending-card {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-1);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-paper);
+  text-align: center;
+  transform: rotate(var(--card-tilt, var(--tilt-1)));
+}
+.ending-card--locked {
+  filter: grayscale(0.8);
+  opacity: 0.55;
+}
+.ending-card .snark {
+  display: block;
+  margin-top: var(--space-2);
+}
 /* §6.14's screenshot payload, and the one line on this screen with no card under it — so it
    carries its own parchment, exactly as §6.13's stamp does: Law 4 forbids text sitting
    straight on the stone page (bone-on-stone is 2.99:1). */
-.cause-of-death { max-width: 40ch; margin: var(--space-3) auto;
-  padding: var(--space-3) var(--space-4); font-size: var(--text-lg); text-align: center;
-  background: var(--grad-paper); border: var(--border-w) solid var(--border-ink);
-  border-radius: var(--wobble-3); box-shadow: var(--shadow-paper); }
+.cause-of-death {
+  max-width: 40ch;
+  margin: var(--space-3) auto;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+  text-align: center;
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: var(--wobble-3);
+  box-shadow: var(--shadow-paper);
+}
 /* Law 2: the final purse is money, so it is the one gold-ink figure on the screen. */
-.cause-of-death .amount { color: var(--color-money); }
+.cause-of-death .amount {
+  color: var(--color-money);
+}
 /* The wordmark is text, so Law 4 puts it on this card's parchment rather than on the bare
    stone slot below it — `--ink-soft` at `opacity: .7` is 1.54:1 on `--surface-page`. Same
    corner treatment the ledger gives it on the result screen (§6.6), stated here because the
    ground is a different card. */
-.cause-of-death .wordmark { display: block; text-align: right; margin-top: var(--space-2); }
+.cause-of-death .wordmark {
+  display: block;
+  text-align: right;
+  margin-top: var(--space-2);
+}
 
 /* ---- 6.7 Delta chip & purse shake ----
    Spawned into `.hud__purse` (which is the positioning context) whenever the purse changes,
    and again — as a shortfall — when a purchase is rejected. Two can be alive at once, so the
    second one sits below the first instead of on top of it. */
-.delta-chip { position: absolute; top: 100%; left: var(--space-2);
-  font-weight: 700; font-variant-numeric: tabular-nums; font-size: var(--text-sm);
-  padding: 1px 6px; background: var(--grad-paper); border: 2px solid var(--border-ink);
-  border-radius: var(--wobble-bar); z-index: var(--z-chip); white-space: nowrap;
-  animation: chip-fall var(--dur-chip) steps(4, end) forwards; }
-.delta-chip--pos { color: var(--color-income); }
-.delta-chip--neg { color: var(--color-expense); }
-.delta-chip + .delta-chip { top: calc(100% + 22px); }
-@keyframes chip-fall { to { transform: translateY(14px); opacity: 0; } }
+.delta-chip {
+  position: absolute;
+  top: 100%;
+  left: var(--space-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  padding: 1px 6px;
+  background: var(--grad-paper);
+  border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  z-index: var(--z-chip);
+  white-space: nowrap;
+  animation: chip-fall var(--dur-chip) steps(4, end) forwards;
+}
+.delta-chip--pos {
+  color: var(--color-income);
+}
+.delta-chip--neg {
+  color: var(--color-expense);
+}
+.delta-chip + .delta-chip {
+  top: calc(100% + 22px);
+}
+@keyframes chip-fall {
+  to {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
 /* --dur-shake, not a literal: ui/effects.js takes the class off again on its own timer, and
    tests/styles.test.js holds SHAKE_MS and this token to the same number. */
-.hud__purse.is-shaking { animation: purse-shake var(--dur-shake) steps(3, end); }
-@keyframes purse-shake { 33% { transform: translateX(-3px); } 66% { transform: translateX(3px); } }
+.hud__purse.is-shaking {
+  animation: purse-shake var(--dur-shake) steps(3, end);
+}
+@keyframes purse-shake {
+  33% {
+    transform: translateX(-3px);
+  }
+  66% {
+    transform: translateX(3px);
+  }
+}

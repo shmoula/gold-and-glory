@@ -342,8 +342,13 @@ describe('markPressable', () => {
 // index ran the displayed turn counter at roughly double the real one.
 describe('combat log turn stamps (spec §6.9)', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[3]; // Champion: 170 hp, so a long fight has room to run
   const fresh = () => createCombat(playerStats, opponent, CONFIG);

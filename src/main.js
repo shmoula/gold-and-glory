@@ -3,18 +3,35 @@ import { CONFIG } from './config.js';
 import { createGameState, transition, PHASE } from './state.js';
 import { makeRng } from './rng.js';
 import {
-  effectiveStats, trainStat, repairWeapon, healInjuries, buyGear, bribeOfficial,
-  startFight, resolveFightOutcome, retire,
+  effectiveStats,
+  trainStat,
+  repairWeapon,
+  healInjuries,
+  buyGear,
+  bribeOfficial,
+  startFight,
+  resolveFightOutcome,
+  retire,
 } from './game.js';
 import {
-  resolveTiming, timingWindowWidth, applyPlayerAction, applyPress,
-  enemyTurn, isFightOver, fightWinner, markPressable,
+  resolveTiming,
+  timingWindowWidth,
+  applyPlayerAction,
+  applyPress,
+  enemyTurn,
+  isFightOver,
+  fightWinner,
+  markPressable,
 } from './combat.js';
 import { meterDistance, meterPosition, meterPeriod, sweetCenter } from './ui/timing.js';
 import { logEntryText } from './ui/components.js';
 import { ledgerSummary } from './ui/render.js';
 import {
-  runLedgerTheater, spawnDeltaChip, spawnShortfallChip, purseShake, tickTo,
+  runLedgerTheater,
+  spawnDeltaChip,
+  spawnShortfallChip,
+  purseShake,
+  tickTo,
 } from './ui/effects.js';
 import { mount, wire } from './ui/screens.js';
 
@@ -288,7 +305,11 @@ function endFight() {
 // action, a non-monetary one) would otherwise be applied to the model and never drawn.
 const commerce = (spend) => (el) => {
   const next = spend(state);
-  if (next !== state) { state = next; render(); return; }
+  if (next !== state) {
+    state = next;
+    render();
+    return;
+  }
   const purse = app.querySelector('.hud__purse');
   purseShake(purse);
   const missing = el?.getAttribute('data-missing');
@@ -310,13 +331,19 @@ const handlers = {
     state = { ...state, combat: { ...state.combat, sweet: seedSweet() } };
     render();
   },
-  retire: () => { state = retire(state); render(); },
+  retire: () => {
+    state = retire(state);
+    render();
+  },
   strike: () => doPlayerAction('strike'),
   heavy: () => doPlayerAction('heavy'),
   block: () => doPlayerAction('block'),
   feint: () => doPlayerAction('feint'),
   press: () => doPress(),
-  'to-hub': () => { state = transition(state, PHASE.HUB); render(); },
+  'to-hub': () => {
+    state = transition(state, PHASE.HUB);
+    render();
+  },
   restart: () => newRun(),
 };
 

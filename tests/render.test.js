@@ -3,10 +3,25 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  btn, meter, poster, shopItem, renderHud, renderHub, renderResult, ledgerSummary,
-  renderGameOver, renderFight, escapeHtml,
-  meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter, URGENT_FRACTION,
-  logEntry, logEntryText,
+  btn,
+  meter,
+  poster,
+  shopItem,
+  renderHud,
+  renderHub,
+  renderResult,
+  ledgerSummary,
+  renderGameOver,
+  renderFight,
+  escapeHtml,
+  meterDistance,
+  meterPosition,
+  meterPeriod,
+  meterZones,
+  sweetCenter,
+  URGENT_FRACTION,
+  logEntry,
+  logEntryText,
 } from '../src/ui/render.js';
 import { formatGold } from '../src/ui/format.js';
 import { startFight, effectiveStats, resolveFightOutcome } from '../src/game.js';
@@ -15,7 +30,11 @@ import { resolveTiming, timingWindowWidth } from '../src/combat.js';
 
 // Match classes as a set, never as a literal class string: adding or reordering a class is a
 // harmless refactor and must not turn a passing suite red.
-const classesOf = (tag) => tag.match(/class="([^"]*)"/)[1].trim().split(/\s+/);
+const classesOf = (tag) =>
+  tag
+    .match(/class="([^"]*)"/)[1]
+    .trim()
+    .split(/\s+/);
 // Articles never nest, so each match is exactly one whole poster.
 const posterCards = (html) => html.match(/<article[\s\S]*?<\/article>/g) || [];
 // Parse to DOM rather than matching markup: an added class, a reordered attribute or a
@@ -28,10 +47,14 @@ const dom = (html) => {
 };
 // A log strip's entries as { turn, text }: the turn stamp read from `.log__turn`, and the rest
 // of the entry's text with that stamp removed. Fails loudly if an entry has no stamp.
-const logRows = (html) => [...dom(html).querySelectorAll('.log__entry')].map((li) => {
-  const stamp = li.querySelector('.log__turn');
-  return { turn: stamp?.textContent ?? null, text: li.textContent.replace(stamp?.textContent ?? '', '').trim() };
-});
+const logRows = (html) =>
+  [...dom(html).querySelectorAll('.log__entry')].map((li) => {
+    const stamp = li.querySelector('.log__turn');
+    return {
+      turn: stamp?.textContent ?? null,
+      text: li.textContent.replace(stamp?.textContent ?? '', '').trim(),
+    };
+  });
 
 describe('btn', () => {
   it('throws when a priced button is built without the purse', () => {
@@ -67,8 +90,7 @@ describe('btn', () => {
   });
 
   it('escapes the label of a hand-passed inert plank', () => {
-    expect(btn(null, '✓ <Blade> — OWNED', { owned: true }))
-      .toContain('&lt;Blade&gt;');
+    expect(btn(null, '✓ <Blade> — OWNED', { owned: true })).toContain('&lt;Blade&gt;');
   });
 });
 
@@ -83,11 +105,13 @@ describe('renderHud', () => {
 
   it('renders bars with fill widths and injury pips', () => {
     const s = createGameState(1, CONFIG);
-    s.health = 65; s.injuries = 3; s.weaponDurability = 15;
+    s.health = 65;
+    s.injuries = 3;
+    s.weaponDurability = 15;
     const html = renderHud(s, CONFIG);
     expect(html).toContain('class="hud"');
-    expect(html).toContain('width:65%');                       // health fill
-    expect(html).toContain('width:50%');                       // durability 15/30
+    expect(html).toContain('width:65%'); // health fill
+    expect(html).toContain('width:50%'); // durability 15/30
     expect((html.match(/pip pip--filled/g) || []).length).toBe(3);
     expect((html.match(/class="pip[" ]/g) || []).length).toBe(5); // 5 slots at 3 injuries
     expect(html).toContain('65/100');
@@ -105,8 +129,7 @@ describe('renderHud', () => {
     const s = createGameState(1, CONFIG);
     s.injuries = 2;
     const pips = renderHud(s, CONFIG).match(/<i class="pip[^"]*"><\/i>/g);
-    expect(pips.map((p) => p.includes('pip--filled')))
-      .toEqual([true, true, false, false, false]);
+    expect(pips.map((p) => p.includes('pip--filled'))).toEqual([true, true, false, false, false]);
   });
 
   it('marks the health bar urgent strictly below a third, not at it', () => {
@@ -311,15 +334,17 @@ describe('renderHub', () => {
     const s = createGameState(1, CONFIG);
     s.gold = 0; // short on everything, Train included
     const html = renderHub(s, CONFIG);
-    const unaffordable = [...html.matchAll(/<button[^>]*\bis-unaffordable\b[\s\S]*?<\/button>/g)]
-      .map((m) => m[0]);
+    const unaffordable = [
+      ...html.matchAll(/<button[^>]*\bis-unaffordable\b[\s\S]*?<\/button>/g),
+    ].map((m) => m[0]);
     expect(unaffordable.length, 'nothing rendered unaffordable').toBeGreaterThan(0);
     const trainButtons = unaffordable.filter((b) => /data-action="train-/.test(b));
     expect(trainButtons.length, 'no unaffordable Train button').toBe(3);
     for (const button of unaffordable) {
       const action = button.match(/data-action="([^"]*)"/)?.[1];
-      expect(button, `${action} states no shortfall`)
-        .toMatch(/<span class="btn__snark snark"[^>]*\sdata-missing="[^"]+"/);
+      expect(button, `${action} states no shortfall`).toMatch(
+        /<span class="btn__snark snark"[^>]*\sdata-missing="[^"]+"/
+      );
     }
   });
 
@@ -327,7 +352,7 @@ describe('renderHub', () => {
     const s = createGameState(1, CONFIG);
     s.gold = 100000;
     s.weaponDurability = CONFIG.weapon.maxDurability; // nothing to repair
-    s.injuries = 0;                                   // nothing to heal
+    s.injuries = 0; // nothing to heal
     const html = renderHub(s, CONFIG);
     expect(html).toMatch(/data-action="repair"[^>]*disabled/);
     expect(html).toMatch(/data-action="heal"[^>]*disabled/);
@@ -363,7 +388,9 @@ describe('meter', () => {
     // Escaping used to be the caller's job, which held only while every label was a literal.
     // Task 7 feeds enemy names in, so meter() owns it now.
     const html = meter('<img src=x onerror=alert(1)> & "Boss"', 5, 10);
-    expect(html).toContain('aria-label="&lt;img src=x onerror=alert(1)&gt; &amp; &quot;Boss&quot;"');
+    expect(html).toContain(
+      'aria-label="&lt;img src=x onerror=alert(1)&gt; &amp; &quot;Boss&quot;"'
+    );
     // No raw markup survives into the attribute...
     expect(html).not.toContain('<img');
     expect(html).not.toContain('"Boss"');
@@ -434,10 +461,12 @@ describe('poster', () => {
     const over = Math.ceil(max * URGENT_FRACTION) + 1;
     expect(under / max).toBeLessThan(URGENT_FRACTION);
     expect(over / max).toBeGreaterThan(URGENT_FRACTION);
-    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: { value: under, max } }))))
-      .toContain('is-urgent');
-    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: { value: over, max } }))))
-      .not.toContain('is-urgent');
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: { value: under, max } })))).toContain(
+      'is-urgent'
+    );
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: { value: over, max } })))).not.toContain(
+      'is-urgent'
+    );
   });
 
   // The derivation is the *default*, not a law: Tasks 8 and 9 mount 0-HP plates on the result
@@ -448,17 +477,24 @@ describe('poster', () => {
     const dead = { value: 0, max };
     const healthy = { value: max, max };
     expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead })))).toContain('is-urgent');
-    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead, urgent: false }))))
-      .not.toContain('is-urgent');
-    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: healthy, urgent: true }))))
-      .toContain('is-urgent');
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead, urgent: false })))).not.toContain(
+      'is-urgent'
+    );
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: healthy, urgent: true })))).toContain(
+      'is-urgent'
+    );
     // Omitted — not merely falsy — is what re-arms the derivation.
-    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead, urgent: undefined }))))
-      .toContain('is-urgent');
+    expect(classesOf(hpPlate(poster({ name: 'Foe', hp: dead, urgent: undefined })))).toContain(
+      'is-urgent'
+    );
   });
 
   it('takes sub as markup and parenthesizes the snark', () => {
-    const html = poster({ name: 'Foe', sub: 'Purse: <span class="amount">50</span>', snark: 'A big lad' });
+    const html = poster({
+      name: 'Foe',
+      sub: 'Purse: <span class="amount">50</span>',
+      snark: 'A big lad',
+    });
     expect(html).toContain('<p class="poster__sub">Purse: <span class="amount">50</span></p>');
     expect(html).toContain('<span class="snark">(A big lad)</span>');
   });
@@ -509,8 +545,9 @@ describe('renderHub layout', () => {
   it('gives the player poster an HP plate off the same field as the HUD (spec 6.5)', () => {
     const s = createGameState(1, CONFIG);
     s.health = 65;
-    const you = posterCards(renderHub(s, CONFIG))
-      .find((p) => classesOf(p).includes('poster--tilt-1'));
+    const you = posterCards(renderHub(s, CONFIG)).find((p) =>
+      classesOf(p).includes('poster--tilt-1')
+    );
     expect(you).toContain('aria-label="You health"');
     expect(you).toContain('aria-valuenow="65"');
     expect(you).toContain(`aria-valuemax="${s.maxHealth}"`);
@@ -521,8 +558,9 @@ describe('renderHub layout', () => {
   it('clamps the player HP plate like every other meter', () => {
     const s = createGameState(1, CONFIG);
     s.health = s.maxHealth + 40;
-    const you = posterCards(renderHub(s, CONFIG))
-      .find((p) => classesOf(p).includes('poster--tilt-1'));
+    const you = posterCards(renderHub(s, CONFIG)).find((p) =>
+      classesOf(p).includes('poster--tilt-1')
+    );
     expect(you).toContain('width:100%');
     expect(you).toContain(`aria-valuenow="${s.maxHealth}"`);
     expect(you).not.toContain(String(s.maxHealth + 40));
@@ -574,23 +612,26 @@ describe('renderHub layout', () => {
     const { shield, blade, charm } = CONFIG.gear;
     const shortfall = 100;
     s.gold = blade.cost - shortfall; // blade out of reach by exactly `shortfall`
-    s.gear = [charm.id];             // charm owned
+    s.gear = [charm.id]; // charm owned
     // A precondition, not an assumption: a config edit that put the shield out of reach too
     // would otherwise silently delete the "available" third of the triad from this test.
     expect(s.gold).toBeGreaterThanOrEqual(shield.cost);
     const html = renderHub(s, CONFIG);
     // Card roots only — `shop-item__name` and friends must not inflate the count.
-    expect((html.match(/class="shop-item[" ]/g) || []).length)
-      .toBe(Object.keys(CONFIG.gear).length);
+    expect((html.match(/class="shop-item[" ]/g) || []).length).toBe(
+      Object.keys(CONFIG.gear).length
+    );
 
     expect(html).toMatch(new RegExp(`data-action="buy-${shield.id}"[^>]*class="shop-item"`));
     expect(html).not.toMatch(
-      new RegExp(`data-action="buy-${shield.id}"[^>]*is-(unaffordable|owned)`));
+      new RegExp(`data-action="buy-${shield.id}"[^>]*is-(unaffordable|owned)`)
+    );
 
     expect(html).toContain(`<span class="btn__price">${formatGold(blade.cost)}</span>`);
     expect(html).toMatch(new RegExp(`data-action="buy-${blade.id}"[^>]*is-unaffordable`));
     expect(html).toMatch(
-      new RegExp(`data-action="buy-${blade.id}"[^>]*data-missing="${formatGold(shortfall)}"`));
+      new RegExp(`data-action="buy-${blade.id}"[^>]*data-missing="${formatGold(shortfall)}"`)
+    );
 
     expect(html).not.toContain(`data-action="buy-${charm.id}"`);
     // Exactly one card is in the owned state; its anatomy is pinned by the shopItem tests.
@@ -638,31 +679,51 @@ describe('shopItem', () => {
 // by hand. §6.13 stamps the title, §7 lays out recap / ledger / cta, §8 announces both.
 describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   const WIN = {
-    won: true, died: false, opponentName: 'The Brute',
-    purse: 50, tax: 10, sponsorIncome: 0, netGold: 40,
-    durabilityLost: 3, injuriesGained: 0, causeOfDeath: null,
+    won: true,
+    died: false,
+    opponentName: 'The Brute',
+    purse: 50,
+    tax: 10,
+    sponsorIncome: 0,
+    netGold: 40,
+    durabilityLost: 3,
+    injuriesGained: 0,
+    causeOfDeath: null,
     commentary: 'The Brute falls.',
   };
   const LOSS = {
-    won: false, died: false, opponentName: 'The Brute',
-    purse: 0, tax: 0, sponsorIncome: 0, netGold: 0,
-    durabilityLost: 3, injuriesGained: 1, causeOfDeath: null,
+    won: false,
+    died: false,
+    opponentName: 'The Brute',
+    purse: 0,
+    tax: 0,
+    sponsorIncome: 0,
+    netGold: 0,
+    durabilityLost: 3,
+    injuriesGained: 1,
+    causeOfDeath: null,
     commentary: 'You crawl out of the arena.',
   };
-  const stateOf = (lastResult, over = {}) =>
-    ({ ...createGameState(1, CONFIG), ...over, lastResult });
+  const stateOf = (lastResult, over = {}) => ({
+    ...createGameState(1, CONFIG),
+    ...over,
+    lastResult,
+  });
   const resultOf = (lastResult, over = {}) => renderResult(stateOf(lastResult, over), CONFIG);
   // Rows as { label, amount } with the snark aside stripped off the term.
-  const ledgerRows = (html) => [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
-    label: row.querySelector('dt').firstChild.textContent.trim(),
-    amount: row.querySelector('dd').textContent,
-    classes: [...row.classList],
-    tone: [...row.querySelector('dd').classList],
-  }));
+  const ledgerRows = (html) =>
+    [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
+      label: row.querySelector('dt').firstChild.textContent.trim(),
+      amount: row.querySelector('dd').textContent,
+      classes: [...row.classList],
+      tone: [...row.querySelector('dd').classList],
+    }));
   const rowFor = (html, label) => ledgerRows(html).find((r) => r.label === label);
   // The same lookup, by label, but keeping the element — so nothing has to know a row's index.
-  const rowElFor = (html, label) => [...dom(html).querySelectorAll('.ledger__row')]
-    .find((row) => row.querySelector('dt').firstChild.textContent.trim() === label);
+  const rowElFor = (html, label) =>
+    [...dom(html).querySelectorAll('.ledger__row')].find(
+      (row) => row.querySelector('dt').firstChild.textContent.trim() === label
+    );
 
   it('renders a win recap card', () => {
     const html = resultOf(WIN);
@@ -679,8 +740,11 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     const section = dom(resultOf(WIN)).querySelector('section.screen');
     expect([...section.classList]).toContain('screen--result');
     const regions = [...section.children];
-    expect(regions.map((r) => [...r.classList].find((c) => c.startsWith('result__'))))
-      .toEqual(['result__recap', 'result__ledger', 'result__cta']);
+    expect(regions.map((r) => [...r.classList].find((c) => c.startsWith('result__')))).toEqual([
+      'result__recap',
+      'result__ledger',
+      'result__cta',
+    ]);
     expect(regions[0].querySelector('.banner-stamp')).not.toBeNull();
     expect(regions[0].querySelector('.poster')).not.toBeNull();
     expect(regions[1].querySelector('.ledger')).not.toBeNull();
@@ -721,13 +785,17 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     // One utterance stating every line the visible ledger states, in the same order and in the
     // same words — derived from the rendered rows, so the two can never drift apart.
     expect(ledgerSummary(state, CONFIG)).toBe(
-      ledgerRows(html).map((r) => `${r.label}: ${r.amount}`).join('. ') + '.');
+      ledgerRows(html)
+        .map((r) => `${r.label}: ${r.amount}`)
+        .join('. ') + '.'
+    );
   });
 
   // The flood guard: nothing the theater rewrites may sit inside a live region.
   it('puts no counting cell inside a live region (§8)', () => {
-    const announced = [...dom(resultOf(WIN))
-      .querySelectorAll('[aria-live], [role="status"], [role="alert"]')];
+    const announced = [
+      ...dom(resultOf(WIN)).querySelectorAll('[aria-live], [role="status"], [role="alert"]'),
+    ];
     expect(announced.length).toBeGreaterThan(0); // the banner and the summary still speak
     expect(announced.filter((el) => el.querySelector('.amount[data-unit]'))).toEqual([]);
   });
@@ -791,10 +859,11 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     const cells = [...dom(html).querySelectorAll('.amount[data-unit]')];
     // Which lines are money is the behaviour — naming them beats counting them, because a count
     // is satisfied by any four rows and says nothing about *which* four the theater will tally.
-    expect([...dom(html).querySelectorAll('.ledger__row')]
-      .filter((row) => row.querySelector('.amount[data-unit]'))
-      .map((row) => row.querySelector('dt').firstChild.textContent.trim()))
-      .toEqual(['Purse', 'Arena tax', 'Net gold', 'New balance']);
+    expect(
+      [...dom(html).querySelectorAll('.ledger__row')]
+        .filter((row) => row.querySelector('.amount[data-unit]'))
+        .map((row) => row.querySelector('dt').firstChild.textContent.trim())
+    ).toEqual(['Purse', 'Arena tax', 'Net gold', 'New balance']);
     for (const dd of cells) {
       const value = Number(dd.getAttribute('data-value'));
       const unit = dd.getAttribute('data-unit');
@@ -823,8 +892,9 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(won.querySelector('.result__cross').getAttribute('aria-hidden')).toBe('true');
     const plate = won.querySelector('.poster .bar');
     expect(plate.getAttribute('aria-valuenow')).toBe('0');
-    expect(plate.getAttribute('aria-valuemax'))
-      .toBe(String(CONFIG.opponents.find((o) => o.name === 'The Brute').health));
+    expect(plate.getAttribute('aria-valuemax')).toBe(
+      String(CONFIG.opponents.find((o) => o.name === 'The Brute').health)
+    );
     // A corpse's plate must not pulse forever — the override, not the derived default.
     expect([...plate.classList]).not.toContain('is-urgent');
   });
@@ -853,13 +923,19 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
 
   it('reports a real resolved fight, not just hand-built fixtures', () => {
     const fought = resolveFightOutcome(
-      startFight(createGameState(1, CONFIG), CONFIG), true, makeRng(1), CONFIG);
+      startFight(createGameState(1, CONFIG), CONFIG),
+      true,
+      makeRng(1),
+      CONFIG
+    );
     const html = renderResult(fought, CONFIG);
     expect(rowFor(html, 'New balance').amount).toBe(formatGold(fought.gold));
-    expect(rowFor(html, 'Net gold').amount)
-      .toBe(formatGold(fought.lastResult.netGold, { signed: true }));
-    expect(rowFor(html, 'Weapon wear').amount)
-      .toBe(`\u2212${fought.lastResult.durabilityLost} durability`);
+    expect(rowFor(html, 'Net gold').amount).toBe(
+      formatGold(fought.lastResult.netGold, { signed: true })
+    );
+    expect(rowFor(html, 'Weapon wear').amount).toBe(
+      `\u2212${fought.lastResult.durabilityLost} durability`
+    );
   });
 });
 
@@ -869,7 +945,9 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
 // purse. The screen is the screenshot payload, so every one of those has to be true at once.
 describe('renderGameOver (spec §6.14)', () => {
   const DEATH = {
-    died: true, won: false, opponentName: 'The Champion',
+    died: true,
+    won: false,
+    opponentName: 'The Champion',
     causeOfDeath: 'Tripped on a turnip.',
   };
   // Ended states as the game actually leaves them: dead means health 0 (§6.1's fatal state).
@@ -920,8 +998,12 @@ describe('renderGameOver (spec §6.14)', () => {
       // …and it is the middle cell, not one of the flanks (spec §7's `stamp` area).
       expect(host.querySelector('.gameover__stamp .ending-card')).toBe(open);
       // Every ending appears exactly once, whichever one was reached.
-      expect(cards.map(titleOf).map((t) => t.replace(/\?$/, '')).sort())
-        .toEqual(ENDINGS.map((k) => CONFIG.endings[k].title).sort());
+      expect(
+        cards
+          .map(titleOf)
+          .map((t) => t.replace(/\?$/, ''))
+          .sort()
+      ).toEqual(ENDINGS.map((k) => CONFIG.endings[k].title).sort());
     }
   });
 
@@ -968,10 +1050,8 @@ describe('renderGameOver (spec §6.14)', () => {
     const health = hud.querySelector('[aria-label="Health"]');
     expect(health.getAttribute('aria-valuenow')).toBe('0');
     expect(health.getAttribute('aria-valuemax')).toBe(String(CONFIG.player.maxHealth));
-    expect(health.querySelector('.bar__num').textContent)
-      .toBe(`0/${CONFIG.player.maxHealth}`);
-    expect(hud.querySelector('.hud__purse').textContent)
-      .toContain(formatGold(CONFIG.startingGold));
+    expect(health.querySelector('.bar__num').textContent).toBe(`0/${CONFIG.player.maxHealth}`);
+    expect(hud.querySelector('.hud__purse').textContent).toContain(formatGold(CONFIG.startingGold));
   });
 
   // §6.14: below the trio, the lead-in and the absurd line, with the wordmark in frame.
@@ -994,7 +1074,9 @@ describe('renderGameOver (spec §6.14)', () => {
   it('does not pulse the HUD beam once the run is over (§5)', () => {
     const fatal = overOf('dead');
     const live = dom(renderHud(fatal, CONFIG)).querySelector('[aria-label="Health"]');
-    expect([...live.classList], 'the fixture is urgent while the run is live').toContain('is-urgent');
+    expect([...live.classList], 'the fixture is urgent while the run is live').toContain(
+      'is-urgent'
+    );
     for (const ended of ENDINGS) {
       const beam = dom(gameOver(ended)).querySelector('[aria-label="Health"]');
       expect([...beam.classList], ended).not.toContain('is-urgent');
@@ -1040,11 +1122,13 @@ describe('renderGameOver (spec §6.14)', () => {
   it('renders new endings rather than silently dropping one', () => {
     const extra = {
       exiled: {
-        title: 'Exiled', epitaph: 'The gate shut behind you.',
+        title: 'Exiled',
+        epitaph: 'The gate shut behind you.',
         stamp: { variant: 'defeat', text: 'EXILED.' },
       },
       enslaved: {
-        title: 'Sold On', epitaph: 'A new owner. Same sand.',
+        title: 'Sold On',
+        epitaph: 'A new owner. Same sand.',
         stamp: { variant: 'defeat', text: 'SOLD ON.' },
       },
     };
@@ -1052,8 +1136,16 @@ describe('renderGameOver (spec §6.14)', () => {
     const host = dom(renderGameOver(overOf('exiled'), five));
     const cards = [...host.querySelectorAll('.ending-card')];
     expect(cards.length).toBe(5);
-    expect(cards.map(titleOf).map((t) => t.replace(/\?$/, '')).sort())
-      .toEqual(Object.values(five.endings).map((e) => e.title).sort());
+    expect(
+      cards
+        .map(titleOf)
+        .map((t) => t.replace(/\?$/, ''))
+        .sort()
+    ).toEqual(
+      Object.values(five.endings)
+        .map((e) => e.title)
+        .sort()
+    );
     // Both flanks carry cards, so neither slice can be truncated unnoticed.
     expect(host.querySelectorAll('.gameover__left .ending-card').length).toBe(2);
     expect(host.querySelectorAll('.gameover__right .ending-card').length).toBe(2);
@@ -1071,8 +1163,9 @@ describe('renderGameOver (spec §6.14)', () => {
     const noDeath = { ...CONFIG, endings: { 'win-circuit': CONFIG.endings['win-circuit'] } };
     const host = dom(renderGameOver(overOf('dead'), noDeath));
     expect(host.querySelector('.banner-stamp')).toBeNull();
-    expect(host.querySelectorAll('.ending-card--locked').length)
-      .toBe(host.querySelectorAll('.ending-card').length);
+    expect(host.querySelectorAll('.ending-card--locked').length).toBe(
+      host.querySelectorAll('.ending-card').length
+    );
     const cause = host.querySelector('.cause-of-death');
     expect(cause.querySelector('strong').textContent).toBe('Final purse:');
     expect(cause.textContent).not.toContain('turnip');
@@ -1086,7 +1179,9 @@ describe('renderGameOver (spec §6.14)', () => {
     const s = { ...createGameState(1, CONFIG), phase: 'GAMEOVER', ended: 'dead', health: 0 };
     expect(s.lastResult, 'the fixture must actually be missing its result').toBeNull();
     let html;
-    expect(() => { html = renderGameOver(s, CONFIG); }).not.toThrow();
+    expect(() => {
+      html = renderGameOver(s, CONFIG);
+    }).not.toThrow();
     const cause = dom(html).querySelector('.cause-of-death');
     expect(cause.querySelector('strong').textContent).toBe('Cause of Death:');
     expect(cause.textContent).not.toContain('undefined');
@@ -1100,13 +1195,14 @@ describe('renderGameOver (spec §6.14)', () => {
       lastResult: { ...DEATH, causeOfDeath: 'Felled by <script>alert("x")</script>.' },
     });
     expect(html).not.toContain('<script>');
-    expect(dom(html).querySelector('.cause-of-death').textContent)
-      .toContain('Felled by <script>alert("x")</script>.');
+    expect(dom(html).querySelector('.cause-of-death').textContent).toContain(
+      'Felled by <script>alert("x")</script>.'
+    );
   });
 
   // §6.14: "Fight Again is the lone .btn--commit". §9: prices live in the price slot, and this
   // button has no price at all — a label carrying money would fail both.
-  it('offers Fight Again as the screen\'s lone commit button', () => {
+  it("offers Fight Again as the screen's lone commit button", () => {
     const screen = dom(gameOver('dead')).querySelector('.screen--gameover');
     const commits = [...screen.querySelectorAll('.btn--commit')];
     expect(commits.length).toBe(1);
@@ -1122,7 +1218,11 @@ describe('renderGameOver (spec §6.14)', () => {
     const section = dom(gameOver('dead')).querySelector('section.screen');
     expect([...section.classList]).toContain('screen--gameover');
     expect([...section.children].map((c) => c.className.split(' ')[0])).toEqual([
-      'gameover__left', 'gameover__stamp', 'gameover__right', 'gameover__cause', 'gameover__cta',
+      'gameover__left',
+      'gameover__stamp',
+      'gameover__right',
+      'gameover__cause',
+      'gameover__cta',
     ]);
   });
 
@@ -1134,8 +1234,9 @@ describe('renderGameOver (spec §6.14)', () => {
     expect(dead.ended).toBe('dead');
     const html = renderGameOver(dead, CONFIG);
     expect(html).toContain(escapeHtml(dead.lastResult.causeOfDeath));
-    expect(dom(html).querySelector('[aria-label="Health"]').getAttribute('aria-valuenow'))
-      .toBe('0');
+    expect(dom(html).querySelector('[aria-label="Health"]').getAttribute('aria-valuenow')).toBe(
+      '0'
+    );
   });
 });
 
@@ -1146,7 +1247,8 @@ describe('renderGameOver (spec §6.14)', () => {
 describe('logEntry (spec §6.9)', () => {
   const SWORD = 0x2694; // ⚔ CROSSED SWORDS, pinned by codepoint, never by a pasted glyph
   const entry = (over = {}) => ({ turn: 1, kind: 'attack', text: 'You swing.', ...over });
-  const swordCount = (html) => (html.match(new RegExp(String.fromCodePoint(SWORD), 'g')) || []).length;
+  const swordCount = (html) =>
+    (html.match(new RegExp(String.fromCodePoint(SWORD), 'g')) || []).length;
 
   it('wraps the clause in a numbered log entry', () => {
     const html = logEntry(entry({ turn: 7 }));
@@ -1164,7 +1266,9 @@ describe('logEntry (spec §6.9)', () => {
   });
 
   it('marks damage taken with a sword glyph that assistive tech does not read', () => {
-    const html = logEntry(entry({ text: '{who} strikes (hit) for {taken}.', who: 'The Brute', taken: 9 }));
+    const html = logEntry(
+      entry({ text: '{who} strikes (hit) for {taken}.', who: 'The Brute', taken: 9 })
+    );
     const glyph = html.match(/<span aria-hidden="true">(.)<\/span>/)[1];
     expect(glyph.codePointAt(0)).toBe(SWORD);
     expect(html).toContain('The Brute strikes (hit) for ');
@@ -1177,10 +1281,12 @@ describe('logEntry (spec §6.9)', () => {
   });
 
   it('italicises a status clause and leaves an attack clause upright', () => {
-    expect(logEntry(entry({ kind: 'status', text: 'You raise your guard.' })))
-      .toContain('<em>You raise your guard.</em>');
-    expect(logEntry(entry({ kind: 'attack', text: 'You raise your guard.' })))
-      .not.toContain('<em>');
+    expect(logEntry(entry({ kind: 'status', text: 'You raise your guard.' }))).toContain(
+      '<em>You raise your guard.</em>'
+    );
+    expect(logEntry(entry({ kind: 'attack', text: 'You raise your guard.' }))).not.toContain(
+      '<em>'
+    );
   });
 
   it('formats money through formatGold in a gold-ink amount slot', () => {
@@ -1190,10 +1296,12 @@ describe('logEntry (spec §6.9)', () => {
   });
 
   it('escapes the clause and its values exactly once', () => {
-    const html = logEntry(entry({
-      text: '{who} jeers & <spits> at "you".',
-      who: '<img src=x onerror="alert(1)">',
-    }));
+    const html = logEntry(
+      entry({
+        text: '{who} jeers & <spits> at "you".',
+        who: '<img src=x onerror="alert(1)">',
+      })
+    );
     expect(html).not.toContain('<img');
     expect(html).not.toContain('<spits>');
     expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
@@ -1205,9 +1313,14 @@ describe('logEntry (spec §6.9)', () => {
   // Substitution must be a single pass. If the filled-in values were rescanned, an enemy
   // named "{taken}" would mint a second damage figure out of nothing.
   it('does not rescan a substituted value for further placeholders', () => {
-    const html = logEntry(entry({
-      text: '{who} strikes for {taken}.', who: '{taken}{dmg}', taken: 4, dmg: 99,
-    }));
+    const html = logEntry(
+      entry({
+        text: '{who} strikes for {taken}.',
+        who: '{taken}{dmg}',
+        taken: 4,
+        dmg: 99,
+      })
+    );
     expect(swordCount(html)).toBe(1);
     expect(html).toContain('{taken}{dmg} strikes for ');
     expect(html).not.toContain('99');
@@ -1218,8 +1331,9 @@ describe('logEntry (spec §6.9)', () => {
   });
 
   it('parenthesises an optional snark aside and escapes it', () => {
-    expect(logEntry(entry({ snark: 'The crowd studies its sandals' })))
-      .toContain('<span class="snark">(The crowd studies its sandals)</span>');
+    expect(logEntry(entry({ snark: 'The crowd studies its sandals' }))).toContain(
+      '<span class="snark">(The crowd studies its sandals)</span>'
+    );
     expect(logEntry(entry({ snark: '<b>no</b>' }))).toContain('(&lt;b&gt;no&lt;/b&gt;)');
     expect(logEntry(entry())).not.toContain('class="snark"');
   });
@@ -1229,7 +1343,10 @@ describe('logEntry (spec §6.9)', () => {
   it('renders a speakable plain-text twin with no markup', () => {
     const e = entry({
       text: '{who} strikes (hit) for {taken}, taking {gold}.',
-      who: 'The <Brute>', taken: 9, gold: 50, snark: 'Rude',
+      who: 'The <Brute>',
+      taken: 9,
+      gold: 50,
+      snark: 'Rude',
     });
     const text = logEntryText(e);
     expect(text).toBe(`The <Brute> strikes (hit) for 9, taking ${formatGold(50)}. (Rude)`);
@@ -1255,7 +1372,9 @@ describe('renderFight', () => {
 
   it('renders the combat log', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = [{ turn: 1, kind: 'attack', text: 'You strike (hit) for {dmg} damage.', dmg: 13 }];
+    s.combat.log = [
+      { turn: 1, kind: 'attack', text: 'You strike (hit) for {dmg} damage.', dmg: 13 },
+    ];
     expect(renderFight(s, CONFIG)).toContain('You strike (hit) for <b>13</b> damage.');
   });
 
@@ -1283,8 +1402,11 @@ describe('renderFight', () => {
     ]);
     // …and the status clause is the italic one (spec 6.9's fourth typographic channel).
     const entries = [...dom(html).querySelectorAll('.log__entry')];
-    expect(entries.map((li) => li.querySelector('em')?.textContent ?? null))
-      .toEqual([null, null, 'You raise your guard.']);
+    expect(entries.map((li) => li.querySelector('em')?.textContent ?? null)).toEqual([
+      null,
+      null,
+      'You raise your guard.',
+    ]);
   });
 
   // Spec 6.9's strip is a fixed-height *scroller*, and that CSS is the only truncation: the
@@ -1294,19 +1416,28 @@ describe('renderFight', () => {
   it('renders the whole history in order, keeping each entry its own turn number', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
     // Ten entries over five exchanges: two lines per turn, exactly as a real fight pushes them.
-    s.combat.log = Array.from({ length: 10 }, (_, i) => (
-      { turn: Math.floor(i / 2) + 1, kind: 'attack', text: `line ${i + 1}` }));
+    s.combat.log = Array.from({ length: 10 }, (_, i) => ({
+      turn: Math.floor(i / 2) + 1,
+      kind: 'attack',
+      text: `line ${i + 1}`,
+    }));
     expect(logRows(renderFight(s, CONFIG))).toEqual(
-      s.combat.log.map((e, i) => ({ turn: `T${e.turn}`, text: `line ${i + 1}` })));
+      s.combat.log.map((e, i) => ({ turn: `T${e.turn}`, text: `line ${i + 1}` }))
+    );
   });
 
   // Log lines interpolate the opponent's name, which comes from config and one day from a mod.
   // The entry carries markup now, so a hostile name must still escape exactly once.
   it('escapes log entries exactly once', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
-    s.combat.log = [{
-      turn: 1, kind: 'attack', text: '{who} & co', who: '<script>alert("x")</script>',
-    }];
+    s.combat.log = [
+      {
+        turn: 1,
+        kind: 'attack',
+        text: '{who} & co',
+        who: '<script>alert("x")</script>',
+      },
+    ];
     const html = renderFight(s, CONFIG);
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; co');
@@ -1391,7 +1522,13 @@ describe('renderFight', () => {
 
   it('wraps each grid area of the spec 7 fight layout', () => {
     const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
-    for (const cls of ['fight__you', 'fight__stage', 'fight__foe', 'fight__log', 'fight__actions']) {
+    for (const cls of [
+      'fight__you',
+      'fight__stage',
+      'fight__foe',
+      'fight__log',
+      'fight__actions',
+    ]) {
       expect(html, `missing wrapper ${cls}`).toContain(`class="${cls}"`);
     }
     // The meter is the stage, not a stray sibling of it.
@@ -1437,10 +1574,8 @@ describe('renderFight timing meter (spec §6.4)', () => {
     expect(html).toContain('class="meter-cursor"');
     // Painted weakest-first: crit must be the last of the three, or the wide graze band
     // covers the bright one it is supposed to nest around.
-    expect(html.indexOf('meter__zone--graze'))
-      .toBeLessThan(html.indexOf('meter__zone--hit'));
-    expect(html.indexOf('meter__zone--hit'))
-      .toBeLessThan(html.indexOf('meter__zone--crit'));
+    expect(html.indexOf('meter__zone--graze')).toBeLessThan(html.indexOf('meter__zone--hit'));
+    expect(html.indexOf('meter__zone--hit')).toBeLessThan(html.indexOf('meter__zone--crit'));
   });
 
   it('positions the zones from this turn’s sweet spot and the player’s own window', () => {
@@ -1459,8 +1594,9 @@ describe('renderFight timing meter (spec §6.4)', () => {
     const fast = { ...slow, trainingLevels: { ...slow.trainingLevels, speed: 6 } };
     expect(effectiveStats(fast, CONFIG).speed).toBeGreaterThan(effectiveStats(slow, CONFIG).speed);
     for (const name of ['graze', 'hit', 'crit']) {
-      expect(zoneGeometry(renderFight(fast, CONFIG), name).size)
-        .toBeGreaterThan(zoneGeometry(renderFight(slow, CONFIG), name).size);
+      expect(zoneGeometry(renderFight(fast, CONFIG), name).size).toBeGreaterThan(
+        zoneGeometry(renderFight(slow, CONFIG), name).size
+      );
     }
   });
 
@@ -1560,10 +1696,10 @@ describe('meterZones', () => {
         // floats moves it by ~1e-17, which would otherwise decide a boundary-exact test. The
         // 1e-9 window is still ~8 orders of magnitude tighter than any tier gap here.
         expect(resolveTiming(half * (1 - 1e-9), width, CONFIG, critWindowMult)).toBe(tier);
-        expect(resolveTiming(half * (1 + 1e-9), width, CONFIG, critWindowMult))
-          .toBe(weaker[tier]);
+        expect(resolveTiming(half * (1 + 1e-9), width, CONFIG, critWindowMult)).toBe(weaker[tier]);
       }
-    });
+    }
+  );
 
   it('defaults to an unwidened crit band when no multiplier is supplied', () => {
     const plain = meterZones(0.5, 0.18, CONFIG);
@@ -1626,7 +1762,7 @@ describe('meterPeriod', () => {
   it('starts at the base sweep duration and speeds up per opponent tier', () => {
     expect(meterPeriod(0, CONFIG)).toBe(CONFIG.combat.meterPeriodMs.base);
     expect(meterPeriod(1, CONFIG)).toBe(
-      CONFIG.combat.meterPeriodMs.base + CONFIG.combat.meterPeriodMs.perTier,
+      CONFIG.combat.meterPeriodMs.base + CONFIG.combat.meterPeriodMs.perTier
     );
   });
 

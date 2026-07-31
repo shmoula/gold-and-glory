@@ -4,7 +4,7 @@
 **Status:** Approved concept → MVP spec
 **Genre:** Turn-based arena fighter with a faucet/sink economy
 **Platform:** Web (HTML5 / JavaScript) — instant click-to-play, optimized for sharing
-**One-liner:** *Death or glory, and a small administrative fee.*
+**One-liner:** _Death or glory, and a small administrative fee._
 
 ---
 
@@ -16,6 +16,7 @@ hawking absurd products, officials you bribe, a commentator who mocks your death
 comedy. Grounded stakes make players care; the satirical meta makes them screenshot.
 
 **Design pillars:**
+
 1. **The Squeeze** — you can never hoard. Costs scale with you; standing still means losing.
 2. **Readable risk** — every choice (which fight, press the attack, bribe or not) is a clear gamble.
 3. **Screenshot comedy** — the economy generates shareable absurdity (sponsors, death recaps).
@@ -40,22 +41,24 @@ opponents keep scaling. Sitting on gold = falling behind. Faucet/sink tension ma
 ## 3. Economy — Faucets & Sinks
 
 ### Faucets (gold in)
-| Faucet | How it works | Design role |
-|---|---|---|
-| **Win a fight** | Payout scales with chosen risk tier (safe purse → death-match jackpot) | Primary income; player-controlled risk |
-| **Sponsors** | Once "hot," a sponsor offers a recurring stipend + bonus objective ("win without blocking") | Steady income + comedy + behavior nudges |
-| **Loot** | Occasional gear/scrap from tough wins | Variable reward; spikes excitement |
+
+| Faucet          | How it works                                                                                | Design role                              |
+| --------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Win a fight** | Payout scales with chosen risk tier (safe purse → death-match jackpot)                      | Primary income; player-controlled risk   |
+| **Sponsors**    | Once "hot," a sponsor offers a recurring stipend + bonus objective ("win without blocking") | Steady income + comedy + behavior nudges |
+| **Loot**        | Occasional gear/scrap from tough wins                                                       | Variable reward; spikes excitement       |
 
 ### Sinks (gold out)
-| Sink | How it works | Design role |
-|---|---|---|
-| **Training** | Raise a stat; escalating cost per level | Long-term power; main gold drain |
-| **Weapon repair** | Weapons lose durability each fight; broken = damage penalty | Recurring forced cost |
-| **Healing (medicus)** | Injuries persist between fights unless paid off | Recurring forced cost; punishes reckless play |
-| **Gear shop** | Buy weapons/armor to keep pace | Burst spending; power spikes |
-| **Bribe the official** | Reduce arena tax on purse, lower opponent's opening advantage, or buy out a death-match clause | Signature comedic + strategic sink |
 
-**Economic intent:** tuned to a deliberate *slight squeeze* — a skilled player progresses;
+| Sink                   | How it works                                                                                   | Design role                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Training**           | Raise a stat; escalating cost per level                                                        | Long-term power; main gold drain              |
+| **Weapon repair**      | Weapons lose durability each fight; broken = damage penalty                                    | Recurring forced cost                         |
+| **Healing (medicus)**  | Injuries persist between fights unless paid off                                                | Recurring forced cost; punishes reckless play |
+| **Gear shop**          | Buy weapons/armor to keep pace                                                                 | Burst spending; power spikes                  |
+| **Bribe the official** | Reduce arena tax on purse, lower opponent's opening advantage, or buy out a death-match clause | Signature comedic + strategic sink            |
+
+**Economic intent:** tuned to a deliberate _slight squeeze_ — a skilled player progresses;
 a greedy or careless one goes broke or dies. Net income should be positive but thin, so
 every gold decision matters.
 
@@ -64,6 +67,7 @@ every gold decision matters.
 ## 4. Combat — Turn-based + Timing/Risk
 
 Each turn the player picks an action:
+
 - **Strike** — reliable moderate damage
 - **Heavy** — high damage, slower (enemy may interrupt)
 - **Block** — reduce incoming damage, build a counter
@@ -77,6 +81,7 @@ damage — but it drops their guard, giving the enemy an upgraded next turn. Eve
 a string of small risk decisions that rhyme with the macro economy.
 
 **Stats:**
+
 - **Power** — outgoing damage
 - **Guard** — incoming damage reduction + block effectiveness
 - **Speed** — timing-window size + initiative (who hits first)
@@ -86,6 +91,7 @@ a string of small risk decisions that rhyme with the macro economy.
 ## 5. MVP Scope
 
 **In scope (ship-able slice):**
+
 - 1 arena, **4 opponents** escalating: tutorial brute → journeyman → veteran → boss champion
 - Combat loop with timing + push-your-luck
 - **Gold wallet HUD** (coin counter, always visible)
@@ -98,6 +104,7 @@ a string of small risk decisions that rhyme with the macro economy.
 - Starter **balance table** (below)
 
 **Out of scope for MVP (post-MVP roadmap):**
+
 - Multiple arenas / world tour
 - Multiplayer / async ghost-fights
 - Real monetization (cosmetics, season pass) — hooks noted, not built
@@ -111,23 +118,25 @@ a string of small risk decisions that rhyme with the macro economy.
 Currency: **gold (g)**. Numbers are starting points to playtest, not final.
 
 **Fight payouts (faucet):**
-| Opponent | Risk tier | Win purse | Death risk | Notes |
-|---|---|---|---|---|
-| Brute (tutorial) | Safe | 50g | None | Teaches loop |
-| Journeyman | Standard | 120g | Low | Introduces durability pressure |
-| Veteran | Hard | 280g | Medium | Gear check |
-| Champion (boss) | Death-match | 700g | High | Circuit finale |
+
+| Opponent         | Risk tier   | Win purse | Death risk | Notes                          |
+| ---------------- | ----------- | --------- | ---------- | ------------------------------ |
+| Brute (tutorial) | Safe        | 50g       | None       | Teaches loop                   |
+| Journeyman       | Standard    | 120g      | Low        | Introduces durability pressure |
+| Veteran          | Hard        | 280g      | Medium     | Gear check                     |
+| Champion (boss)  | Death-match | 700g      | High       | Circuit finale                 |
 
 **Sinks (per use / per level):**
-| Sink | Cost | Scaling |
-|---|---|---|
-| Train a stat | 80g (lvl 1) | ×1.6 per level |
-| Weapon repair | 15g per durability point | flat |
-| Heal injury | 40g per injury | flat |
-| Gear: Shield | 200g | one-time |
-| Gear: Better blade | 350g | one-time |
-| Gear: Lucky charm | 150g | one-time |
-| Bribe (reduce arena tax 20%→5%) | 60g | per fight |
+
+| Sink                            | Cost                     | Scaling        |
+| ------------------------------- | ------------------------ | -------------- |
+| Train a stat                    | 80g (lvl 1)              | ×1.6 per level |
+| Weapon repair                   | 15g per durability point | flat           |
+| Heal injury                     | 40g per injury           | flat           |
+| Gear: Shield                    | 200g                     | one-time       |
+| Gear: Better blade              | 350g                     | one-time       |
+| Gear: Lucky charm               | 150g                     | one-time       |
+| Bribe (reduce arena tax 20%→5%) | 60g                      | per fight      |
 
 **Sponsor (faucet):** unlocks after 2 wins → 30g stipend per fight + 50g bonus on objective.
 
@@ -172,4 +181,7 @@ to climb, thin enough to hurt mistakes. Tune tax %, durability loss, and trainin
 - Median session reaches at least the Veteran fight (loop is compelling enough to continue).
 - At least one "screenshot moment" per run (death recap, absurd sponsor, big bribe gamble).
 - Balance produces real tension: playtesters report going broke or dying at least once.
+
+```
+
 ```

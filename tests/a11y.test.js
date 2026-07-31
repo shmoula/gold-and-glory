@@ -16,13 +16,17 @@ import { mountAll, SCREEN_STATES, PHASES_COVERED, ALL_PHASES } from './support/s
 
 const SCREENS = mountAll();
 const css = ['src/styles.css', ...readdirSync('src/styles').map((f) => `src/styles/${f}`)]
-  .map((f) => readFileSync(f, 'utf8')).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
+  .map((f) => readFileSync(f, 'utf8'))
+  .join('\n')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
 const mainJs = readFileSync('src/main.js', 'utf8');
 
 // Anything the browser puts in the tab ring. `[tabindex]` is what brings the meter in.
 const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
-const all = (sel) => Object.entries(SCREENS)
-  .flatMap(([name, host]) => [...host.querySelectorAll(sel)].map((el) => ({ name, el })));
+const all = (sel) =>
+  Object.entries(SCREENS).flatMap(([name, host]) =>
+    [...host.querySelectorAll(sel)].map((el) => ({ name, el }))
+  );
 
 describe('the state matrix covers every screen', () => {
   it('reaches all four phases', () => {
@@ -38,7 +42,7 @@ describe('the state matrix covers every screen', () => {
   // anything. Selected the way the sheet selects — `.log__entry b`, `em`, `.amount` are element
   // and class hooks, not new classes (§6.0's index is closed) — so this and components.css
   // disagree only if one of them is wrong.
-  it('renders a populated combat log, with all four of §6.9\'s channels', () => {
+  it("renders a populated combat log, with all four of §6.9's channels", () => {
     const entries = all('.log__entry');
     expect(entries.length, 'no state in the matrix has a non-empty log').toBeGreaterThan(5);
     // More than one turn, or `.log__turn` is a constant and the strip is one exchange.
@@ -51,8 +55,9 @@ describe('the state matrix covers every screen', () => {
       ['status', '.log__entry em'], // italic body: block, counter, feint
       ['snark', '.log__entry .snark'],
     ]) {
-      expect(all(sel).length, `${channel} (${sel}) appears on no rendered screen`)
-        .toBeGreaterThan(0);
+      expect(all(sel).length, `${channel} (${sel}) appears on no rendered screen`).toBeGreaterThan(
+        0
+      );
     }
   });
 });
@@ -63,10 +68,11 @@ describe('every control is reachable (spec §8)', () => {
   // restated: a handler added with no button, or a button whose action was renamed, is exactly
   // the failure this catches, and both are silent today (wire() simply finds no handler).
   const handlerBlock = mainJs.slice(mainJs.indexOf('const handlers = {'));
-  const HANDLERS = [...handlerBlock.slice(0, handlerBlock.indexOf('\n};'))
-    .matchAll(/^\s{2}'?([\w-]+)'?:/gm)].map((m) => m[1]);
+  const HANDLERS = [
+    ...handlerBlock.slice(0, handlerBlock.indexOf('\n};')).matchAll(/^\s{2}'?([\w-]+)'?:/gm),
+  ].map((m) => m[1]);
 
-  it('reads main.js\'s handler table', () => {
+  it("reads main.js's handler table", () => {
     expect(HANDLERS.length).toBeGreaterThanOrEqual(18);
     expect(HANDLERS).toContain('next-fight');
     expect(HANDLERS).toContain('press');
@@ -120,7 +126,8 @@ describe('every control is reachable (spec §8)', () => {
     for (const [, prelude, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       if (prelude.trim().startsWith('@')) continue;
       if (/(^|;)\s*order\s*:/.test(body)) offenders.push(`${prelude.trim()}: order`);
-      if (/(flex-direction|flex-flow)\s*:[^;]*reverse/.test(body)) offenders.push(`${prelude.trim()}: reverse`);
+      if (/(flex-direction|flex-flow)\s*:[^;]*reverse/.test(body))
+        offenders.push(`${prelude.trim()}: reverse`);
       if (/direction\s*:\s*rtl/.test(body)) offenders.push(`${prelude.trim()}: rtl`);
       if (/\bwrap-reverse\b/.test(body)) offenders.push(`${prelude.trim()}: wrap-reverse`);
     }
@@ -138,7 +145,8 @@ describe('interactive targets are at least 44px tall (spec §8)', () => {
     const h = /(?:^|;)\s*(?:min-)?height\s*:\s*(\d+(?:\.\d+)?)px/.exec(body);
     if (!h) continue;
     for (const sel of prelude.split(',').map((s) => s.trim())) {
-      if (/^\.[\w-]+$/.test(sel)) heights.set(sel.slice(1), Math.max(heights.get(sel.slice(1)) ?? 0, Number(h[1])));
+      if (/^\.[\w-]+$/.test(sel))
+        heights.set(sel.slice(1), Math.max(heights.get(sel.slice(1)) ?? 0, Number(h[1])));
     }
   }
 
@@ -150,7 +158,8 @@ describe('interactive targets are at least 44px tall (spec §8)', () => {
     const short = new Set();
     for (const { name, el } of all(FOCUSABLE)) {
       const best = Math.max(0, ...[...el.classList].map((c) => heights.get(c) ?? 0));
-      if (best < 44) short.add(`${name}: ${el.tagName}.${[...el.classList].join('.')} -> ${best}px`);
+      if (best < 44)
+        short.add(`${name}: ${el.tagName}.${[...el.classList].join('.')} -> ${best}px`);
     }
     expect([...short]).toEqual([]);
   });
@@ -166,8 +175,12 @@ describe('Law 3 — every signed amount carries its sign', () => {
   const toned = all('.amount--pos, .amount--neg');
 
   it('found amounts on both sides of zero', () => {
-    expect(toned.filter(({ el }) => el.classList.contains('amount--pos')).length).toBeGreaterThan(0);
-    expect(toned.filter(({ el }) => el.classList.contains('amount--neg')).length).toBeGreaterThan(0);
+    expect(toned.filter(({ el }) => el.classList.contains('amount--pos')).length).toBeGreaterThan(
+      0
+    );
+    expect(toned.filter(({ el }) => el.classList.contains('amount--neg')).length).toBeGreaterThan(
+      0
+    );
   });
 
   it('opens every green amount with + and every red one with U+2212', () => {
@@ -178,7 +191,9 @@ describe('Law 3 — every signed amount carries its sign', () => {
       // The injuries tally is the one exception, pinned by the assertion below.
       if (labelOf(el) === 'Injuries gained') continue;
       if (text.codePointAt(0) !== want) {
-        wrong.push(`${name}: "${text}" (${labelOf(el)}) opens U+${text.codePointAt(0).toString(16)}`);
+        wrong.push(
+          `${name}: "${text}" (${labelOf(el)}) opens U+${text.codePointAt(0).toString(16)}`
+        );
       }
     }
     expect(wrong).toEqual([]);
@@ -202,7 +217,12 @@ describe('Law 3 — every signed amount carries its sign', () => {
   // The ledger row's own `<dt>`, so a failure names the line rather than a number.
   function labelOf(el) {
     const row = el.closest('.ledger__row');
-    return row?.querySelector('dt')?.textContent.trim().replace(/\s*\(.*/, '') ?? null;
+    return (
+      row
+        ?.querySelector('dt')
+        ?.textContent.trim()
+        .replace(/\s*\(.*/, '') ?? null
+    );
   }
 });
 
@@ -217,8 +237,11 @@ describe('Law 3 — commit blue only on the five named commitments', () => {
   // once. The codepoint assertion below is what makes the escape load-bearing.
   const ARROW = '\u25B8';
   const COMMITMENTS = new Set([
-    `Next Fight ${ARROW}`, `Press the Attack ${ARROW}`, 'Retire Rich',
-    `Fight Again ${ARROW}`, 'Return to Ludus',
+    `Next Fight ${ARROW}`,
+    `Press the Attack ${ARROW}`,
+    'Retire Rich',
+    `Fight Again ${ARROW}`,
+    'Return to Ludus',
   ]);
 
   it('compares against the codepoint the renderer emits, not a lookalike', () => {
@@ -229,7 +252,8 @@ describe('Law 3 — commit blue only on the five named commitments', () => {
   // (the result CTA reads "Return to Ludus" + "140 G"), so textContent would concatenate money
   // into the label and no allowlist could ever match.
   const labels = all('.btn--commit').map(({ name, el }) => ({
-    name, label: el.childNodes[0].textContent.trim(),
+    name,
+    label: el.childNodes[0].textContent.trim(),
   }));
 
   it('renders commit banners to check', () => {

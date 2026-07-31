@@ -83,8 +83,7 @@ describe('CONFIG', () => {
     expect(GEAR_KEYS.length).toBeGreaterThan(0); // guard against a vacuous loop
     for (const key of BUTTON_SNARK_KEYS) {
       expect(typeof CONFIG.snark[key], `${key} needs a snark aside`).toBe('string');
-      expect(CONFIG.snark[key]?.length ?? 0, `${key} snark must not be empty`)
-        .toBeGreaterThan(0);
+      expect(CONFIG.snark[key]?.length ?? 0, `${key} snark must not be empty`).toBeGreaterThan(0);
     }
   });
 
@@ -92,8 +91,7 @@ describe('CONFIG', () => {
     expect(OPPONENT_KEYS.length).toBeGreaterThan(0); // guard against a vacuous loop
     for (const key of POSTER_SNARK_KEYS) {
       expect(typeof CONFIG.snark[key], `${key} needs a poster aside`).toBe('string');
-      expect(CONFIG.snark[key]?.length ?? 0, `${key} aside must not be empty`)
-        .toBeGreaterThan(0);
+      expect(CONFIG.snark[key]?.length ?? 0, `${key} aside must not be empty`).toBeGreaterThan(0);
     }
   });
 
@@ -162,8 +160,10 @@ describe('CONFIG', () => {
       { variant: 'defeat', text: "THE LION'S SHARE." },
       { variant: 'death', text: 'CARRIED OUT' },
     ]) {
-      expect(() => checkStamp(stamp.variant, { stamp }), `${stamp.text} is §9-correct`)
-        .not.toThrow();
+      expect(
+        () => checkStamp(stamp.variant, { stamp }),
+        `${stamp.text} is §9-correct`
+      ).not.toThrow();
     }
   });
 
@@ -180,8 +180,10 @@ describe('CONFIG', () => {
       { variant: 'triumph', text: 'TRIUMPH' }, // a variant §6.13 has no stamp for
       { variant: 'defeat', text: 'Defeat.' }, // display case is not optional
     ]) {
-      expect(() => checkStamp(stamp.variant, { stamp }), `${stamp.variant}/${stamp.text}`)
-        .toThrow();
+      expect(
+        () => checkStamp(stamp.variant, { stamp }),
+        `${stamp.variant}/${stamp.text}`
+      ).toThrow();
     }
   });
 
