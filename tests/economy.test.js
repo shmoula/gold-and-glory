@@ -1,12 +1,8 @@
 // tests/economy.test.js
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
-import {
-  trainingCost, repairCost, healCost, canAfford,
-} from '../src/economy.js';
-import {
-  arenaTax, fightPayout, sponsorIncome,
-} from '../src/economy.js';
+import { trainingCost, repairCost, healCost, canAfford } from '../src/economy.js';
+import { arenaTax, fightPayout, sponsorIncome } from '../src/economy.js';
 
 describe('trainingCost', () => {
   it('costs base at level 0 and scales x1.6 per level', () => {
@@ -47,8 +43,8 @@ describe('arenaTax', () => {
 
 describe('fightPayout', () => {
   it('is purse minus tax', () => {
-    expect(fightPayout(120, false, CONFIG)).toBe(96);  // 120 - 24
-    expect(fightPayout(120, true, CONFIG)).toBe(114);  // 120 - 6
+    expect(fightPayout(120, false, CONFIG)).toBe(96); // 120 - 24
+    expect(fightPayout(120, true, CONFIG)).toBe(114); // 120 - 6
   });
 });
 

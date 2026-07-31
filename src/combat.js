@@ -17,8 +17,13 @@ export function resolveTiming(distance, windowWidth, config, critWindowMult = 1)
 }
 
 export function computeDamage({
-  baseDamage, power, guard, timing,
-  pressMultiplier = 1, weaponBroken = false, config,
+  baseDamage,
+  power,
+  guard,
+  timing,
+  pressMultiplier = 1,
+  weaponBroken = false,
+  config,
 }) {
   const mult = config.combat.timingMult[timing];
   if (mult === 0) return 0;
@@ -91,8 +96,12 @@ export function applyPlayerAction(combat, action, timing, config) {
   if (action === 'feint') {
     next.pendingBonus = def.nextHitBonus;
     const dmg = computeDamage({
-      baseDamage: def.baseDamage, power: next.player.power,
-      guard: next.enemy.guard, timing, weaponBroken: next.player.weaponBroken, config,
+      baseDamage: def.baseDamage,
+      power: next.player.power,
+      guard: next.enemy.guard,
+      timing,
+      weaponBroken: next.player.weaponBroken,
+      config,
     });
     next.enemy.health -= dmg;
     pushEntry(next, 'status', `You feint (${timing}) for {dmg}, baiting their guard.`, { dmg });
@@ -102,9 +111,13 @@ export function applyPlayerAction(combat, action, timing, config) {
   // strike / heavy
   const pressMultiplier = 1 + (combat.pendingBonus || 0);
   const dmg = computeDamage({
-    baseDamage: def.baseDamage, power: next.player.power,
-    guard: next.enemy.guard, timing, pressMultiplier,
-    weaponBroken: next.player.weaponBroken, config,
+    baseDamage: def.baseDamage,
+    power: next.player.power,
+    guard: next.enemy.guard,
+    timing,
+    pressMultiplier,
+    weaponBroken: next.player.weaponBroken,
+    config,
   });
   next.enemy.health -= dmg;
   next.pendingBonus = 0;
@@ -145,9 +158,12 @@ export function applyPress(combat, timing, config) {
   // bonusMultiplier is extra damage on top of a normal hit: 0.6 -> 1.6x.
   const dmg = computeDamage({
     baseDamage: config.combat.actions.strike.baseDamage,
-    power: next.player.power, guard: next.enemy.guard, timing,
+    power: next.player.power,
+    guard: next.enemy.guard,
+    timing,
     pressMultiplier: 1 + config.combat.pressAttack.bonusMultiplier,
-    weaponBroken: next.player.weaponBroken, config,
+    weaponBroken: next.player.weaponBroken,
+    config,
   });
   next.enemy.health -= dmg;
   next.pendingBonus = 0;
@@ -177,7 +193,10 @@ export function enemyTurn(combat, rng, config) {
 
   let dmg = computeDamage({
     baseDamage: config.combat.actions.strike.baseDamage,
-    power: next.enemy.power, guard: next.player.guard, timing: tier, config,
+    power: next.enemy.power,
+    guard: next.player.guard,
+    timing: tier,
+    config,
   });
 
   if (next.counterReady) {
@@ -198,7 +217,7 @@ export function enemyTurn(combat, rng, config) {
 }
 
 export function markPressable(combat, action, timing) {
-  const damaging = (action === 'strike' || action === 'heavy' || action === 'feint');
+  const damaging = action === 'strike' || action === 'heavy' || action === 'feint';
   const landed = timing !== TIMING.MISS;
   return { ...combat, canPress: damaging && landed && combat.enemy.health > 0 };
 }

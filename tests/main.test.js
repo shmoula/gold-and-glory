@@ -589,8 +589,10 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
 //
 // Every assertion below runs with requestAnimationFrame stubbed to a no-op that never calls
 // back, exactly like the rest of this file, so none of this theater can quietly come to depend
-// on a painted frame. `performance.now` is already pinned to `clock`, and vitest's fake timers
-// do not fake `performance`, so advancing the two together is what real time looks like here.
+// on a painted frame. `performance.now` is already pinned to `clock` via the module-level spy;
+// vitest's fake timers otherwise also fake `performance.now` (masking that spy), so `withTimers`
+// below excludes it from the faked set, and advancing the two together is what real time looks
+// like here.
 describe('money theater (spec §6.6 / §6.7)', () => {
   const purse = () => q('.hud__purse');
   const ticker = () => q('.hud__purse .ticker');
@@ -600,7 +602,12 @@ describe('money theater (spec §6.6 / §6.7)', () => {
 
   // Fake timers, restored however the body exits — a leaked fake clock breaks every later file.
   function withTimers(body) {
-    vi.useFakeTimers();
+    // Exclude `performance` from the faked set: vitest's fake timers otherwise stub it too,
+    // clobbering the `performance.now` spy this file pins to `clock` (see the block comment
+    // above) and freezing every capture at time 0.
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    });
     try { body(); } finally { vi.useRealTimers(); }
   }
   const tick = (ms) => { clock += ms; vi.advanceTimersByTime(ms); };
@@ -866,7 +873,12 @@ describe('reduced motion, end to end (spec §5, plan Step 3)', () => {
     vi.stubGlobal('matchMedia', vi.fn((media) => ({ media, matches: true })));
 
   function withTimers(body) {
-    vi.useFakeTimers();
+    // Exclude `performance` from the faked set: vitest's fake timers otherwise stub it too,
+    // clobbering the `performance.now` spy this file pins to `clock` (see the block comment
+    // above) and freezing every capture at time 0.
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    });
     try { body(); } finally { vi.useRealTimers(); }
   }
   const tick = (ms) => { clock += ms; vi.advanceTimersByTime(ms); };

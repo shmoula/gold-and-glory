@@ -72,7 +72,10 @@ describe('CONFIG', () => {
     expect(CONFIG.opponents).toHaveLength(4);
     expect(CONFIG.opponents.map((o) => o.purse)).toEqual([50, 120, 280, 700]);
     expect(CONFIG.opponents.map((o) => o.tier)).toEqual([
-      'safe', 'standard', 'hard', 'death-match',
+      'safe',
+      'standard',
+      'hard',
+      'death-match',
     ]);
   });
 

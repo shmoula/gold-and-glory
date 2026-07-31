@@ -3,7 +3,12 @@ import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { createGameState } from '../src/state.js';
 import {
-  effectiveStats, trainStat, repairWeapon, healInjuries, buyGear, bribeOfficial,
+  effectiveStats,
+  trainStat,
+  repairWeapon,
+  healInjuries,
+  buyGear,
+  bribeOfficial,
 } from '../src/game.js';
 import { healCost } from '../src/economy.js';
 
@@ -19,7 +24,7 @@ describe('effectiveStats', () => {
 
   it('adds training (statPerLevel) and gear bonuses', () => {
     const s = createGameState(1, CONFIG);
-    s.trainingLevels.power = 2;     // +4 power
+    s.trainingLevels.power = 2; // +4 power
     s.gear = ['blade', 'shield', 'charm']; // +4 power, +3 guard, x1.5 crit window
     const e = effectiveStats(s, CONFIG);
     expect(e.power).toBe(5 + 4 + 4);
@@ -59,7 +64,9 @@ describe('repairWeapon', () => {
 describe('healInjuries', () => {
   it('clears injuries, restores health, charges per injury', () => {
     const s = createGameState(1, CONFIG);
-    s.injuries = 2; s.health = 60; s.gold = 100;
+    s.injuries = 2;
+    s.health = 60;
+    s.gold = 100;
     const next = healInjuries(s, CONFIG);
     expect(next.injuries).toBe(0);
     expect(next.health).toBe(100);
@@ -78,7 +85,8 @@ describe('buyGear', () => {
 
   it('refuses to buy the same gear twice', () => {
     const s = createGameState(1, CONFIG);
-    s.gold = 400; s.gear = ['shield'];
+    s.gold = 400;
+    s.gear = ['shield'];
     const next = buyGear(s, 'shield', CONFIG);
     expect(next.gold).toBe(400);
   });

@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { CONFIG } from '../src/config.js';
-import { TIMING, timingWindowWidth, resolveTiming, computeDamage, createCombat, applyPlayerAction, isFightOver, fightWinner } from '../src/combat.js';
+import {
+  TIMING,
+  timingWindowWidth,
+  resolveTiming,
+  computeDamage,
+  createCombat,
+  applyPlayerAction,
+  isFightOver,
+  fightWinner,
+} from '../src/combat.js';
 import { makeRng } from '../src/rng.js';
 import { applyPress, enemyTurn, upgradeTier, markPressable } from '../src/combat.js';
 
@@ -60,8 +69,9 @@ describe('computeDamage', () => {
   });
 
   it('never goes below zero', () => {
-    expect(computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config: CONFIG }))
-      .toBe(0);
+    expect(
+      computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config: CONFIG })
+    ).toBe(0);
   });
 
   it('applies the press-attack bonus multiplier', () => {
@@ -77,8 +87,13 @@ describe('computeDamage', () => {
 
 describe('createCombat', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -109,8 +124,13 @@ describe('createCombat', () => {
 
 describe('applyPlayerAction: strike', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -131,8 +151,13 @@ describe('applyPlayerAction: strike', () => {
 
 describe('applyPlayerAction: block', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -146,8 +171,13 @@ describe('applyPlayerAction: block', () => {
 
 describe('applyPlayerAction: feint', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -171,8 +201,13 @@ describe('applyPlayerAction: feint', () => {
 
 describe('isFightOver / fightWinner', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -201,8 +236,13 @@ describe('upgradeTier', () => {
 
 describe('applyPress', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -234,8 +274,13 @@ describe('applyPress', () => {
 
 describe('enemyTurn', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 
@@ -250,7 +295,6 @@ describe('enemyTurn', () => {
   });
 
   it('reduces incoming damage when a counter is ready, then consumes it', () => {
-    const rng = makeRng(5);
     const base = createCombat(playerStats, CONFIG.opponents[2], CONFIG); // Veteran hits harder
     const guarded = { ...base, counterReady: true, player: { ...base.player } };
     const unguarded = { ...base, counterReady: false, player: { ...base.player } };
@@ -263,8 +307,13 @@ describe('enemyTurn', () => {
 
 describe('markPressable', () => {
   const playerStats = {
-    health: 100, maxHealth: 100, power: 5, guard: 5, speed: 5,
-    critWindowMult: 1, weaponBroken: false,
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
   };
   const opponent = CONFIG.opponents[0]; // Brute: hp 40, power 4, guard 2
 

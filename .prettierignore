@@ -1,0 +1,13 @@
+# Build output and generated artifacts
+dist
+coverage
+.lighthouseci
+
+# Managed by npm — reformatting fights the tool that writes it
+package-lock.json
+
+# Vendored fonts and their license files
+src/assets/fonts
+
+# Local Claude Code tooling config, not part of the project source
+.claude
