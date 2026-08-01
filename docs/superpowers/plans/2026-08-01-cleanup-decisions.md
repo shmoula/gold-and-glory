@@ -11,6 +11,7 @@
 **Read first:** the design doc (path above). Its section numbers (§1–§6) are referenced per task. PROGRESS item numbers refer to `docs/superpowers/plans/2026-07-24-design-system-PROGRESS.md`.
 
 **House rules that bind every task here** (from PROGRESS, hard-won):
+
 - Never paste invisible/lookalike characters (U+00A0, U+2212, U+2014); write escapes (`−`) or reuse the exported `MINUS` from `src/ui/format.js`.
 - jsdom has no layout engine — never claim a layout works without the Task 15 browser pass.
 - Scratch scripts must sit in the **repo root** (jsdom/node won't resolve project imports from /tmp) and be deleted before committing.
@@ -20,27 +21,28 @@
 
 ## File Structure (all existing files; no new source files)
 
-| File | Changes in this plan |
-| --- | --- |
-| `src/config.js` | + `combat.minHitDamage` |
-| `src/combat.js` | + `floorLandedDamage`, floor wired into `computeDamage` and `enemyTurn` |
-| `src/ui/render.js` | labels, meter role, log `aria-live`, stamp/result helpers, `gameoverSummary`, `.parchment` classes |
-| `src/ui/components.js` | icon well in `shopItem`, `bannerStamp` loses `status`, `.parchment` classes |
-| `src/main.js` | `announceEnding()` for GAMEOVER |
-| `src/styles/base.css` | `#app` loses the duplicate page column |
-| `src/styles/components.css` | dog-ear, icon well, 4:3 portrait, contrast raises, `.parchment`, dead-rule pruning |
-| `src/styles/tokens.css` | unreferenced tokens pruned |
-| `tests/combat.test.js` | floor tests |
-| `tests/styles.test.js` | contrast-blend tests, parchment gate, shortfall guard, Law-4 calibration update |
-| `tests/render.test.js`, `tests/main.test.js`, `tests/a11y.test.js` | expectations updated per task |
-| the spec (2026-07-23) | §1, §6.0, §6.2, §6.4, §6.9 note, §7 comment, §8 — edited beside their code |
-| PROGRESS (2026-07-24) | open-decisions section marked resolved (Task 14) |
+| File                                                               | Changes in this plan                                                                               |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `src/config.js`                                                    | + `combat.minHitDamage`                                                                            |
+| `src/combat.js`                                                    | + `floorLandedDamage`, floor wired into `computeDamage` and `enemyTurn`                            |
+| `src/ui/render.js`                                                 | labels, meter role, log `aria-live`, stamp/result helpers, `gameoverSummary`, `.parchment` classes |
+| `src/ui/components.js`                                             | icon well in `shopItem`, `bannerStamp` loses `status`, `.parchment` classes                        |
+| `src/main.js`                                                      | `announceEnding()` for GAMEOVER                                                                    |
+| `src/styles/base.css`                                              | `#app` loses the duplicate page column                                                             |
+| `src/styles/components.css`                                        | dog-ear, icon well, 4:3 portrait, contrast raises, `.parchment`, dead-rule pruning                 |
+| `src/styles/tokens.css`                                            | unreferenced tokens pruned                                                                         |
+| `tests/combat.test.js`                                             | floor tests                                                                                        |
+| `tests/styles.test.js`                                             | contrast-blend tests, parchment gate, shortfall guard, Law-4 calibration update                    |
+| `tests/render.test.js`, `tests/main.test.js`, `tests/a11y.test.js` | expectations updated per task                                                                      |
+| the spec (2026-07-23)                                              | §1, §6.0, §6.2, §6.4, §6.9 note, §7 comment, §8 — edited beside their code                         |
+| PROGRESS (2026-07-24)                                              | open-decisions section marked resolved (Task 14)                                                   |
 
 ---
 
 ### Task 1: Damage floor (design §1, item 24)
 
 **Files:**
+
 - Modify: `src/config.js:47-62` (the `combat` block)
 - Modify: `src/combat.js:19-34` (`computeDamage`), `src/combat.js:195-225` (`enemyTurn`)
 - Test: `tests/combat.test.js`
@@ -64,17 +66,22 @@ it('a miss still deals exactly 0', () => {
 
 it('reads the floor from config, not a literal', () => {
   const config = { ...CONFIG, combat: { ...CONFIG.combat, minHitDamage: 3 } };
-  expect(
-    computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config })
-  ).toBe(3);
+  expect(computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config })).toBe(3);
 });
 
 it('block cannot reduce a landed hit below the floor', () => {
   // rng() = 0.99 rolls the top tier (weights accumulate to crit at 1.0), so the enemy lands
   // a crit into a 999 guard: computeDamage floors it to 1, then block's 60% cut rounds it
   // back to 0 — the floor must be re-applied after the cut or the stall survives.
-  const player = { health: 100, maxHealth: 100, power: 5, guard: 999, speed: 5,
-    critWindowMult: 1, weaponBroken: false };
+  const player = {
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 999,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
+  };
   let combat = createCombat(player, CONFIG.opponents[0], CONFIG);
   combat = applyPlayerAction(combat, 'block', TIMING.MISS, CONFIG);
   const before = combat.player.health;
@@ -84,8 +91,15 @@ it('block cannot reduce a landed hit below the floor', () => {
 
 it('a max-guard turtle cannot stall forever (the item-24 fight)', () => {
   const rng = makeRng(7);
-  const player = { health: 100, maxHealth: 100, power: 5, guard: 999, speed: 5,
-    critWindowMult: 1, weaponBroken: false };
+  const player = {
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 999,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
+  };
   let combat = createCombat(player, CONFIG.opponents[0], CONFIG);
   let exchanges = 0;
   while (!isFightOver(combat) && exchanges < 2000) {
@@ -131,23 +145,23 @@ export function floorLandedDamage(dmg, timing, config) {
 In `computeDamage`, replace the final line `return Math.max(0, Math.round(dmg));` with:
 
 ```js
-  return floorLandedDamage(Math.round(dmg), timing, config);
+return floorLandedDamage(Math.round(dmg), timing, config);
 ```
 
 In `enemyTurn`, replace `dmg = Math.round(dmg * (1 - config.combat.actions.block.damageReduction));` with:
 
 ```js
-    dmg = floorLandedDamage(
-      Math.round(dmg * (1 - config.combat.actions.block.damageReduction)),
-      tier,
-      config
-    );
+dmg = floorLandedDamage(
+  Math.round(dmg * (1 - config.combat.actions.block.damageReduction)),
+  tier,
+  config
+);
 ```
 
 - [ ] **Step 5: Run the full suite**
 
 Run: `npm test`
-Expected: all green. If any *other* test fails, it encodes the old zero-out behavior — reconcile it against design §1 (a landed hit now pays ≥1), never by weakening the new tests.
+Expected: all green. If any _other_ test fails, it encodes the old zero-out behavior — reconcile it against design §1 (a landed hit now pays ≥1), never by weakening the new tests.
 
 - [ ] **Step 6: Commit**
 
@@ -161,6 +175,7 @@ git commit -m "fix(combat): landed hits floor at config.combat.minHitDamage (ite
 ### Task 2: Title-case button labels (design §2, item 4)
 
 **Files:**
+
 - Modify: `src/ui/render.js:136` (`Repair weapon`), `:143` (`Heal N injuries`), `:155` (`Bribe official — …`)
 
 - [ ] **Step 1: Edit the three call sites**
@@ -193,6 +208,7 @@ git commit -m "fix(ui): title-case button labels per spec §9 (item 4)"
 ### Task 3: Poster portrait is a true 4:3 well (design §3, item 10)
 
 **Files:**
+
 - Modify: `src/styles/components.css:243-261` (`.poster__portrait`, `.poster__silhouette`)
 
 - [ ] **Step 1: Edit the two rules**
@@ -229,6 +245,7 @@ git commit -m "fix(ui): poster portrait is the 4:3 well spec §6.5 always specif
 ### Task 4: Sponsor card dog-ear (design §3, item 8)
 
 **Files:**
+
 - Modify: `src/styles/components.css:331-350` (the §6.10 block)
 
 - [ ] **Step 1: Add the pseudo-element**
@@ -273,6 +290,7 @@ git commit -m "feat(ui): sponsor card dog-eared corner per spec §6.10 (item 8)"
 ### Task 5: Shop item icon well (design §3, item 9)
 
 **Files:**
+
 - Modify: `src/ui/components.js:172-190` (`shopItem`)
 - Modify: `src/styles/components.css` (§6.12 block, ~line 300)
 
@@ -281,7 +299,7 @@ git commit -m "feat(ui): sponsor card dog-eared corner per spec §6.10 (item 8)"
 In `shopItem()`, add the well span as the first child in BOTH return values (owned and buyable). Owned branch becomes:
 
 ```js
-    return `<div class="shop-item is-owned">
+return `<div class="shop-item is-owned">
         <span class="shop-item__icon" aria-hidden="true"></span>
         <span class="shop-item__name">${escapeHtml(item.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
@@ -323,6 +341,7 @@ git commit -m "feat(ui): shop item icon well per spec §6.12 (item 9)"
 ### Task 6: Contrast raises for locked/owned text + §8 policy (design §4a, item 33)
 
 **Files:**
+
 - Modify: `src/styles/components.css` (`.ending-card--locked` ~line 584, `.shop-item.is-owned` ~line 321, `.shop-item__owned` ~line 326)
 - Modify: the spec, §8
 - Test: `tests/styles.test.js`
@@ -363,9 +382,7 @@ describe('dimmed-card text still clears the §8 floor (design 2026-08-01 §4a)',
   });
 
   it('recolors the locked snark to full ink (ink-soft cannot clear the floor dimmed)', () => {
-    expect(css).toMatch(
-      /\.ending-card--locked\s+\.snark\s*\{[^}]*color:\s*var\(--color-text\)/
-    );
+    expect(css).toMatch(/\.ending-card--locked\s+\.snark\s*\{[^}]*color:\s*var\(--color-text\)/);
   });
 
   it('owned shop-card text ("✓ Owned" and the name, ink after the recolor)', () => {
@@ -434,6 +451,7 @@ git commit -m "fix(a11y): locked/owned card text clears 4.5:1; wordmark exempted
 ### Task 7: Meter role="button" (design §4b, item 16)
 
 **Files:**
+
 - Modify: `src/ui/render.js:401`
 - Modify: the spec, §6.4 (HTML fence + a sentence)
 - Test: `tests/render.test.js:1564-1568`
@@ -443,12 +461,12 @@ git commit -m "fix(a11y): locked/owned card text clears 4.5:1; wordmark exempted
 At `tests/render.test.js:1564-1568`, the assertion reads `expect(meterTag(html)).toContain('role="application"')` under a comment about handing keys to the page. Replace comment + assertion:
 
 ```js
-    // role="button" (design 2026-08-01 §4b, item 16): announced usefully ("button"),
-    // activation semantics for free, and browse mode is not suppressed for a control whose
-    // only children are presentational divs. tabindex stays — a div button is not natively
-    // focusable.
-    expect(meterTag(html)).toContain('role="button"');
-    expect(meterTag(html)).toContain('tabindex="0"');
+// role="button" (design 2026-08-01 §4b, item 16): announced usefully ("button"),
+// activation semantics for free, and browse mode is not suppressed for a control whose
+// only children are presentational divs. tabindex stays — a div button is not natively
+// focusable.
+expect(meterTag(html)).toContain('role="button"');
+expect(meterTag(html)).toContain('tabindex="0"');
 ```
 
 Run: `npx vitest run tests/render.test.js`
@@ -479,6 +497,7 @@ git commit -m "fix(a11y): timing meter is role=button, not application (item 16)
 ### Task 8: Drop the log's duplicate aria-live (design §4c, item 23)
 
 **Files:**
+
 - Modify: `src/ui/render.js:452`
 - Modify: the spec, §8
 - Test: `tests/render.test.js:1451-1459`
@@ -488,11 +507,11 @@ git commit -m "fix(a11y): timing meter is role=button, not application (item 16)
 `tests/render.test.js:1451-1459` asserts the strip carries `aria-live="polite"`. Replace the comment and assertion:
 
 ```js
-  // The strip carries NO aria-live (design 2026-08-01 §4c, item 23): inside #app it is
-  // re-created already-populated every render, so it can never speak — while AT that does
-  // voice fresh insertions would read the entire bout as a duplicate of #log-announcer.
-  // The persistent #log-announcer region (src/main.js) is the one announcement channel.
-    expect(strips[0].getAttribute('aria-live')).toBeNull();
+// The strip carries NO aria-live (design 2026-08-01 §4c, item 23): inside #app it is
+// re-created already-populated every render, so it can never speak — while AT that does
+// voice fresh insertions would read the entire bout as a duplicate of #log-announcer.
+// The persistent #log-announcer region (src/main.js) is the one announcement channel.
+expect(strips[0].getAttribute('aria-live')).toBeNull();
 ```
 
 Run: `npx vitest run tests/render.test.js` — expected: FAIL.
@@ -522,6 +541,7 @@ git commit -m "fix(a11y): the log strip carries no aria-live; #log-announcer is 
 ### Task 9: Stamps announce via persistent regions (design §4d, items 26+28)
 
 **Files:**
+
 - Modify: `src/ui/components.js:253-259` (`bannerStamp`)
 - Modify: `src/ui/render.js` (~273-276 `renderResult` stamp, ~260 `ledgerSummary`, ~360-385 game-over payload, new `gameoverSummary` export)
 - Modify: `src/main.js` (announce the ending; reset flag in `newRun`)
@@ -560,10 +580,10 @@ const resultStamp = (r) => (r.won ? RESULT_STAMPS.won : RESULT_STAMPS.lost);
 In `renderResult` replace the `const banner = r.won ? bannerStamp('victory', 'VICTORY!', { status: true }) : bannerStamp('defeat', 'DEFEAT.', { status: true });` block (and its `§6.13 + §8` comment) with:
 
 ```js
-  // §6.13: the screen-level stamp. Victory gets the exclamation, defeat the deadpan period
-  // (§9). Drawn here; SPOKEN by ledgerSummary through the persistent region (design §4d).
-  const stamp = resultStamp(r);
-  const banner = bannerStamp(stamp.variant, stamp.text);
+// §6.13: the screen-level stamp. Victory gets the exclamation, defeat the deadpan period
+// (§9). Drawn here; SPOKEN by ledgerSummary through the persistent region (design §4d).
+const stamp = resultStamp(r);
+const banner = bannerStamp(stamp.variant, stamp.text);
 ```
 
 In `ledgerSummary`, prepend the stamp so the one utterance opens with the verdict:
@@ -617,7 +637,7 @@ let announcedEnding = false;
 In `newRun()`, after `lastGold = null;` add `announcedEnding = false;`. In `render()`, beside the RESULT branch add:
 
 ```js
-  if (state.phase === PHASE.GAMEOVER) announceEnding();
+if (state.phase === PHASE.GAMEOVER) announceEnding();
 ```
 
 and below `announceLedger()` define:
@@ -674,6 +694,7 @@ git commit -m "fix(a11y): stamps announce via persistent regions; mute role=stat
 ### Task 10: One `.parchment` rule (design §5, item 31)
 
 **Files:**
+
 - Modify: `src/styles/components.css` (8 rules), `src/ui/components.js` (`poster`, `shopItem`, `bannerStamp`), `src/ui/render.js` (sponsor card, log, ledger, ending card, cause-of-death)
 - Modify: the spec, §4 (M2) and §6.0
 - Test: `tests/styles.test.js`
@@ -689,8 +710,16 @@ Append to `tests/styles.test.js`:
 // live on .parchment and NOWHERE else among the eight cards, and every rendered card must
 // actually wear the class, or its paper silently vanishes.
 describe('the parchment trio is declared once (design 2026-08-01 §5, item 31)', () => {
-  const CARDS = ['.poster', '.shop-item', '.sponsor-card', '.log', '.ledger',
-    '.banner-stamp', '.ending-card', '.cause-of-death'];
+  const CARDS = [
+    '.poster',
+    '.shop-item',
+    '.sponsor-card',
+    '.log',
+    '.ledger',
+    '.banner-stamp',
+    '.ending-card',
+    '.cause-of-death',
+  ];
   const bodyOf = (sel) => {
     const m = css.match(new RegExp(`(^|,|\\})\\s*${reEscape(sel)}\\s*\\{([^}]*)\\}`, 'm'));
     expect(m, `no ${sel} rule`).not.toBeNull();
@@ -777,6 +806,7 @@ git commit -m "refactor(ui): one .parchment rule carries the M2 trio (item 31)"
 ### Task 11: The page column is declared once (design §5, item 34)
 
 **Files:**
+
 - Modify: `src/styles/base.css:16-25` (`#app`)
 - Test: `tests/grid-areas.test.js` (comment/budget verification only)
 
@@ -797,7 +827,7 @@ Replace the `#app` rule and its comment with:
 - [ ] **Step 2: Run the suite**
 
 Run: `npm test`
-Expected: green. In `tests/grid-areas.test.js`, find the overflow-budget expression (search for `SPACE_4`): the budget `width − 2×SPACE_4` was previously *too generous* (real content sat behind a double gutter); it is now exact. Update any comment there that documents the doubling; the numbers themselves should not need to change.
+Expected: green. In `tests/grid-areas.test.js`, find the overflow-budget expression (search for `SPACE_4`): the budget `width − 2×SPACE_4` was previously _too generous_ (real content sat behind a double gutter); it is now exact. Update any comment there that documents the doubling; the numbers themselves should not need to change.
 
 - [ ] **Step 3: Commit**
 
@@ -811,6 +841,7 @@ git commit -m "fix(ui): page column declared once, on .screen; gutter is an hone
 ### Task 12: Shortfall copy guard (design §5, item 35)
 
 **Files:**
+
 - Test: `tests/styles.test.js`
 
 - [ ] **Step 1: Write the test (it should pass immediately — it guards drift, not a defect)**
@@ -858,15 +889,17 @@ git commit -m "test(ui): pin the CSS and JS shortfall wording to each other (ite
 ### Task 13: Prune dead states and tokens (design §5, item 36)
 
 **Files:**
+
 - Modify: `src/styles/components.css`, `src/styles/tokens.css`
 - Modify: the spec, §1 and §6.2
 - Test: `tests/styles.test.js` (only if a pruned selector is referenced)
 
-**Keep/delete line (from the design):** kept — `.btn--danger` (§6.2 variant), `btn()`'s `owned` branch and therefore `.btn.is-owned` + `.btn[aria-disabled="true"]`, and `.poster--tilt-3` (reachable through `poster()`'s public `tilt` param — the design's "if unreachable" condition resolves to *keep*; record that in the commit message). Deleted — `.btn.is-disabled` (no code path emits the class) and `.btn.is-owned:hover` (an inert control has no hover treatment).
+**Keep/delete line (from the design):** kept — `.btn--danger` (§6.2 variant), `btn()`'s `owned` branch and therefore `.btn.is-owned` + `.btn[aria-disabled="true"]`, and `.poster--tilt-3` (reachable through `poster()`'s public `tilt` param — the design's "if unreachable" condition resolves to _keep_; record that in the commit message). Deleted — `.btn.is-disabled` (no code path emits the class) and `.btn.is-owned:hover` (an inert control has no hover treatment).
 
 - [ ] **Step 1: Prune the selectors**
 
 In `components.css`:
+
 - The rule `\.btn.is-disabled,\n.btn[aria-disabled='true'] {` loses its first selector — becomes `.btn[aria-disabled='true'] {`.
 - Delete the `.btn.is-owned:hover { background: var(--grad-wood); }` rule entirely. Keep `.btn.is-owned`.
 
@@ -879,9 +912,17 @@ Create `scan-tokens.mjs` in the **repo root**:
 ```js
 import { readFileSync } from 'node:fs';
 const files = [
-  'src/styles/tokens.css', 'src/styles/base.css', 'src/styles/components.css',
-  'src/styles/screens.css', 'src/ui/components.js', 'src/ui/render.js', 'src/ui/effects.js',
-  'src/ui/screens.js', 'src/ui/timing.js', 'src/ui/format.js', 'src/main.js',
+  'src/styles/tokens.css',
+  'src/styles/base.css',
+  'src/styles/components.css',
+  'src/styles/screens.css',
+  'src/ui/components.js',
+  'src/ui/render.js',
+  'src/ui/effects.js',
+  'src/ui/screens.js',
+  'src/ui/timing.js',
+  'src/ui/format.js',
+  'src/main.js',
 ];
 const tokens = readFileSync('src/styles/tokens.css', 'utf8');
 let defined = [...tokens.matchAll(/^\s*(--[\w-]+):/gm)].map((m) => m[1]);
@@ -890,8 +931,9 @@ const blob = files.map((f) => readFileSync(f, 'utf8')).join('\n');
 // dead definitions from the blob and rescan until nothing else falls out.
 let scan = blob;
 for (;;) {
-  const dead = defined.filter((t) => !new RegExp(`var\\(${t}[),]`).test(
-    scan.replace(new RegExp(`^\\s*${t}:.*$`, 'gm'), '')));
+  const dead = defined.filter(
+    (t) => !new RegExp(`var\\(${t}[),]`).test(scan.replace(new RegExp(`^\\s*${t}:.*$`, 'gm'), ''))
+  );
   if (!dead.length) break;
   for (const t of dead) scan = scan.replace(new RegExp(`^\\s*${t}:.*$`, 'gm'), '');
   defined = defined.filter((t) => !dead.includes(t));
@@ -904,7 +946,7 @@ Expected: prints the dead-token list (PROGRESS counted 16; the exact list is wha
 
 - [ ] **Step 3: Delete, with the spec exception**
 
-For each reported token: if the spec's **normative CSS fences** (§1's token block or any §6 component fence) still *use* it in a declaration — `grep` the spec for `var(--token-name)` — keep it and note why; otherwise delete its line from `src/styles/tokens.css` AND from the spec's §1 fence (the fence says copy-paste verbatim, so the two must stay byte-equal in spirit). Delete `scan-tokens.mjs`.
+For each reported token: if the spec's **normative CSS fences** (§1's token block or any §6 component fence) still _use_ it in a declaration — `grep` the spec for `var(--token-name)` — keep it and note why; otherwise delete its line from `src/styles/tokens.css` AND from the spec's §1 fence (the fence says copy-paste verbatim, so the two must stay byte-equal in spirit). Delete `scan-tokens.mjs`.
 
 - [ ] **Step 4: Amend spec §6.2 and §6.0**
 
@@ -928,6 +970,7 @@ git commit -m "refactor(ui): prune dead button states and unreferenced tokens; k
 ### Task 14: Spec index, §7 comment, PROGRESS resolutions (design §4e, §5 item 20, §6)
 
 **Files:**
+
 - Modify: the spec, §6.0 and §7
 - Modify: PROGRESS, "Open decisions" section
 
@@ -978,6 +1021,7 @@ git commit -m "docs(spec): reconcile §6.0 index and §7 comment; mark open deci
 ```bash
 npm test && npm run lint && npm run format:check && npm run build
 ```
+
 Expected: 392+ tests green (387 baseline + this plan's additions), zero lint/format complaints, clean build.
 
 - [ ] **Step 2: Real browser pass (jsdom cannot see layout — PROGRESS's standing lesson)**
@@ -990,7 +1034,7 @@ Start the dev server (`.claude/launch.json` name: `dev`, port 5199) and check at
 - GAMEOVER (die, or retire): locked ending cards' titles and epitaphs comfortably readable (the 0.75 change); stamps drawn; restart works.
 - Reduced motion (macOS: System Settings → Accessibility → Display → Reduce motion): no pulsing, chips still legible.
 
-Screen-reader spot check is out of scope for the pane; the announcement *strings* are covered by tests (Tasks 8–9).
+Screen-reader spot check is out of scope for the pane; the announcement _strings_ are covered by tests (Tasks 8–9).
 
 - [ ] **Step 3: Fix-forward anything found, one commit per defect, then re-run Step 1.**
 

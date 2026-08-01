@@ -18,25 +18,25 @@ HUD change) is in scope — those decisions live in `2026-08-01-visual-phase-dec
 
 ## Decisions record
 
-| PROGRESS item(s)  | Decision                                                                     |
-| ----------------- | ---------------------------------------------------------------------------- |
-| 24                | Fix via **damage floor** (`minHitDamage: 1`), not a turn cap                  |
-| 33 + pattern      | Wordmark = logotype, WCAG-exempt; **raise all other sub-4.5:1 real text**     |
-| 16                | Meter `role="application"` → **`role="button"`**                              |
-| 23                | **Drop** the duplicate `aria-live` from the log `<ul>`                        |
-| 26 + 28           | Stamps announce via **persistent live region**; `role="status"` leaves markup |
-| 18 + 21           | **Add missing class families to §6.0** — the index is stale, not the code     |
-| 8, 9, 10          | **Do all three**: dog-ear, shop icon wells, 4:3 portrait well                 |
-| 4                 | **Title case** button labels                                                  |
-| 20                | Drop §7's stacked-commit comment (verify; no-op if already reconciled)        |
-| 30                | `main.js` stays whole — **no action**                                         |
-| 31                | Collapse the M2 parchment quartet into **one `.parchment` rule**              |
-| 34                | Declare the page column **once, on `.screen`**; `#app` loses its duplicate    |
-| 35                | Add a **guard test** comparing the CSS shortfall string to the JS constant    |
-| 36                | **Prune** dead states/tokens, except what the reconciled spec still mandates  |
-| 37                | Test-file split — **no action**                                               |
-| Hub row @ 375px   | **Leave it** (meter is decorative; the numeral carries the value)             |
-| 17, 27            | Deferred to visual phase (assets exist there; see the visual-phase record)    |
+| PROGRESS item(s) | Decision                                                                      |
+| ---------------- | ----------------------------------------------------------------------------- |
+| 24               | Fix via **damage floor** (`minHitDamage: 1`), not a turn cap                  |
+| 33 + pattern     | Wordmark = logotype, WCAG-exempt; **raise all other sub-4.5:1 real text**     |
+| 16               | Meter `role="application"` → **`role="button"`**                              |
+| 23               | **Drop** the duplicate `aria-live` from the log `<ul>`                        |
+| 26 + 28          | Stamps announce via **persistent live region**; `role="status"` leaves markup |
+| 18 + 21          | **Add missing class families to §6.0** — the index is stale, not the code     |
+| 8, 9, 10         | **Do all three**: dog-ear, shop icon wells, 4:3 portrait well                 |
+| 4                | **Title case** button labels                                                  |
+| 20               | Drop §7's stacked-commit comment (verify; no-op if already reconciled)        |
+| 30               | `main.js` stays whole — **no action**                                         |
+| 31               | Collapse the M2 parchment quartet into **one `.parchment` rule**              |
+| 34               | Declare the page column **once, on `.screen`**; `#app` loses its duplicate    |
+| 35               | Add a **guard test** comparing the CSS shortfall string to the JS constant    |
+| 36               | **Prune** dead states/tokens, except what the reconciled spec still mandates  |
+| 37               | Test-file split — **no action**                                               |
+| Hub row @ 375px  | **Leave it** (meter is decorative; the numeral carries the value)             |
+| 17, 27           | Deferred to visual phase (assets exist there; see the visual-phase record)    |
 
 ## 1. Combat damage floor (item 24)
 
@@ -49,7 +49,7 @@ resolves to graze, hit, or crit — deals at least `minHitDamage` after **all** 
 combatants. A miss still deals 0.
 
 **Placement.** `computeDamage()` (`src/combat.js:19`) is the shared damage pipe and already
-early-returns 0 on miss; but Block's `damageReduction` is applied *after* `computeDamage` in
+early-returns 0 on miss; but Block's `damageReduction` is applied _after_ `computeDamage` in
 `enemyTurn`, so a floor inside `computeDamage` alone would be undone — a blocked landed hit must
 pay the floor too, or the stall survives. **Mechanism: one exported helper**
 (`floorLandedDamage(dmg, timing, config)` — returns `dmg` on miss, `Math.max(config.combat.minHitDamage, dmg)`
@@ -96,7 +96,7 @@ styles tests must stay green; a browser pass confirms the well proportions at al
 ### 4a. Contrast policy (33 + the systemic pattern)
 
 §8 gains one sentence: `.wordmark` is a **logotype** and exempt from the text-contrast floor per
-WCAG 1.4.3; its `opacity: .7` stays. Everything else that is *real text a player is meant to read*
+WCAG 1.4.3; its `opacity: .7` stays. Everything else that is _real text a player is meant to read_
 must measure ≥ 4.5:1 against its actual ground:
 
 - `.ending-card--locked` title (today 4.19:1) and snark (2.72:1): raise via opacity/recolor while
@@ -136,8 +136,8 @@ outside `#app`, written after insertion, guarded against re-announcement on re-r
   `#ledger-announcer`. This mirrors the fight-end arrangement exactly: the killing-blow exchange
   goes to `#log-announcer`, the outcome summary to `#ledger-announcer`, and the two never share a
   region because both fire in the same tick. No ledger speaks on GAMEOVER, so there is no
-  collision and no third region to build. The invariants stay: *persistent, outside `#app`,
-  written post-insertion, spoken once* (guarded by `state.lastResult` identity like the result
+  collision and no third region to build. The invariants stay: _persistent, outside `#app`,
+  written post-insertion, spoken once_ (guarded by `state.lastResult` identity like the result
   ledger).
 
 §8's "result stamps `role="status"`" line is rewritten to describe this announced-not-rendered

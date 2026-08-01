@@ -82,17 +82,24 @@ describe('computeDamage', () => {
 
   it('reads the floor from config, not a literal', () => {
     const config = { ...CONFIG, combat: { ...CONFIG.combat, minHitDamage: 3 } };
-    expect(
-      computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config })
-    ).toBe(3);
+    expect(computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config })).toBe(
+      3
+    );
   });
 
   it('block cannot reduce a landed hit below the floor', () => {
     // rng() = 0.99 rolls the top tier (weights accumulate to crit at 1.0), so the enemy lands
     // a crit into a 999 guard: computeDamage floors it to 1, then block's 60% cut rounds it
     // back to 0 — the floor must be re-applied after the cut or the stall survives.
-    const player = { health: 100, maxHealth: 100, power: 5, guard: 999, speed: 5,
-      critWindowMult: 1, weaponBroken: false };
+    const player = {
+      health: 100,
+      maxHealth: 100,
+      power: 5,
+      guard: 999,
+      speed: 5,
+      critWindowMult: 1,
+      weaponBroken: false,
+    };
     let combat = createCombat(player, CONFIG.opponents[0], CONFIG);
     combat = applyPlayerAction(combat, 'block', TIMING.MISS, CONFIG);
     const before = combat.player.health;
@@ -102,8 +109,15 @@ describe('computeDamage', () => {
 
   it('a max-guard turtle cannot stall forever (the item-24 fight)', () => {
     const rng = makeRng(7);
-    const player = { health: 100, maxHealth: 100, power: 5, guard: 999, speed: 5,
-      critWindowMult: 1, weaponBroken: false };
+    const player = {
+      health: 100,
+      maxHealth: 100,
+      power: 5,
+      guard: 999,
+      speed: 5,
+      critWindowMult: 1,
+      weaponBroken: false,
+    };
     let combat = createCombat(player, CONFIG.opponents[0], CONFIG);
     let exchanges = 0;
     while (!isFightOver(combat) && exchanges < 2000) {

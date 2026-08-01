@@ -914,9 +914,7 @@ describe('dimmed-card text still clears the §8 floor (design 2026-08-01 §4a)',
   });
 
   it('recolors the locked snark to full ink (ink-soft cannot clear the floor dimmed)', () => {
-    expect(css).toMatch(
-      /\.ending-card--locked\s+\.snark\s*\{[^}]*color:\s*var\(--color-text\)/
-    );
+    expect(css).toMatch(/\.ending-card--locked\s+\.snark\s*\{[^}]*color:\s*var\(--color-text\)/);
   });
 
   it('owned shop-card text ("✓ Owned" and the name, ink after the recolor)', () => {
@@ -933,8 +931,16 @@ describe('dimmed-card text still clears the §8 floor (design 2026-08-01 §4a)',
 // live on .parchment and NOWHERE else among the eight cards, and every rendered card must
 // actually wear the class, or its paper silently vanishes.
 describe('the parchment trio is declared once (design 2026-08-01 §5, item 31)', () => {
-  const CARDS = ['.poster', '.shop-item', '.sponsor-card', '.log', '.ledger',
-    '.banner-stamp', '.ending-card', '.cause-of-death'];
+  const CARDS = [
+    '.poster',
+    '.shop-item',
+    '.sponsor-card',
+    '.log',
+    '.ledger',
+    '.banner-stamp',
+    '.ending-card',
+    '.cause-of-death',
+  ];
   const bodyOf = (sel) => {
     const m = css.match(new RegExp(`(^|,|\\})\\s*${reEscape(sel)}\\s*\\{([^}]*)\\}`, 'm'));
     expect(m, `no ${sel} rule`).not.toBeNull();

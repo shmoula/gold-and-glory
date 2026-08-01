@@ -9,7 +9,7 @@ phase is specified separately in `2026-08-01-cleanup-decisions-design.md`.
 
 1. **Laws win over references.** Where reference art conflicts with the design system's Laws
    (rainbow color-only meter, text floating on the backdrop), adapt the reference into the
-   system: gold-ramp zones get crayon-scribble *texture*, floating labels get small
+   system: gold-ramp zones get crayon-scribble _texture_, floating labels get small
    parchment/wood plates. The §8 accessibility floor stays ship-blocking.
 2. **Adopt the reference fight composition.** Meter → actions → log flow top-to-bottom in the
    center column; PRESS THE ATTACK becomes the big blue commit arrow bottom-right. DOM order

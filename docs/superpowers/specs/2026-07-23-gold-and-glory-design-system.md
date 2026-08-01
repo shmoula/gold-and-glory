@@ -225,24 +225,24 @@ Download latin woff2 subsets (all OFL-licensed) via the Google Fonts css2 API fo
 
 Every pair below was computed (WCAG 2.x relative luminance). Do not substitute values.
 
-| Foreground on background         | Ratio   | Verdict / rule                                     |
-| -------------------------------- | ------- | -------------------------------------------------- |
-| `--ink` on `--paper-2`           | 12.42:1 | Body text on paper                                 |
-| `--ink-soft` on `--paper-2`      | 5.67:1  | Muted + snark on paper                             |
-| `--gold-ink` on `--paper-2`      | 5.26:1  | **The only gold allowed as text on paper**         |
-| `--gold` on `--paper-2`          | 1.83:1  | FAIL — display gold is fills/dark-bg only          |
-| `--blood` on `--paper-2`         | 4.57:1  | Large/bold damage text on paper                    |
-| `--blood-ink` on `--paper-2`     | 5.89:1  | Small expense text on paper                        |
+| Foreground on background         | Ratio   | Verdict / rule                                                   |
+| -------------------------------- | ------- | ---------------------------------------------------------------- |
+| `--ink` on `--paper-2`           | 12.42:1 | Body text on paper                                               |
+| `--ink-soft` on `--paper-2`      | 5.67:1  | Muted + snark on paper                                           |
+| `--gold-ink` on `--paper-2`      | 5.26:1  | **The only gold allowed as text on paper**                       |
+| `--gold` on `--paper-2`          | 1.83:1  | FAIL — display gold is fills/dark-bg only                        |
+| `--blood` on `--paper-2`         | 4.57:1  | Large/bold damage text on paper                                  |
+| `--blood-ink` on `--paper-2`     | 5.89:1  | Small expense text on paper                                      |
 | `--moss-ink` on `--paper-2`      | 5.07:1  | Income/heal text on paper (an earlier flat green failed at 4.02) |
-| `--bone` on `--wood-4`           | 10.06:1 | Button/HUD text on wood                            |
-| `--gold` on `--wood-4`           | 5.50:1  | HUD purse                                          |
-| `--bone-dim` on `--wood-3`       | 4.76:1  | Snark aside on a wood button (§6.8)                |
-| `--bone-dim` on `--wood-4`       | 6.43:1  | Same aside, against the plank's dark stop          |
-| `--bone-bright` on `--commit`    | 4.76:1  | Commit banner text (display size)                  |
-| `--bone-bright` on `--commit-lo` | 7.14:1  | Commit banner text, small                          |
-| `--ink` on `--gold`              | 6.79:1  | Gold badges/coins                                  |
-| `--bone` on `--track`            | 13.88:1 | Numbers inside bars                                |
-| `--bone` on `--stone-2`          | 2.99:1  | FAIL — this is why Law 4 exists                    |
+| `--bone` on `--wood-4`           | 10.06:1 | Button/HUD text on wood                                          |
+| `--gold` on `--wood-4`           | 5.50:1  | HUD purse                                                        |
+| `--bone-dim` on `--wood-3`       | 4.76:1  | Snark aside on a wood button (§6.8)                              |
+| `--bone-dim` on `--wood-4`       | 6.43:1  | Same aside, against the plank's dark stop                        |
+| `--bone-bright` on `--commit`    | 4.76:1  | Commit banner text (display size)                                |
+| `--bone-bright` on `--commit-lo` | 7.14:1  | Commit banner text, small                                        |
+| `--ink` on `--gold`              | 6.79:1  | Gold badges/coins                                                |
+| `--bone` on `--track`            | 13.88:1 | Numbers inside bars                                              |
+| `--bone` on `--stone-2`          | 2.99:1  | FAIL — this is why Law 4 exists                                  |
 
 Colorblind redundancy (mandatory): money deltas always carry `+`/`−`; damage log lines carry the
 sword glyph, healing the drop glyph; meter zones are labeled and notched (§6.4); owned vs
