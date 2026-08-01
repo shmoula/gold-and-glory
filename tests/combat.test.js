@@ -68,10 +68,51 @@ describe('computeDamage', () => {
     expect(computeDamage({ ...base, timing: TIMING.GRAZE })).toBe(6);
   });
 
-  it('never goes below zero', () => {
+  it('a landed hit cannot be mitigated below the floor (item 24)', () => {
     expect(
       computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config: CONFIG })
+    ).toBe(CONFIG.combat.minHitDamage);
+  });
+
+  it('a miss still deals exactly 0', () => {
+    expect(
+      computeDamage({ baseDamage: 99, power: 99, guard: 0, timing: TIMING.MISS, config: CONFIG })
     ).toBe(0);
+  });
+
+  it('reads the floor from config, not a literal', () => {
+    const config = { ...CONFIG, combat: { ...CONFIG.combat, minHitDamage: 3 } };
+    expect(
+      computeDamage({ baseDamage: 1, power: 0, guard: 99, timing: TIMING.HIT, config })
+    ).toBe(3);
+  });
+
+  it('block cannot reduce a landed hit below the floor', () => {
+    // rng() = 0.99 rolls the top tier (weights accumulate to crit at 1.0), so the enemy lands
+    // a crit into a 999 guard: computeDamage floors it to 1, then block's 60% cut rounds it
+    // back to 0 — the floor must be re-applied after the cut or the stall survives.
+    const player = { health: 100, maxHealth: 100, power: 5, guard: 999, speed: 5,
+      critWindowMult: 1, weaponBroken: false };
+    let combat = createCombat(player, CONFIG.opponents[0], CONFIG);
+    combat = applyPlayerAction(combat, 'block', TIMING.MISS, CONFIG);
+    const before = combat.player.health;
+    combat = enemyTurn(combat, () => 0.99, CONFIG);
+    expect(before - combat.player.health).toBe(CONFIG.combat.minHitDamage);
+  });
+
+  it('a max-guard turtle cannot stall forever (the item-24 fight)', () => {
+    const rng = makeRng(7);
+    const player = { health: 100, maxHealth: 100, power: 5, guard: 999, speed: 5,
+      critWindowMult: 1, weaponBroken: false };
+    let combat = createCombat(player, CONFIG.opponents[0], CONFIG);
+    let exchanges = 0;
+    while (!isFightOver(combat) && exchanges < 2000) {
+      combat = applyPlayerAction(combat, 'block', TIMING.MISS, CONFIG);
+      if (!isFightOver(combat)) combat = enemyTurn(combat, rng, CONFIG);
+      exchanges += 1;
+    }
+    expect(isFightOver(combat)).toBe(true);
+    expect(fightWinner(combat)).toBe('enemy');
   });
 
   it('applies the press-attack bonus multiplier', () => {

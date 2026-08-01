@@ -16,6 +16,14 @@ export function resolveTiming(distance, windowWidth, config, critWindowMult = 1)
   return TIMING.MISS;
 }
 
+// Item 24: the single spelling of the damage floor. Applied at the END of each attack's
+// damage pipeline — computeDamage's clamp AND enemyTurn's post-block cut — because a floor
+// applied before Block's reduction is a floor Block undoes. A miss passes through untouched.
+export function floorLandedDamage(dmg, timing, config) {
+  if (timing === TIMING.MISS) return dmg;
+  return Math.max(config.combat.minHitDamage, dmg);
+}
+
 export function computeDamage({
   baseDamage,
   power,
@@ -30,7 +38,7 @@ export function computeDamage({
   let dmg = (baseDamage + power) * mult * pressMultiplier;
   if (weaponBroken) dmg *= config.weapon.brokenDamageMultiplier;
   dmg -= guard;
-  return Math.max(0, Math.round(dmg));
+  return floorLandedDamage(Math.round(dmg), timing, config);
 }
 
 export function createCombat(playerStats, opponent, config) {
@@ -206,7 +214,11 @@ export function enemyTurn(combat, rng, config) {
   });
 
   if (next.counterReady) {
-    dmg = Math.round(dmg * (1 - config.combat.actions.block.damageReduction));
+    dmg = floorLandedDamage(
+      Math.round(dmg * (1 - config.combat.actions.block.damageReduction)),
+      tier,
+      config
+    );
     next.counterReady = false;
     pushEntry(next, 'status', 'Counter! You absorb the blow, taking {taken}.', { taken: dmg });
   } else {
