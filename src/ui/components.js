@@ -172,6 +172,7 @@ export function bar(label, value, max, opts) {
 export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   if (owned) {
     return `<div class="shop-item is-owned">
+        <span class="shop-item__icon" aria-hidden="true"></span>
         <span class="shop-item__name">${escapeHtml(item.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
   }
@@ -184,6 +185,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   }
   const missingAttr = shortfallAttr(item.cost, gold);
   return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
+      <span class="shop-item__icon" aria-hidden="true"></span>
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
       ${snarkAside(snark, missingAttr, shortfallAmount(item.cost, gold))}</button>`;

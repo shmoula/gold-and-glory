@@ -317,6 +317,16 @@
 .shop-item__name {
   font-weight: 700;
 }
+/* §6.12's icon well: the portrait well's recession treatment, sized for an icon. Empty until
+   the visual phase delivers icons (design 2026-08-01 §3) — an empty recessed well reads as an
+   intentional slot, and §10's zero-asset rule holds. */
+.shop-item__icon {
+  width: 34px;
+  height: 34px;
+  background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  border: 2px solid var(--border-ink);
+  border-radius: 8px 11px 9px 12px;
+}
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
 .shop-item.is-owned {
   opacity: 0.6;
