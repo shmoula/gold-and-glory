@@ -324,13 +324,23 @@ Everything moves like a Gilliam cutout: few frames, hard stops, pivot from an ed
 `hud, hud__purse, hud__stat, hud__label, coin, bar, bar__fill, bar__fill--dur, bar__num,
 pips, pip, pip--filled, btn, btn--commit, btn--danger, btn__price, btn__snark,
 is-unaffordable, is-owned, is-urgent, meter, meter__zone, meter__zone--graze, meter__zone--hit,
-meter__zone--crit, meter__label, meter__tick, meter-cursor, meter-chicken, meter__stamp,
-poster, poster__name, poster__portrait, poster__sub, tape, parchment, snark, ledger, ledger__banner,
-ledger__row, ledger__row--net, ledger__row--balance, amount, amount--pos, amount--neg,
-delta-chip, ticker, log, log__entry, log__turn, sponsor-card, train-row, train-row__meter,
-shop-item, banner-stamp, banner-stamp--victory, banner-stamp--defeat, banner-stamp--death,
-ending-card, ending-card--locked, cause-of-death, modal, modal__scrim, wordmark,
-screen, screen--hub, screen--fight, screen--result, screen--gameover, commit-bar`
+meter__zone--crit, meter__labels, meter__taunt, meter-cursor, meter-chicken, meter__stamp,
+poster, poster__name, poster__portrait, poster__sub, poster__silhouette, poster--tilt-1,
+poster--tilt-2, poster--tilt-3, tape, parchment, snark, ledger, ledger__banner, ledger__row,
+ledger__row--net, ledger__row--balance, amount, amount--pos, amount--neg, delta-chip,
+delta-chip--pos, delta-chip--neg, ticker, log, log__entry, log__turn, sponsor-card,
+sponsor-card__eyebrow, sponsor-card__name, train-row, train-row__meter, train-row__label,
+shop-item, shop-item__icon, shop-item__name, shop-item__owned, banner-stamp,
+banner-stamp--victory, banner-stamp--defeat, banner-stamp--death, ending-card,
+ending-card--locked, cause-of-death, modal, modal__scrim, wordmark, sr-only, is-hidden,
+is-captured, is-shaking, screen, screen--hub, screen--fight, screen--result,
+screen--gameover, commit-bar, hub__sinks, hub__develop, hub__fight, hub__retire,
+hub__commit, hub__next-label, fight__you, fight__stage, fight__foe, fight__log,
+fight__actions, result__recap, result__ledger, result__cta, result__cross, result__flavor,
+gameover__left, gameover__stamp, gameover__right, gameover__cause, gameover__cta`
+
+`modal` and `modal__scrim` (§6.15) are specified, not yet rendered — no screen mounts a modal
+today, but the spec still calls for one (death-match clause confirm).
 
 ### 6.1 HUD beam (persistent, all screens)
 
@@ -1008,7 +1018,7 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
     background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink);
   }
-  /* Hub's Next Fight and Fight's action grid live inside .commit-bar when stacked */
+  /* Hub's Next Fight lives inside .commit-bar when stacked */
 }
 ```
 
