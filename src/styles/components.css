@@ -186,7 +186,6 @@
   background: linear-gradient(var(--blood-hi), var(--blood));
 }
 
-.btn.is-disabled,
 .btn[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
@@ -222,9 +221,6 @@
   opacity: 0.6;
   cursor: default;
   box-shadow: none;
-}
-.btn.is-owned:hover {
-  background: var(--grad-wood);
 }
 
 /* ---- 6.5 Wanted poster ---- */

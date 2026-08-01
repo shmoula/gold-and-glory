@@ -32,8 +32,8 @@ button {
   cursor: pointer;
 }
 /* A natively-disabled control: `btn({ disabled: true })` emits the real attribute for a true
-   no-op (nothing to repair, nobody to heal), which spec §6.2's `.btn.is-disabled,
-   .btn[aria-disabled="true"]` selector deliberately does not match. Also moved out of
+   no-op (nothing to repair, nobody to heal), which spec §6.2's
+   `.btn[aria-disabled="true"]` selector deliberately does not match. Also moved out of
    legacy.css — where `:where()` had zeroed its specificity, so `button { cursor: pointer }`
    above beat the `not-allowed` and every dead button still advertised itself as clickable.
    The opacity is §6.2's own 0.45, not the 0.4 legacy.css happened to carry: a dead button is a
