@@ -352,6 +352,13 @@ describe('screen grid areas', () => {
       const variant = [...section.classList].find((c) => c.startsWith('screen--'));
       expect(variant, `${phase} renders a .screen with no --variant`).toBeDefined();
       seen.push(variant);
+      // A variant no sheet lays out has no `areasOf` entry, so the width walk below would throw a
+      // bare TypeError and mask the real defect. Record it in `seen` (done above) and skip the
+      // walk: the two-way assertion at the end of the test then names it as the half-landed screen.
+      if (!areasOf[variant]) {
+        host.remove();
+        continue;
+      }
       for (const child of section.children) {
         for (const width of WIDTHS) {
           if (areasOf[variant][width].size === 0) continue; // stacked here, not placed
@@ -470,8 +477,12 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
       for (const width of MOBILE_WIDTHS) {
         const areas = winner(el, 'grid-template-areas', width);
         const cols = winner(el, 'grid-template-columns', width);
-        if (areas !== 'none') wrong.push(`${width}px: .${variant} still names areas (${areas})`);
-        if (trackCount(cols) !== 1)
+        // `winner()` returns null when no active rule declares the property. Null means the screen
+        // is genuinely area-free (and one implicit column) here, so it is not a violation — only a
+        // rule that actively *names* areas or *declares* more than one track is.
+        if (areas !== null && areas !== 'none')
+          wrong.push(`${width}px: .${variant} still names areas (${areas})`);
+        if (cols !== null && trackCount(cols) !== 1)
           wrong.push(`${width}px: .${variant} keeps ${trackCount(cols)} columns (${cols})`);
       }
       el.remove();

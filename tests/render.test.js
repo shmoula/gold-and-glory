@@ -1613,19 +1613,28 @@ describe('renderFight timing meter (spec §6.4)', () => {
     const eff = effectiveStats(charmed, CONFIG);
     expect(eff.critWindowMult).toBeGreaterThan(1);
     const width = timingWindowWidth(eff.speed, CONFIG);
+    const center = plain.combat.sweet;
     const drawnHalf = (s) => zoneGeometry(renderFight(s, CONFIG), 'crit').size / 2;
 
+    // The charm has to move a real pixel, not just pay out wider: the drawn band widens.
     expect(drawnHalf(charmed)).toBeGreaterThan(drawnHalf(plain));
-    // The band the player sees is the band the fight pays out on. The 1e-4 nudge clears both
-    // the 2-decimal percent rounding in the markup and float wobble, and is far narrower than
-    // the gap to the hit edge, so only a genuinely misplaced edge can satisfy it.
-    const half = drawnHalf(charmed);
-    expect(resolveTiming(half * (1 - 1e-4), width, CONFIG, eff.critWindowMult)).toBe('crit');
-    expect(resolveTiming(half * (1 + 1e-4), width, CONFIG, eff.critWindowMult)).toBe('hit');
-    // …and the unequipped fighter's narrower band still matches their own resolver.
-    const plainHalf = drawnHalf(plain);
-    expect(resolveTiming(plainHalf * (1 - 1e-4), width, CONFIG, 1)).toBe('crit');
-    expect(resolveTiming(plainHalf * (1 + 1e-4), width, CONFIG, 1)).toBe('hit');
+
+    // The boundary the resolver is tested against comes from meterZones — the same unrounded
+    // source renderMeter draws from — not from the toFixed(2) markup. The markup's 0.01% percent
+    // resolution rounds a crit half-width by up to ~2.5e-5, which is wider than any nudge worth
+    // testing at, so reading `half` back out of the markup would let these tier assertions flip
+    // after a change to baseTimingWidth, speedTimingBonus, or timingTierRatios. Deriving `half`
+    // keeps the 1e-9 nudge meaningful; the drawn↔source agreement is the tolerance check below.
+    for (const [state, critWindowMult] of [
+      [charmed, eff.critWindowMult],
+      [plain, 1],
+    ]) {
+      const half = meterZones(center, width, CONFIG, critWindowMult).crit.size / 2;
+      expect(resolveTiming(half * (1 - 1e-9), width, CONFIG, critWindowMult)).toBe('crit');
+      expect(resolveTiming(half * (1 + 1e-9), width, CONFIG, critWindowMult)).toBe('hit');
+      // …and the band the player actually sees is that same band, to the markup's 0.01% grid.
+      expect(drawnHalf(state)).toBeCloseTo(half, 4);
+    }
   });
 
   // createCombat seeds `sweet` at fight creation, so neither the renderer nor main.js's rAF

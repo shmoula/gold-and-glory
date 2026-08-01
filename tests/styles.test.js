@@ -82,7 +82,7 @@ describe('css custom properties', () => {
 // `--bone-dim`'s annotation could have said any number at all and the suite would have agreed.
 //
 // This is the WCAG 2.x relative-luminance formula, which is what spec §3 says its table was
-// computed with. Reproducing all fourteen of its published rows to two decimals is the evidence
+// computed with. Reproducing all sixteen of its published rows to two decimals is the evidence
 // that this implementation is the same one the spec used — so a disagreement below is a real
 // disagreement about a colour, not two formulas talking past each other.
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -617,8 +617,8 @@ describe('Law 4 — text never sits on stone', () => {
       }
     }
     expect(orphans).toEqual([]);
-    // The result and both game-over states carry one each; a matrix that stopped rendering them
-    // would make the loop above vacuously happy.
+    // Both result states and both game-over states carry one each; a matrix that stopped
+    // rendering them would make the loop above vacuously happy.
     expect(checked).toBe(4);
   });
 
@@ -746,7 +746,7 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
     .map(([, prelude, body]) => ({ sel: prelude.trim(), body }))
     .filter((r) => !r.sel.startsWith('@') && r.sel !== ':root');
 
-  it('spends the commit palette on four selectors, all of them commit or focus', () => {
+  it('spends the commit palette on three selectors, all of them commit or focus', () => {
     const blue = rules
       .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
       .map((r) => r.sel);

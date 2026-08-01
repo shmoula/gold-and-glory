@@ -11,7 +11,13 @@
 import { CONFIG } from '../../src/config.js';
 import { createGameState, PHASE } from '../../src/state.js';
 import { startFight, resolveFightOutcome, retire } from '../../src/game.js';
-import { applyPlayerAction, applyPress, enemyTurn, markPressable } from '../../src/combat.js';
+import {
+  applyPlayerAction,
+  applyPress,
+  enemyTurn,
+  isFightOver,
+  markPressable,
+} from '../../src/combat.js';
 import { makeRng } from '../../src/rng.js';
 import { mount } from '../../src/ui/screens.js';
 
@@ -93,6 +99,15 @@ function playedOut() {
   acts('heavy', 'crit');
   presses('graze');
   answers(); // the bold blood-ink damage figure
+  // The "four exchanges deep" fixture only means anything while the bout is still live: a config
+  // or RNG shift that drops either fighter to 0 here would export a terminal combat that the
+  // suite still renders as PHASE.FIGHT. Fail loudly at build time, with the same condition the
+  // real state machine uses to end a fight.
+  if (isFightOver(c)) {
+    throw new Error(
+      `screens.js: playedOut() left a KO'd fighter (player ${c.player.health}, enemy ${c.enemy.health}) — the fight fixture must stay live`
+    );
+  }
   return c;
 }
 

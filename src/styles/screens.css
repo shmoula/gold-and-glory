@@ -201,23 +201,29 @@
 }
 
 @media (max-width: 900px) {
+  /* Area order tracks renderHub's DOM order — sinks, develop, fight, retire, commit — so the
+     eye reads the same sequence a keyboard tabs (§8, WCAG 1.3.2/2.4.3). `grid-template-areas`
+     changes visual order, not tab order, so a grid that paints fight before develop while the
+     renderer emits develop first leaves the two out of step. sinks and develop pair on the top
+     content row; the fight posters take a full-width band below them. */
   .screen--hub {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: 'hud hud' 'sinks fight' 'develop develop' 'retire commit';
+    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
   }
-  /* The posters pair up, the stage spans, and the actions come before the commentary: at this
-     width the log is history and the buttons are the thing you reach for. */
+  /* Same rule here: area order is renderFight's DOM order — you, stage, foe, log, actions — so
+     visual, reading and tab order stay one thing (§8). The posters stack down the left column
+     with the meter spanning beside them; the commentary and actions take full-width bands below,
+     log before actions because that is the order the markup emits them in. */
   /* Rows must be reset with the areas. The base rule's `auto 1fr auto` is written for the
-     three-row desktop grid where row 2 *is* the stage; this grid has five rows and row 2 is
-     the poster pair, so the leftover `1fr` would hand the free space to the posters and leave
-     the stage at auto. Inert while `.screen` is auto-height (free space is 0), but it is a
-     trap the moment Tasks 8/9 give a screen a definite height. `none` rather than
-     `auto auto 1fr auto auto`: at this width the stage is one band in a stack, not a
-     centrepiece competing for slack, and every row should size to its content. */
+     three-row desktop grid where row 2 *is* the stage; this grid has more rows and a spanning
+     stage, so the leftover `1fr` would land on whatever row 2 happens to be. Inert while
+     `.screen` is auto-height (free space is 0), but it is a trap the moment Tasks 8/9 give a
+     screen a definite height. `none` rather than a hand-counted track list: at this width every
+     row should size to its content. */
   .screen--fight {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'you foe' 'stage stage' 'actions actions' 'log log';
+    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'log log' 'actions actions';
   }
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
