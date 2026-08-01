@@ -245,18 +245,12 @@ export function logEntryText(entry) {
   return `${logClause(entry, 'text')}${entry.snark ? ` (${entry.snark})` : ''}`;
 }
 
-// One spelling of a banner stamp (spec §6.13). Two screens raise one — the result screen for
-// VICTORY!/DEFEAT., game over for the ending it reached — and they used to build it two
-// different ways, one inline per variant and one from `config.endings`. A component with two
-// spellings is a component that drifts: the `role` was already on one and not the other
-// (backlog item 29; whether that `role="status"` should exist at all is item 26/28).
-// `variant` reaches the class attribute, so it is escaped like everything else here: it comes
-// from config, and config is not markup.
-export function bannerStamp(variant, text, { status = false } = {}) {
-  const role = status ? ' role="status"' : '';
+// One spelling of a banner stamp (spec §6.13). No role: a live region rendered inside #app
+// arrives already-populated on every mount and announces nothing (items 26/28) — the stamp's
+// text is announced by main.js through a persistent region instead (design 2026-08-01 §4d).
+export function bannerStamp(variant, text) {
   return (
-    `<p class="banner-stamp banner-stamp--${escapeHtml(variant)}"${role}>` +
-    `${escapeHtml(text)}</p>`
+    `<p class="banner-stamp banner-stamp--${escapeHtml(variant)}">` + `${escapeHtml(text)}</p>`
   );
 }
 

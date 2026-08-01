@@ -1059,7 +1059,10 @@ The "NEXT BOUT" opponent appears exactly once per screen.
 - `prefers-reduced-motion` per §5. No UI screen shake, ever (world-layer only, if ever added).
 - Dynamic announcements: ledger `aria-live="polite"`, combat log — announced by the
   persistent #log-announcer region only; the rendered strip carries no live region (§6.9),
-  result stamps `role="status"`.
+  result and game-over stamps — announced once through the persistent `#ledger-announcer`
+  region, written after insertion (a `role="status"` rendered inside #app arrives
+  already-populated and is mute; decided 2026-08-01, items 26/28). The rendered `.banner-stamp`
+  carries no role.
 - All text ≥ `--text-xs` (12.5px); mechanics text ≥ `--text-sm`.
 - `.wordmark` is a logotype and exempt from the text-contrast floor (WCAG 1.4.3 logotype
   exemption); its `opacity: .7` treatment stands. Every other piece of real text — including

@@ -12,6 +12,7 @@ import {
   renderResult,
   ledgerSummary,
   renderGameOver,
+  gameoverSummary,
   renderFight,
   escapeHtml,
   meterDistance,
@@ -757,14 +758,15 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect([...regions[2].classList]).toContain('commit-bar');
   });
 
-  it('stamps the title, announced as a status (§6.13/§8)', () => {
+  it('stamps the title, drawn with no role — the spoken half lives in the persistent region (§6.13/§8)', () => {
     const win = dom(resultOf(WIN)).querySelector('.banner-stamp');
     expect(win.textContent).toBe('VICTORY!'); // §9: victory gets the exclamation
     expect([...win.classList]).toContain('banner-stamp--victory');
-    expect(win.getAttribute('role')).toBe('status');
+    expect(win.getAttribute('role')).toBeNull();
     const loss = dom(resultOf(LOSS)).querySelector('.banner-stamp');
     expect(loss.textContent).toBe('DEFEAT.'); // …defeat the deadpan period
     expect([...loss.classList]).toContain('banner-stamp--defeat');
+    expect(loss.getAttribute('role')).toBeNull();
   });
 
   // §8 wants the ledger announced politely, but §6.6's theater rewrites every money cell about
@@ -786,22 +788,27 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(card.getAttribute('aria-live')).toBeNull();
     expect(card.getAttribute('role')).toBeNull();
     expect(card.querySelector('[aria-live], [role="status"], .ledger__summary')).toBeNull();
+    // No stamp anywhere on the screen carries a role either — the drawn stamp is mute by
+    // design; the verdict is spoken by the string below, through main.js's persistent region.
+    expect(dom(html).querySelector('.banner-stamp[role]')).toBeNull();
     // One utterance stating every line the visible ledger states, in the same order and in the
-    // same words — derived from the rendered rows, so the two can never drift apart.
+    // same words — derived from the rendered rows, so the two can never drift apart — opening
+    // with the same verdict the drawn stamp carries (item 29's lesson: one spelling, not two).
     expect(ledgerSummary(state, CONFIG)).toBe(
-      ledgerRows(html)
+      `VICTORY! ${ledgerRows(html)
         .map((r) => `${r.label}: ${r.amount}`)
-        .join('. ') + '.'
+        .join('. ')}.`
     );
   });
 
-  // The flood guard: nothing the theater rewrites may sit inside a live region.
+  // The flood guard: nothing the theater rewrites may sit inside a live region — and, since the
+  // stamp no longer carries a role at all, the drawn screen speaks through nothing (the verdict
+  // is spoken from main.js's persistent region instead; see tests/main.test.js).
   it('puts no counting cell inside a live region (§8)', () => {
     const announced = [
       ...dom(resultOf(WIN)).querySelectorAll('[aria-live], [role="status"], [role="alert"]'),
     ];
-    expect(announced.length).toBeGreaterThan(0); // the banner and the summary still speak
-    expect(announced.filter((el) => el.querySelector('.amount[data-unit]'))).toEqual([]);
+    expect(announced).toEqual([]);
   });
 
   it('starts every row hidden, so the theater has something to reveal', () => {
@@ -1044,6 +1051,48 @@ describe('renderGameOver (spec §6.14)', () => {
       expect([...stamps[0].classList], ended).toContain(`banner-stamp--${variant}`);
       expect(stamps[0].textContent, ended).toBe(text);
     }
+  });
+
+  // gameoverSummary is the spoken twin of this whole screen (design 2026-08-01 §4d, items
+  // 26+28): main.js writes its return value into the persistent #ledger-announcer region on
+  // GAMEOVER. It must state the same stamp and the same lead-in the drawn screen states, or the
+  // drawn and spoken halves drift apart exactly the way item 29 already warned about once.
+  describe('gameoverSummary (design 2026-08-01 §4d)', () => {
+    // Verified against src/config.js: endings.dead.stamp.text is 'YOU DIED' (no trailing
+    // punctuation of its own — the ". " below is gameoverSummary's own separator, verbatim).
+    it('speaks the cause of death when one was recorded', () => {
+      const s = overOf('dead');
+      expect(s.lastResult.causeOfDeath).toBe('Tripped on a turnip.'); // the fixture's real cause
+      expect(gameoverSummary(s, CONFIG)).toBe('YOU DIED. Cause of Death: Tripped on a turnip.');
+    });
+
+    // The renderer's own UNRECORDED_CAUSE fallback (src/ui/render.js), exercised the same way
+    // the "survives a death with no recorded result" renderGameOver test below builds its
+    // fixture: ended 'dead' with no lastResult at all.
+    it('falls back to the unrecorded-cause copy when no result was captured', () => {
+      const s = { ...createGameState(1, CONFIG), phase: 'GAMEOVER', ended: 'dead', health: 0 };
+      expect(s.lastResult, 'the fixture must actually be missing its result').toBeNull();
+      expect(gameoverSummary(s, CONFIG)).toBe('YOU DIED. Cause of Death: Unrecorded.');
+    });
+
+    // A non-death achieved ending: the stamp prefix and the purse payload, formatted through
+    // formatGold like every other money line on this screen (spec §2).
+    it('speaks the stamp and the final purse for a survivor ending', () => {
+      const s = overOf('win-circuit');
+      expect(CONFIG.endings['win-circuit'].stamp.text).toBe('CHAMPION!'); // the real config copy
+      expect(gameoverSummary(s, CONFIG)).toBe(
+        `CHAMPION!. Final purse: ${formatGold(s.gold)}` // the ". " is gameoverSummary's own, verbatim
+      );
+    });
+
+    // `achieved` falls back to null for an `ended` the config does not know — the same guard
+    // renderGameOver's own "tells one story when the ending is not one the config knows" test
+    // exercises on the drawn screen. No stamp prefix, and the purse branch (never the cause
+    // branch, since `achieved` is null and not `'dead'`).
+    it('speaks no stamp and the final purse when the ending is not one the config knows', () => {
+      const s = overOf('some-ending-the-config-does-not-have');
+      expect(gameoverSummary(s, CONFIG)).toBe(`Final purse: ${formatGold(s.gold)}`);
+    });
   });
 
   // §6.1: "On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate
