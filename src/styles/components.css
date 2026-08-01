@@ -330,6 +330,7 @@
 
 /* ---- 6.10 Sponsor notice ---- */
 .sponsor-card {
+  position: relative;
   background: var(--grad-paper);
   border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2);
@@ -347,6 +348,25 @@
 }
 .sponsor-card__name {
   font-size: var(--text-xl);
+}
+
+/* §6.10's dog-eared corner — the recurring comedy vehicle's recognition mark. One pseudo,
+   three gradient stops: the page-tone corner "behind" the fold, the ink fold line, the
+   darker flap. Decorative; pseudo-content is invisible to AT. */
+.sponsor-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(
+    to bottom left,
+    var(--paper-3) 46%,
+    var(--border-ink) 46% 54%,
+    var(--paper-5) 54%
+  );
+  border-bottom-left-radius: 9px;
 }
 
 /* ---- 6.4 Timing meter (the core verb) ----
