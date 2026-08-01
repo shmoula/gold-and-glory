@@ -449,7 +449,7 @@ export function renderFight(state, config) {
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
       })}</div>
-      <div class="fight__log"><h2>Commentary</h2><ul class="log" tabindex="0" aria-label="Combat log" aria-live="polite">${logHtml}</ul></div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
         <div class="fight__grid">

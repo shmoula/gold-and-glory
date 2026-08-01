@@ -1448,15 +1448,16 @@ describe('renderFight', () => {
     expect(html).not.toContain('&amp;lt;');
   });
 
-  // Spec §6.9 puts aria-live on the strip. It cannot carry the announcement on its own — the
-  // whole subtree is replaced every render — so main.js owns a persistent region and
-  // tests/main.test.js asserts that a turn is actually spoken. This is the markup marker only.
-  it('marks the log strip as a polite live region (spec 6.9/8)', () => {
+  // The strip carries NO aria-live (design 2026-08-01 §4c, item 23): inside #app it is
+  // re-created already-populated every render, so it can never speak — while AT that does
+  // voice fresh insertions would read the entire bout as a duplicate of #log-announcer.
+  // The persistent #log-announcer region (src/main.js) is the one announcement channel.
+  it('the log strip carries no aria-live (spec 6.9/8)', () => {
     const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
     const strips = [...dom(html).querySelectorAll('.log')];
     expect(strips).toHaveLength(1);
     expect(strips[0].tagName).toBe('UL'); // a list of entries, not a blob of text
-    expect(strips[0].getAttribute('aria-live')).toBe('polite');
+    expect(strips[0].getAttribute('aria-live')).toBeNull();
   });
 
   it('flanks the stage with one HP-plated poster per fighter, on opposite tilts', () => {

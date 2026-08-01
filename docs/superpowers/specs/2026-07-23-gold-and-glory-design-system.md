@@ -1057,7 +1057,8 @@ The "NEXT BOUT" opponent appears exactly once per screen.
 - Keyboard parity: Space = strike, 1–4 = fight actions, Enter = activate, Escape = close modal.
 - Color never sole channel: signs, glyphs, notches, labels as specified per component.
 - `prefers-reduced-motion` per §5. No UI screen shake, ever (world-layer only, if ever added).
-- Dynamic announcements: ledger `aria-live="polite"`, log `aria-live="polite"`,
+- Dynamic announcements: ledger `aria-live="polite"`, combat log — announced by the
+  persistent #log-announcer region only; the rendered strip carries no live region (§6.9),
   result stamps `role="status"`.
 - All text ≥ `--text-xs` (12.5px); mechanics text ≥ `--text-sm`.
 - `.wordmark` is a logotype and exempt from the text-contrast floor (WCAG 1.4.3 logotype
