@@ -970,13 +970,18 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
 }
 
 @media (max-width: 900px) {
+  /* Area order at every breakpoint must follow the renderers' DOM order — hub: sinks, develop,
+     fight; fight: you, stage, foe, log, actions — so visual order matches reading and tab order
+     (§8, WCAG 1.3.2/2.4.3). `grid-template-areas` moves the eye, not the tab focus, so a grid
+     that paints these out of source order silently splits the two. */
   .screen--hub {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: 'hud hud' 'sinks fight' 'develop develop' 'retire commit';
+    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
   }
   .screen--fight {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: 'hud hud' 'you foe' 'stage stage' 'actions actions' 'log log';
+    grid-template-rows: none;
+    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'log log' 'actions actions';
   }
   /* Name the stack — do NOT use `grid-template-areas: none` here. See the note below. */
   .screen--result {
