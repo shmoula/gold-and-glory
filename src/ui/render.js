@@ -133,14 +133,14 @@ export function renderHub(state, config) {
       <div class="hub__sinks">
         <h2>The Ludus</h2>
         <p>Wins: ${state.wins}</p>
-        ${btn('repair', 'Repair weapon', {
+        ${btn('repair', 'Repair Weapon', {
           cost: repairCost(missing, config),
           gold: state.gold,
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
           disabled: missing <= 0,
         })}
-        ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}`, {
+        ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'Injury' : 'Injuries'}`, {
           cost: healCost(state.injuries, config),
           gold: state.gold,
           snark: config.snark.heal,
@@ -152,7 +152,7 @@ export function renderHub(state, config) {
             ? btn(null, 'Bribed ✓', { disabled: true })
             : btn(
                 'bribe',
-                `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
+                `Bribe Official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
                 { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe }
               )
         }
