@@ -599,7 +599,7 @@ describe('Law 4 — text never sits on stone', () => {
     // Guard against a vacuous pass: an empty ground list would make every element below fail,
     // but a regex that accidentally matched everything would make them all pass.
     expect(grounds.length).toBeGreaterThan(3);
-    expect(grounds).toContain('.ledger');
+    expect(grounds).toContain('.parchment');
     expect(grounds).not.toContain('.screen');
   });
 
@@ -910,5 +910,46 @@ describe('dimmed-card text still clears the §8 floor (design 2026-08-01 §4a)',
       expect(ratio, `ink @ ${a} on ${g}`).toBeGreaterThanOrEqual(4.5);
     }
     expect(css).toMatch(/\.shop-item__owned\s*\{[^}]*color:\s*var\(--color-text\)/);
+  });
+});
+
+// Item 31: the M2 trio is declared once. This is the refactor's safety gate — the trio must
+// live on .parchment and NOWHERE else among the eight cards, and every rendered card must
+// actually wear the class, or its paper silently vanishes.
+describe('the parchment trio is declared once (design 2026-08-01 §5, item 31)', () => {
+  const CARDS = ['.poster', '.shop-item', '.sponsor-card', '.log', '.ledger',
+    '.banner-stamp', '.ending-card', '.cause-of-death'];
+  const bodyOf = (sel) => {
+    const m = css.match(new RegExp(`(^|,|\\})\\s*${reEscape(sel)}\\s*\\{([^}]*)\\}`, 'm'));
+    expect(m, `no ${sel} rule`).not.toBeNull();
+    return m[2];
+  };
+
+  it('declares the trio on .parchment', () => {
+    const body = bodyOf('.parchment');
+    expect(body).toMatch(/background:\s*var\(--grad-paper\)/);
+    expect(body).toMatch(/border:\s*var\(--border-w\)\s+solid\s+var\(--border-ink\)/);
+    expect(body).toMatch(/box-shadow:\s*var\(--shadow-paper\)/);
+  });
+
+  it('no card rule re-declares any leg of the trio', () => {
+    for (const sel of CARDS) {
+      const body = bodyOf(sel);
+      expect(body, `${sel} re-declares background`).not.toMatch(/--grad-paper/);
+      expect(body, `${sel} re-declares the ink border`).not.toMatch(/border:\s*var\(--border-w\)/);
+      expect(body, `${sel} re-declares the paper shadow`).not.toMatch(/--shadow-paper/);
+    }
+  });
+
+  it('every rendered card wears the class', () => {
+    const missing = [];
+    for (const [name, host] of Object.entries(MOUNTED)) {
+      for (const sel of CARDS) {
+        for (const el of host.querySelectorAll(sel)) {
+          if (!el.classList.contains('parchment')) missing.push(`${name}: ${sel}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });

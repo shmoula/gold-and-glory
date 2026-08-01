@@ -627,7 +627,9 @@ describe('renderHub layout', () => {
       Object.keys(CONFIG.gear).length
     );
 
-    expect(html).toMatch(new RegExp(`data-action="buy-${shield.id}"[^>]*class="shop-item"`));
+    expect(html).toMatch(
+      new RegExp(`data-action="buy-${shield.id}"[^>]*class="shop-item parchment"`)
+    );
     expect(html).not.toMatch(
       new RegExp(`data-action="buy-${shield.id}"[^>]*is-(unaffordable|owned)`)
     );

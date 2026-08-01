@@ -171,7 +171,7 @@ export function bar(label, value, max, opts) {
 // `item` is a config.gear entry ({ id, name, cost }); `snark` is the raw aside text.
 export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   if (owned) {
-    return `<div class="shop-item is-owned">
+    return `<div class="shop-item parchment is-owned">
         <span class="shop-item__icon" aria-hidden="true"></span>
         <span class="shop-item__name">${escapeHtml(item.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
@@ -184,7 +184,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
     );
   }
   const missingAttr = shortfallAttr(item.cost, gold);
-  return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
+  return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item parchment${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
       <span class="shop-item__icon" aria-hidden="true"></span>
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
@@ -250,7 +250,8 @@ export function logEntryText(entry) {
 // text is announced by main.js through a persistent region instead (design 2026-08-01 §4d).
 export function bannerStamp(variant, text) {
   return (
-    `<p class="banner-stamp banner-stamp--${escapeHtml(variant)}">` + `${escapeHtml(text)}</p>`
+    `<p class="banner-stamp parchment banner-stamp--${escapeHtml(variant)}">` +
+    `${escapeHtml(text)}</p>`
   );
 }
 
@@ -272,7 +273,7 @@ export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent
         urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION,
       })
     : '';
-  return `<article class="poster tape poster--tilt-${escapeHtml(tilt)}">
+  return `<article class="poster parchment tape poster--tilt-${escapeHtml(tilt)}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>
     <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
     ${hpBar}

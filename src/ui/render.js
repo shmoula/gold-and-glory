@@ -118,7 +118,7 @@ export function renderHub(state, config) {
     .join('');
 
   const sponsorCard = state.sponsorUnlocked
-    ? `<aside class="sponsor-card tape">
+    ? `<aside class="sponsor-card parchment tape">
       <span class="sponsor-card__eyebrow">Sponsor</span>
       <h3 class="sponsor-card__name">Lord Biggus</h3>
       <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
@@ -301,7 +301,7 @@ export function renderResult(state, config) {
         <p class="snark result__flavor">${escapeHtml(r.commentary)}</p>
       </div>
       <div class="result__ledger">
-        <section class="ledger tape">
+        <section class="ledger parchment tape">
           <h2>The ledger</h2>
           <dl>${rows}</dl>
           <span class="wordmark">GOLD &amp; GLORY</span>
@@ -340,7 +340,7 @@ const PURSE_LABEL = 'Final purse:';
 function endingCard(key, config, achieved) {
   const ending = config.endings[key];
   const locked = key !== achieved;
-  return `<article class="ending-card tape${locked ? ' ending-card--locked' : ''}"${
+  return `<article class="ending-card parchment tape${locked ? ' ending-card--locked' : ''}"${
     locked ? ' aria-disabled="true"' : ''
   }>
         <h3 class="poster__name">${escapeHtml(ending.title)}${locked ? '?' : ''}</h3>
@@ -388,7 +388,7 @@ export function renderGameOver(state, config) {
       </div>
       <div class="gameover__right">${gallery(others.slice(half))}</div>
       <div class="gameover__cause">
-        <p class="cause-of-death">${payload}
+        <p class="cause-of-death parchment">${payload}
           <span class="wordmark">GOLD &amp; GLORY</span></p>
       </div>
       <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
@@ -475,7 +475,7 @@ export function renderFight(state, config) {
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
       })}</div>
-      <div class="fight__log"><h2>Commentary</h2><ul class="log" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
         <div class="fight__grid">

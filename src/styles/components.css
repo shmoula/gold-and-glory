@@ -1,5 +1,14 @@
 /* components.css — spec §6 catalog */
 
+/* M2's shared treatment (design 2026-08-01 §5, item 31): every parchment card states this trio
+   here, once. Each card keeps its OWN wobble radius, tilt and padding — variety is the point
+   of the wobble tokens, so only the invariant part is shared. */
+.parchment {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  box-shadow: var(--shadow-paper);
+}
+
 /* ---- 6.1 HUD beam ---- */
 .hud {
   display: flex;
@@ -220,11 +229,8 @@
 
 /* ---- 6.5 Wanted poster ---- */
 .poster {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-1);
   padding: var(--space-4);
-  box-shadow: var(--shadow-paper);
 }
 .poster--tilt-1 {
   transform: rotate(var(--tilt-1));
@@ -302,12 +308,9 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-3);
   padding: var(--space-3);
   text-align: left;
-  box-shadow: var(--shadow-paper);
   font: inherit;
   min-height: 44px;
 }
@@ -341,11 +344,8 @@
 /* ---- 6.10 Sponsor notice ---- */
 .sponsor-card {
   position: relative;
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2);
   padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-3));
   margin-top: var(--space-4);
 }
@@ -452,10 +452,7 @@
   list-style: none;
   margin: 0;
   padding: var(--space-3);
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2);
-  box-shadow: var(--shadow-paper);
   color: var(--color-text);
   max-height: 160px;
   overflow-y: auto;
@@ -504,11 +501,8 @@
    §6.6 asks for "Parchment M2, --tilt-2" but its CSS block never states it, so the card's own
    treatment is written here the way .poster and .sponsor-card state theirs. */
 .ledger {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-3);
   padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-2));
 }
 .ledger dl {
@@ -566,10 +560,7 @@
   font: 400 var(--text-3xl)/1 var(--font-display);
   letter-spacing: 0.03em;
   padding: var(--space-1) var(--space-5);
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2);
-  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-3));
   animation: stamp-in var(--dur-stamp) var(--ease-drop);
 }
@@ -603,11 +594,8 @@
    with the chicken: the asset does not exist, and spec §10 requires the UI to look complete
    with zero content assets present. */
 .ending-card {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-1);
   padding: var(--space-4);
-  box-shadow: var(--shadow-paper);
   text-align: center;
   transform: rotate(var(--card-tilt, var(--tilt-1)));
 }
@@ -636,10 +624,7 @@
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-lg);
   text-align: center;
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-3);
-  box-shadow: var(--shadow-paper);
 }
 /* Law 2: the final purse is money, so it is the one gold-ink figure on the screen. */
 .cause-of-death .amount {

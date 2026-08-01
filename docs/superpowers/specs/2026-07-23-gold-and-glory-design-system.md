@@ -270,7 +270,9 @@ illustrated arena backdrop image may sit behind screens, but must be covered by 
 
 **M2 — Parchment panel.** `--grad-paper` fill, `var(--border-w) solid var(--border-ink)`,
 one `--wobble-*` radius, `--shadow-paper`, one `--tilt-*`. Used for: posters, ledger, log,
-sponsor notice, shop cards, endings, modals.
+sponsor notice, shop cards, endings, modals. The invariant trio (paper fill, ink border, paper
+shadow) is carried by the shared .parchment class; each card states only its own wobble/tilt/
+padding (decided 2026-08-01, item 31).
 
 **M3 — Wood plank.** `--grad-wood` fill, ink border, small wobble radius (`10px 14px 9px 15px`
 family), `--shadow-plank`. Used for: HUD beam, ordinary buttons.
@@ -332,7 +334,7 @@ Everything moves like a Gilliam cutout: few frames, hard stops, pivot from an ed
 pips, pip, pip--filled, btn, btn--commit, btn--danger, btn__price, btn__snark, is-disabled,
 is-unaffordable, is-owned, is-urgent, meter, meter__zone, meter__zone--graze, meter__zone--hit,
 meter__zone--crit, meter__label, meter__tick, meter-cursor, meter-chicken, meter__stamp,
-poster, poster__name, poster__portrait, poster__sub, tape, snark, ledger, ledger__banner,
+poster, poster__name, poster__portrait, poster__sub, tape, parchment, snark, ledger, ledger__banner,
 ledger__row, ledger__row--net, ledger__row--balance, amount, amount--pos, amount--neg,
 delta-chip, ticker, log, log__entry, log__turn, sponsor-card, train-row, train-row__meter,
 shop-item, banner-stamp, banner-stamp--victory, banner-stamp--defeat, banner-stamp--death,
