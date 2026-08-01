@@ -13,15 +13,12 @@ body {
   font: 400 var(--text-md)/var(--leading-body) var(--font-body);
   min-height: 100dvh;
 }
-/* The page's content column. `max-width`/`margin`/`padding` moved here verbatim when Task 9
-   deleted legacy.css; they were the last two live rules in it. The cap matches `.screen`'s own
-   1180px, so it bounds nothing a screen renders — it is the stone page's gutter, and the floor
-   under anything mounted that is not a `.screen` (an error state, a future modal host). */
+/* The mount point. The page column — 1180px cap, centered, one --space-4 gutter — belongs to
+   `.screen` (screens.css) alone; when #app also declared it, the gutter silently doubled to
+   32px and `.screen`'s cap was unreachable (item 34, decided 2026-08-01). Anything mounted
+   that is not a .screen (an error state) now spans the viewport — acceptable, and honest. */
 #app {
   min-height: 100dvh;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: var(--space-4);
 }
 h1,
 h2,

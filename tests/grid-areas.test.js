@@ -412,8 +412,9 @@ describe('screen grid areas', () => {
 const STEP4_WIDTHS = [1280, 900, 640, 375];
 const MOBILE_WIDTHS = [640, 375];
 const DESKTOP_WIDTHS = [1280, 900];
-// The page gutter: `#app` pads by --space-4 on each side (base.css). Read from the token rather
-// than restated, so lowering the token cannot leave the budget below silently generous.
+// The page gutter: `.screen` pads by --space-4 on each side (screens.css) — `#app` itself only
+// sets `min-height` (item 34; the gutter used to double when both declared it). Read from the
+// token rather than restated, so lowering the token cannot leave the budget silently generous.
 const space4Match = /--space-4:\s*(\d+)px/.exec(readFileSync('src/styles/tokens.css', 'utf8'));
 if (!space4Match) throw new Error('grid-areas.test.js: tokens.css defines no --space-4 in px');
 const SPACE_4 = Number(space4Match[1]);
@@ -577,8 +578,9 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
   });
 
   // The one overflow condition that *is* decidable without layout: a grid whose fixed px tracks
-  // already exceed `#app`'s own content box overflows the page wherever it sits, because every
-  // grid in the game is inside `#app` and most are inside a `.screen` that pads further. This is
+  // already exceed the page column's content box (`.screen`'s own padding, alone — `#app` no
+  // longer pads, item 34) overflows the page wherever it sits, because every grid in the game is
+  // inside `#app` and virtually all are inside the `.screen` that sets that budget. This is
   // a necessary, not a sufficient, condition — a percentage width, a long unbreakable string or
   // an intrinsic minimum can still overflow, and only a browser sees those. What it does catch
   // is the common form: a desktop track list that a breakpoint forgot to relax.

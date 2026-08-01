@@ -475,14 +475,29 @@ describe('rules inherited from the deleted legacy sheet', () => {
     expect(readFileSync('src/styles.css', 'utf8')).not.toMatch(/legacy/);
   });
 
-  it('still caps the #app column and dims natively disabled buttons', () => {
+  it('caps the column on .screen, not #app, and dims natively disabled buttons (item 34)', () => {
     const app = bare.match(/#app\s*\{[^}]*\}/g) ?? [];
     expect(app.length, 'exactly one #app rule').toBe(1);
-    expect(app[0]).toMatch(/max-width:\s*1180px/);
-    expect(app[0]).toMatch(/margin:\s*0 auto/);
-    // Pinned to the token, not merely to the property's presence: `padding:` on its own is
-    // satisfied by `padding: 0`, so the gutter could be mutated away with the suite still green.
-    expect(app[0]).toMatch(/padding:\s*var\(--space-4\)/);
+    // Item 34 (design 2026-08-01 §5): #app must not re-declare the page column, or the gutter
+    // silently doubles to 32px and .screen's own 1180px cap becomes unreachable.
+    expect(app[0]).not.toMatch(/max-width/);
+
+    // The column moved to `.screen` alone. `.screen {` also matches the ≤640px reset block
+    // (screens.css resets grid-template-columns/areas on that same bare selector there), so an
+    // exact-count assertion would be brittle; instead assert that at least one `.screen` rule
+    // body still carries the full column trio, which only the base rule does.
+    const screenRules = bare.match(/\.screen\s*\{[^}]*\}/g) ?? [];
+    expect(screenRules.length, 'at least one .screen rule').toBeGreaterThan(0);
+    const hasColumn = screenRules.some(
+      (rule) =>
+        /max-width:\s*1180px/.test(rule) &&
+        /margin:\s*0 auto/.test(rule) &&
+        // Pinned to the token, not merely to the property's presence: `padding:` on its own is
+        // satisfied by `padding: 0`, so the gutter could be mutated away with the suite still green.
+        /padding:\s*var\(--space-4\)/.test(rule)
+    );
+    expect(hasColumn, 'a .screen rule declares the 1180px column and --space-4 gutter').toBe(true);
+
     const disabled = bare.match(/button:disabled\s*\{[^}]*\}/g) ?? [];
     expect(disabled.length, 'exactly one button:disabled rule').toBe(1);
     expect(disabled[0]).toMatch(/opacity:/);
