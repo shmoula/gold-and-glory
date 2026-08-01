@@ -1,0 +1,300 @@
+/* screens.css — spec §7 grids */
+
+.screen {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+/* HUB — spend left to right, commit bottom-right. Areas are spec §7 verbatim; the `hud` row
+   is reserved for the beam, which still renders above the section (Tasks 8/9 move it in). */
+.screen--hub {
+  grid-template-columns: 230px 1fr 300px;
+  grid-template-areas:
+    'hud     hud     hud'
+    'sinks   develop fight'
+    'retire  retire  commit';
+}
+/* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
+   fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
+.hub__sinks {
+  grid-area: sinks;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.hub__develop {
+  grid-area: develop;
+}
+/* The two-up grid the §6.12 gear cards sit in. Hub layout, so it lives here rather than in the
+   components catalog beside `.shop-item`. */
+.hub__shop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+/* Column, not flow: the two posters are rotated (§6.5 tilts), so they need a gap between
+   them rather than touching margins, at every column width the grid hands this area. */
+.hub__fight {
+  grid-area: fight;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.hub__retire {
+  grid-area: retire;
+}
+.hub__commit {
+  grid-area: commit;
+  justify-self: end;
+}
+/* Hub layout label, not a §6 component: the eyebrow over the NEXT BOUT poster. */
+.hub__next-label {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 0.05em;
+  color: var(--bone);
+  text-shadow: 0 1.5px 0 rgba(31, 22, 12, 0.8);
+}
+
+/* FIGHT — posters flank, meter center-stage, log left / actions right. Areas are spec §7
+   verbatim; as on the hub, the `hud` row is reserved for the beam that still renders above
+   the section. Must stay above the ≤640px block: the `.screen > *` reset there is what hands
+   these children back to auto-placement when the areas go away (see tests/grid-areas.test.js). */
+.screen--fight {
+  grid-template-columns: 260px 1fr 300px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'hud  hud    hud'
+    'you  stage  foe'
+    'log  log    actions';
+}
+/* stage: taunt line + .meter + labels · actions: Press-the-Attack slot above 2×2 action grid */
+.fight__you {
+  grid-area: you;
+}
+.fight__stage {
+  grid-area: stage;
+  align-self: center;
+}
+.fight__foe {
+  grid-area: foe;
+}
+.fight__log {
+  grid-area: log;
+}
+/* Placement *and* inner layout, stated once: the slot stacks the optional Press button above
+   the action grid, and the grid is the 2×2 the spec §7 comment above describes. Both were
+   filed under components.css §6.9 by mistake — they are this screen's layout, not §6 catalog
+   entries, and `.fight__actions` had rules in two sheets. Nothing else in any sheet declares
+   `display`/`flex-*`/`gap`/`align-items`/`grid-template-columns` on either element, so the
+   merge is cascade-neutral (verified element-by-element at every declared breakpoint). */
+.fight__actions {
+  grid-area: actions;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+.fight__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+/* RESULT — recap and ledger co-primary. Areas are spec §7 verbatim; as on the hub and the
+   fight, the `hud` row is reserved for the beam that still renders above the section. Must
+   stay above the ≤640px block for the same reason the fight's block does. */
+.screen--result {
+  grid-template-columns: 1.1fr 1fr;
+  grid-template-areas:
+    'hud    hud'
+    'recap  ledger'
+    'cta    cta';
+}
+/* recap: banner-stamp + defeated-opponent poster with CSS red-X overlay (two rotated
+   --blood bars, ::before/::after) · cta: centered .btn--commit */
+.result__recap {
+  grid-area: recap;
+  position: relative;
+}
+.result__ledger {
+  grid-area: ledger;
+}
+.result__cta {
+  grid-area: cta;
+  justify-self: center;
+}
+/* The X is drawn over the whole recap column rather than over an extra wrapper around the
+   poster: §6.0's class index is closed, and the bars land across the portrait at these
+   offsets. `pointer-events: none` so it cannot eat the click that skips the ledger theater. */
+.result__cross {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.result__cross::before,
+.result__cross::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 45%;
+  height: 12px;
+  background: var(--blood);
+  border-radius: 6px;
+  opacity: 0.85;
+}
+.result__cross::before {
+  transform: rotate(18deg);
+}
+.result__cross::after {
+  transform: rotate(-18deg);
+}
+.result__flavor {
+  display: block;
+  text-align: center;
+  margin: var(--space-3) 0 0;
+}
+
+/* GAMEOVER — the endings gallery: the ending you reached in the middle under its stamp, the two
+   you did not on either side, the screenshot payload beneath the trio. Areas are spec §7
+   verbatim; as on every other screen the `hud` row is reserved for the beam, which still
+   renders above the section. Must stay above the ≤640px block for the same reason the fight
+   and result grids do (see tests/grid-areas.test.js). */
+.screen--gameover {
+  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-areas:
+    'hud   hud    hud'
+    'endL  stamp  endR'
+    'cause cause  cause'
+    'cta   cta    cta';
+}
+.gameover__left {
+  grid-area: endL;
+}
+/* M2 gives every parchment card one `--tilt-*`, and neighbours must never share one. The centre
+   card also sits directly under the banner stamp, which is already `--tilt-3`, so it takes
+   `--tilt-2` and the right-hand column takes the third. Left keeps the `--tilt-1` default.
+   The slot names the angle; `.ending-card` still owns the `transform` that spends it (see
+   components.css §6.14). A screen that set `transform` here instead would be the sheet's only
+   override of a component's own transform, and would drop whatever else the card ever puts
+   in that property. */
+.gameover__stamp {
+  grid-area: stamp;
+  text-align: center;
+  --card-tilt: var(--tilt-2);
+}
+.gameover__right {
+  grid-area: endR;
+  --card-tilt: var(--tilt-3);
+}
+.gameover__cause {
+  grid-area: cause;
+}
+.gameover__cta {
+  grid-area: cta;
+  justify-self: center;
+}
+
+@media (max-width: 900px) {
+  /* Area order tracks renderHub's DOM order — sinks, develop, fight, retire, commit — so the
+     eye reads the same sequence a keyboard tabs (§8, WCAG 1.3.2/2.4.3). `grid-template-areas`
+     changes visual order, not tab order, so a grid that paints fight before develop while the
+     renderer emits develop first leaves the two out of step. sinks and develop pair on the top
+     content row; the fight posters take a full-width band below them. */
+  .screen--hub {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
+  }
+  /* Same rule here: area order is renderFight's DOM order — you, stage, foe, log, actions — so
+     visual, reading and tab order stay one thing (§8). The posters stack down the left column
+     with the meter spanning beside them; the commentary and actions take full-width bands below,
+     log before actions because that is the order the markup emits them in. */
+  /* Rows must be reset with the areas. The base rule's `auto 1fr auto` is written for the
+     three-row desktop grid where row 2 *is* the stage; this grid has more rows and a spanning
+     stage, so the leftover `1fr` would land on whatever row 2 happens to be. Inert while
+     `.screen` is auto-height (free space is 0), but it is a trap the moment Tasks 8/9 give a
+     screen a definite height. `none` rather than a hand-counted track list: at this width every
+     row should size to its content. */
+  .screen--fight {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: none;
+    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'log log' 'actions actions';
+  }
+  /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
+     order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
+     their named areas, and CSS Grid §8.3 collapses all of them into one implicit cell rather
+     than stacking them. Naming the stack recomposes the screen *and* keeps every child
+     placed, which is what tests/grid-areas.test.js checks in both directions. */
+  .screen--result {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'hud' 'recap' 'ledger' 'cta';
+  }
+  /* Same one-breakpoint-early overlap bug in spec §7, same fix: name the stack rather than
+     dropping the areas. Stacked in source order, so reading order, tab order and visual order
+     stay the same thing (§7) — the achieved ending does not jump the queue. */
+  .screen--gameover {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'hud' 'endL' 'stamp' 'endR' 'cause' 'cta';
+  }
+}
+@media (max-width: 640px) {
+  /* One stack reset for every screen, present and future. Both halves are required:
+     `grid-template-columns: 1fr` alone does not stack, because a multi-column
+     grid-template-areas keeps its extra columns as *implicit* auto tracks. Dropping the areas
+     is what spec §7 already does for result/gameover ("natural stacking order via source
+     order"). No `!important`, and no per-screen `grid-template-areas: none` to remember:
+     at (0,1,0) this is the sheet's last declaration of both properties, so it already beats
+     `.screen--hub` on source order (line 9 base, line 25 at 900px), and a screen that wants a
+     different mobile grid can simply declare one after this block. */
+  .screen {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
+  /* Third half of the reset, and the one spec §7 forgets: the children must give up their
+     named areas too. Per CSS Grid §8.3 an unmatched `<custom-ident>` in `grid-area` falls
+     back to `1 <ident>`, and with no line of that name every implicit line is assumed to
+     carry it - so all five `.hub__*` children resolve into the *same* implicit cell and
+     paint on top of each other instead of stacking. `grid-area: auto` hands them back to
+     auto-placement, which fills the single 1fr column one row per child, in source order.
+     `.screen > *` is (0,1,0), identical to `.hub__sinks` and friends, and this block is the
+     sheet's last such declaration, so it wins on source order alone - no `!important`.
+     Every future `.screen--*` (fight/result/gameover) inherits the reset for free.
+     tests/grid-areas.test.js fails if a child keeps a named area with no matching
+     `grid-template-areas` at any breakpoint, including one declared after this block. */
+  .screen > * {
+    grid-area: auto;
+  }
+  /* `justify-self` is the fourth half of the reset, and spec §7 omits it exactly as it omits the
+     `grid-area` one above. Every element that carries `.commit-bar` also carries its screen's own
+     slot class — `.hub__commit` (`end`), `.result__cta` / `.gameover__cta` (`center`) — and an
+     `end`/`center` grid item is *content-sized*, so the bar was a 173px chip floating over
+     whatever it stuck above (measured at 375px: 173px wide at left: 170, its `border-top`
+     spanning a third of the screen). A sticky-bottom bar with a wood ground and a top border is a
+     footer, and a footer is full-bleed: `stretch` is what makes that border read as a divider
+     rather than a stub. Same (0,1,0) as the three slot classes and later in the sheet, so it wins
+     on source order alone - no `!important`. `text-align` keeps the button centred in the new
+     full-width ground: the two CTA screens already centred theirs, and left-hard against a
+     full-bleed plank is nobody's intent. tests/grid-areas.test.js fails if a rendered commit bar
+     is left content-sized at either mobile width. */
+  .commit-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--z-hud);
+    justify-self: stretch;
+    text-align: center;
+    /* `stretch` fills the grid column, but the column is not the viewport: `.screen` and `#app`
+       each pad by `var(--space-4)`, so the bar stopped 32px short of both edges and its
+       `border-top` — the divider the footer is for — spanned only the middle. Cancel both
+       gutters with a matching negative margin, then pad the content back in, so the wood ground
+       and its divider reach the viewport edges the sticky footer is meant to span. */
+    margin: 0 calc(-2 * var(--space-4));
+    padding: var(--space-2) calc(2 * var(--space-4));
+    background: var(--grad-wood);
+    border-top: var(--border-w) solid var(--border-ink);
+  }
+}

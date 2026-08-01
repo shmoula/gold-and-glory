@@ -107,6 +107,19 @@ describe('createCombat', () => {
     expect(c.blockedThisFight).toBe(false);
     expect(c.log).toEqual([]);
   });
+
+  // Backlog item 19. The seed exists so neither the renderer nor the rAF loop needs its own
+  // `?? 0.5` fallback, and until now nothing pinned its value: main.js re-seeds before the
+  // first player turn, so mutating this to a hardcoded 0.5 — outside the *centre* of the band
+  // though still inside it — changed no pixel any test looked at. Derived from the config band
+  // rather than restated as 0.55, so retuning the band carries the default with it.
+  it('is born at the centre of the configured sweet-spot band (§6.4)', () => {
+    const { min, max } = CONFIG.combat.sweetCenter;
+    const c = createCombat(playerStats, opponent, CONFIG);
+    expect(c.sweet).toBeCloseTo((min + max) / 2, 10);
+    expect(c.sweet).toBeGreaterThan(min);
+    expect(c.sweet).toBeLessThan(max);
+  });
 });
 
 describe('applyPlayerAction: strike', () => {
@@ -321,5 +334,75 @@ describe('markPressable', () => {
     const c = createCombat(playerStats, opponent, CONFIG);
     const afterBlock = applyPlayerAction(c, 'block', TIMING.HIT, CONFIG);
     expect(markPressable(afterBlock, 'block', TIMING.HIT).canPress).toBe(false);
+  });
+});
+
+// Spec §6.9: the log shows turn numbers, not line numbers. One exchange pushes two entries
+// (the player's action and the enemy's answer) or three with a press, so numbering by entry
+// index ran the displayed turn counter at roughly double the real one.
+describe('combat log turn stamps (spec §6.9)', () => {
+  const playerStats = {
+    health: 100,
+    maxHealth: 100,
+    power: 5,
+    guard: 5,
+    speed: 5,
+    critWindowMult: 1,
+    weaponBroken: false,
+  };
+  const opponent = CONFIG.opponents[3]; // Champion: 170 hp, so a long fight has room to run
+  const fresh = () => createCombat(playerStats, opponent, CONFIG);
+  const turns = (c) => c.log.map((e) => e.turn);
+
+  it('starts a fight on turn 1 with an empty log', () => {
+    const c = fresh();
+    expect(c.log).toEqual([]);
+    expect(c.turn).toBe(1);
+  });
+
+  it('stamps the player action and the enemy answer with the same turn', () => {
+    let c = applyPlayerAction(fresh(), 'strike', TIMING.HIT, CONFIG);
+    expect(turns(c)).toEqual([1]);
+    c = enemyTurn(c, makeRng(1), CONFIG);
+    expect(c.log).toHaveLength(2);
+    expect(turns(c)).toEqual([1, 1]); // two entries, one turn — this is the bug
+    expect(c.turn).toBe(2); // …and the next exchange is turn 2
+    c = applyPlayerAction(c, 'strike', TIMING.HIT, CONFIG);
+    expect(turns(c)).toEqual([1, 1, 2]);
+  });
+
+  // Under eight entries the window shows the whole fight, so the first stamp must be T1 —
+  // an off-by-one in the turn source is invisible in a windowed log but not here.
+  it('numbers a short fight from one, with no gaps', () => {
+    let c = fresh();
+    for (let i = 0; i < 3; i += 1) {
+      c = applyPlayerAction(c, 'strike', TIMING.GRAZE, CONFIG);
+      c = enemyTurn(c, makeRng(i + 1), CONFIG);
+    }
+    expect(c.log).toHaveLength(6);
+    expect(turns(c)).toEqual([1, 1, 2, 2, 3, 3]);
+  });
+
+  it('keeps a press inside the exchange it presses', () => {
+    let c = applyPlayerAction(fresh(), 'strike', TIMING.HIT, CONFIG);
+    c = applyPress(c, TIMING.HIT, CONFIG); // no enemy answer between the two
+    c = enemyTurn(c, makeRng(2), CONFIG);
+    expect(c.log).toHaveLength(3);
+    expect(turns(c)).toEqual([1, 1, 1]);
+    expect(c.turn).toBe(2);
+  });
+
+  // The whole point: the highest turn number is the number of exchanges fought, never the
+  // number of lines printed. Entry-index numbering put this at 20.
+  it('counts exchanges, not lines, over a long fight', () => {
+    let c = fresh();
+    const EXCHANGES = 10;
+    for (let i = 0; i < EXCHANGES; i += 1) {
+      c = applyPlayerAction(c, 'feint', TIMING.GRAZE, CONFIG);
+      c = enemyTurn(c, makeRng(i + 1), CONFIG);
+    }
+    expect(c.log.length).toBeGreaterThan(EXCHANGES); // more lines than turns…
+    expect(Math.max(...turns(c))).toBe(EXCHANGES); // …but the count is of exchanges
+    expect(c.turn).toBe(EXCHANGES + 1);
   });
 });

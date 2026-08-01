@@ -33,7 +33,7 @@ export function computeDamage({
   return Math.max(0, Math.round(dmg));
 }
 
-export function createCombat(playerStats, opponent, _config) {
+export function createCombat(playerStats, opponent, config) {
   return {
     player: {
       health: playerStats.health,
@@ -58,8 +58,27 @@ export function createCombat(playerStats, opponent, _config) {
     blockedThisFight: false,
     canPress: false, // set by markPressable after a landed player hit
     pendingBonus: 0, // follow-up bonus from a feint, applied to next attack
+    // This turn's timing sweet spot (spec §6.4). Re-seeded from the run's rng before every
+    // player turn; born at the centre of the configured band so the field always holds a
+    // number. Without it both the renderer and the rAF loop need their own `?? 0.5` fallback,
+    // and two independently-written fallbacks are one edit away from disagreeing about where
+    // the bright band is.
+    sweet: (config.combat.sweetCenter.min + config.combat.sweetCenter.max) / 2,
+    // The exchange being fought, and the number spec §6.9's log stamps on every entry it
+    // pushes. It advances once the enemy has answered, so a turn is one exchange — player
+    // action, an optional press, and the reply — however many lines that prints. Numbering by
+    // log length instead ran the displayed counter at roughly double the real turn.
+    turn: 1,
     log: [],
   };
+}
+
+// One log entry, spec §6.9. `text` is a template written here and only here; every value that
+// could carry content (a fighter's name) is passed separately so the renderer can escape it
+// once. Placeholders: {who} a name, {dmg} damage dealt, {taken} damage suffered, {gold} money.
+// `kind` is 'attack' or 'status' — §6.9 sets status clauses (block, counter, feint) in italics.
+function pushEntry(combat, kind, text, values = {}) {
+  combat.log.push({ turn: combat.turn, kind, text, ...values });
 }
 
 // Returns a NEW combat state (does not mutate the input).
@@ -70,7 +89,7 @@ export function applyPlayerAction(combat, action, timing, config) {
   if (action === 'block') {
     next.counterReady = true;
     next.blockedThisFight = true;
-    next.log.push('You raise your guard, ready to counter.');
+    pushEntry(next, 'status', 'You raise your guard, ready to counter.');
     return next;
   }
 
@@ -85,7 +104,7 @@ export function applyPlayerAction(combat, action, timing, config) {
       config,
     });
     next.enemy.health -= dmg;
-    next.log.push(`You feint (${timing}) for ${dmg}, baiting their guard.`);
+    pushEntry(next, 'status', `You feint (${timing}) for {dmg}, baiting their guard.`, { dmg });
     return next;
   }
 
@@ -102,7 +121,11 @@ export function applyPlayerAction(combat, action, timing, config) {
   });
   next.enemy.health -= dmg;
   next.pendingBonus = 0;
-  next.log.push(`You ${action} (${timing}) for ${dmg} damage.`);
+  // A swing that lands for nothing gets the §6.9 aside; a swing that hurts speaks for itself.
+  pushEntry(next, 'attack', `You ${action} (${timing}) for {dmg} damage.`, {
+    dmg,
+    ...(dmg === 0 ? { snark: config.snark.logWhiff } : {}),
+  });
   return next;
 }
 
@@ -147,7 +170,14 @@ export function applyPress(combat, timing, config) {
   next.enemy.health -= dmg;
   next.pendingBonus = 0;
   next.guardDropped = true;
-  next.log.push(`You PRESS the attack (${timing}) for ${dmg} — but drop your guard!`);
+  // \u2014 EM DASH written as an escape: this project has already shipped one bug from a
+  // pasted lookalike character (see the U+00A0 post-mortem).
+  pushEntry(
+    next,
+    'attack',
+    `You PRESS the attack (${timing}) for {dmg} \u2014 but drop your guard!`,
+    { dmg, snark: config.snark.logPress }
+  );
   return next;
 }
 
@@ -178,13 +208,19 @@ export function enemyTurn(combat, rng, config) {
   if (next.counterReady) {
     dmg = Math.round(dmg * (1 - config.combat.actions.block.damageReduction));
     next.counterReady = false;
-    next.log.push(`Counter! You absorb the blow, taking ${dmg}.`);
+    pushEntry(next, 'status', 'Counter! You absorb the blow, taking {taken}.', { taken: dmg });
   } else {
-    next.log.push(`${next.enemy.name} strikes (${tier}) for ${dmg}.`);
+    // The name is a value, not part of the template: the renderer escapes it exactly once.
+    pushEntry(next, 'attack', `{who} strikes (${tier}) for {taken}.`, {
+      who: next.enemy.name,
+      taken: dmg,
+    });
   }
 
   next.player.health -= dmg;
   next.guardDropped = false;
+  // The exchange is over: the next action the player takes opens a new turn (spec §6.9).
+  next.turn += 1;
   return next;
 }
 

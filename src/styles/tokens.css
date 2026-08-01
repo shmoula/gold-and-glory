@@ -1,0 +1,166 @@
+@font-face {
+  font-family: 'Bangers';
+  src: url('../assets/fonts/Bangers-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('../assets/fonts/Nunito-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('../assets/fonts/Nunito-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Patrick Hand';
+  src: url('../assets/fonts/PatrickHand-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  /* ============ TIER 1 — PRIMITIVES ============ */
+
+  /* Paper (parchment) */
+  --paper-1: #f6ecd1; /* highlight edge */
+  --paper-2: #f3e7c8; /* base */
+  --paper-3: #e6d6ae; /* shade */
+  --paper-4: #d9c69a; /* deep / portrait wells */
+  --paper-5: #c9b384; /* deepest — the portrait well's outer gradient stop (§6.5) */
+
+  /* Wood (planks, HUD beam) */
+  --wood-1: #7a5533;
+  --wood-2: #6b4a2a;
+  --wood-3: #5f4227;
+  --wood-4: #46301b;
+
+  /* Stone (page background only — never behind text) */
+  --stone-1: #a08f77;
+  --stone-2: #93836d;
+  --stone-3: #7e6f5b;
+
+  /* Ink & bone */
+  --ink: #2f2318; /* borders, text on paper. 12.42:1 vs --paper-2 */
+  --ink-soft: #6b5638; /* muted/snark text on paper — 5.67:1 vs --paper-2 */
+  --bone: #f2e7cd; /* text on wood/dark — 10.06:1 vs --wood-4 */
+  --bone-bright: #fdf6e4; /* text on commit blue — 4.76:1 vs --commit */
+  --bone-dim: #cdb98e; /* snark aside on a wood button — 4.76:1 vs --wood-3, 6.43:1 vs --wood-4 */
+  --track: #241a11; /* bar/meter track wells */
+
+  /* Illustration fills — never text, never a ground for text (Law 4) */
+  --silhouette: #443019; /* the figure in a portrait well (§6.5) */
+
+  /* Gold — money only (Law 2) */
+  --gold-hi: #f4cf7a;
+  --gold: #d9a441; /* 5.50:1 vs --wood-4 on dark wood. NEVER as text on paper: 1.83:1 vs --paper-2 */
+  --gold-deep: #b07f24; /* fills/borders only */
+  --gold-mid: #b98a3a; /* the meter's GRAZE band — the ramp step between --gold-deep and
+                            --gold (§6.4). Fills only, never text. */
+  --gold-ink: #7d5714; /* money TEXT on paper — 5.26:1 vs --paper-2 */
+
+  /* Blood — damage, costs, danger */
+  --blood-hi: #c85541;
+  --blood: #b5402f; /* large/bold text on paper: 4.57:1 vs --paper-2; button fill */
+  --blood-ink: #9c3226; /* small text on paper — 5.89:1 vs --paper-2 */
+
+  /* Moss — income, healing */
+  --moss: #4a7c3f; /* fills only (4.02:1 vs --paper-2 — fails as small text) */
+  --moss-ink: #3f6b35; /* text on paper — 5.07:1 vs --paper-2 */
+
+  /* Commit blue — irreversible choices, focus */
+  --commit-hi: #4d7fc0;
+  --commit: #3e6fae;
+  --commit-lo: #2d5487; /* 7.14:1 vs --bone-bright */
+
+  /* Spacing — 4px base scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Typography */
+  --font-display: 'Bangers', 'Arial Black', sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+  --font-snark: 'Patrick Hand', 'Comic Sans MS', cursive;
+  --text-xs: 12.5px; /* captions, log snark */
+  --text-sm: 14px; /* HUD labels, log */
+  --text-md: 16px; /* body, buttons */
+  --text-lg: 19px; /* prices, emphasized rows */
+  --text-commit: 21px; /* the commit button's display face (§6.2) — a step of its own, between
+                         --text-lg and --text-xl. Spec §6.2's block spelled it as a literal;
+                         Law 5 allows a component only tokens, so the scale states it here. */
+  --text-xl: 24px; /* section headings (display) */
+  --text-2xl: 32px; /* poster names (display) */
+  --text-3xl: 44px; /* screen banners: VICTORY! (display) */
+  --text-4xl: 64px; /* YOU DIED (display) */
+  --leading-display: 1.05;
+  --leading-body: 1.5;
+
+  /* Hand-drawn wobble radii — vary per component so nothing looks stamped */
+  --wobble-1: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  --wobble-2: 18px 225px 18px 255px / 255px 18px 225px 18px;
+  --wobble-3: 160px 22px 190px 24px / 22px 190px 24px 160px;
+  --wobble-bar: 6px 9px 6px 8px; /* subtle, for meters/bars */
+
+  /* Tilt — siblings must alternate tilt tokens (never two identical neighbors) */
+  --tilt-1: -1.4deg;
+  --tilt-2: 0.8deg;
+  --tilt-3: -0.6deg;
+
+  /* Borders & shadows — hard offsets, zero blur = paper-cutout look */
+  --border-w: 2.5px;
+  --shadow-paper: 4px 6px 0 rgba(31, 22, 12, 0.35);
+  --shadow-plank: 0 3.5px 0 rgba(31, 22, 12, 0.5);
+  --shadow-plank-pressed: 0 1px 0 rgba(31, 22, 12, 0.5);
+
+  /* Gradients */
+  --grad-paper: linear-gradient(178deg, var(--paper-1), var(--paper-3));
+  --grad-wood: linear-gradient(var(--wood-3), var(--wood-4));
+  --grad-wood-hover: linear-gradient(var(--wood-2), var(--wood-3));
+  --grad-commit: linear-gradient(var(--commit-hi), var(--commit-lo));
+  --grad-coin: radial-gradient(
+    circle at 35% 30%,
+    var(--gold-hi),
+    var(--gold) 55%,
+    var(--gold-deep)
+  );
+
+  /* Motion — paper-puppet: stepped, snappy, pivoted (see §5) */
+  --dur-snap: 180ms; /* UI state changes */
+  --dur-stamp: 240ms; /* stamps, chicken drop */
+  --dur-tally: 350ms; /* per ledger line */
+  --dur-chip: 900ms; /* delta chip lifetime */
+  --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
+  --ease-snap: steps(3, end);
+  --ease-drop: steps(2, end);
+
+  /* Z-scale (paper layering) */
+  --z-hud: 10;
+  --z-chip: 20;
+  --z-modal: 30;
+
+  /* ============ TIER 2 — SEMANTIC ============ */
+  --color-text: var(--ink);
+  --color-text-muted: var(--ink-soft);
+  --color-text-inverse: var(--bone);
+  --color-money: var(--gold-ink); /* money text on paper */
+  --color-money-on-dark: var(--gold); /* money text on wood */
+  --color-income: var(--moss-ink);
+  --color-expense: var(--blood-ink);
+  --color-damage: var(--blood);
+  --color-heal: var(--moss-ink);
+  --color-focus: var(--commit-hi);
+  --surface-page: var(--stone-2);
+  --surface-paper: var(--paper-2);
+  --surface-wood: var(--wood-4);
+  --border-ink: var(--ink);
+}

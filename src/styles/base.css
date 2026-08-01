@@ -1,0 +1,147 @@
+/* base.css — reset, materials M1 + M4/M5 shared pieces, typography, a11y */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background:
+    radial-gradient(140% 120% at 50% 100%, rgba(31, 22, 12, 0.38), transparent 60%),
+    var(--surface-page);
+  color: var(--color-text);
+  font: 400 var(--text-md)/var(--leading-body) var(--font-body);
+  min-height: 100dvh;
+}
+/* The page's content column. `max-width`/`margin`/`padding` moved here verbatim when Task 9
+   deleted legacy.css; they were the last two live rules in it. The cap matches `.screen`'s own
+   1180px, so it bounds nothing a screen renders — it is the stone page's gutter, and the floor
+   under anything mounted that is not a `.screen` (an error state, a future modal host). */
+#app {
+  min-height: 100dvh;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+h1,
+h2,
+h3 {
+  font: 400 var(--text-xl)/var(--leading-display) var(--font-display);
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+/* A natively-disabled control: `btn({ disabled: true })` emits the real attribute for a true
+   no-op (nothing to repair, nobody to heal), which spec §6.2's `.btn.is-disabled,
+   .btn[aria-disabled="true"]` selector deliberately does not match. Also moved out of
+   legacy.css — where `:where()` had zeroed its specificity, so `button { cursor: pointer }`
+   above beat the `not-allowed` and every dead button still advertised itself as clickable.
+   The opacity is §6.2's own 0.45, not the 0.4 legacy.css happened to carry: a dead button is a
+   dead button, and two dim values for one state meant the *same* Repair plank faded by a
+   different amount depending on whether nothing needed repairing (native `disabled`) or the
+   option was already taken (`aria-disabled`). tests/styles.test.js now derives one number from
+   the other rather than restating it. */
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
+   wood (blue-on-stone is 1.12:1 — invisible). Spec §8 is ship-blocking, so the
+   halo is !important: a component's own box-shadow must never swallow it. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--bone-bright) !important;
+}
+
+.snark {
+  font-family: var(--font-snark);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.amount--pos {
+  color: var(--color-income);
+}
+.amount--neg {
+  color: var(--color-expense);
+}
+
+/* The live regions main.js announces turns and the ledger through (spec §6.9/§8): present for
+   assistive tech, absent from the page. Clipped rather than `display: none`, which
+   would mute them entirely. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tape {
+  position: relative;
+}
+.tape::before,
+.tape::after {
+  content: '';
+  position: absolute;
+  width: 64px;
+  height: 20px;
+  background: rgba(235, 224, 192, 0.9);
+  border: 1px solid rgba(31, 22, 12, 0.25);
+  top: -10px;
+}
+.tape::before {
+  left: 12%;
+  transform: rotate(-5deg);
+}
+.tape::after {
+  right: 12%;
+  transform: rotate(4deg);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  .meter-cursor {
+    transition: none !important;
+  }
+  /* Spec §5 asks for chips that "appear/disappear without travel". The blanket rule above does
+     not deliver that for this one: `chip-fall` ends at `opacity: 0` and runs `forwards`, so
+     compressing it to 1ms does not stop the travel — it applies the final keyframe immediately
+     and keeps it, which hides the chip a millisecond after it is spawned. ui/effects.js extends
+     the chip's life to REDUCED_CHIP_LIFE_MS precisely so a *still* chip can be read, and that
+     1.5s was being spent on an invisible node: a reduced-motion player saw no money move at
+     all. Cancelling the animation leaves the chip at rest, fully opaque, until the JS timer
+     removes it. `animation`, not `animation-name`, so the shorthand's fill-mode goes too.
+     tests/styles.test.js generalises this: any forwards animation ending hidden must be
+     cancelled here rather than shortened. */
+  .delta-chip {
+    animation: none !important;
+  }
+}
