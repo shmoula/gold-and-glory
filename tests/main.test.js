@@ -411,7 +411,7 @@ describe('keyboard parity (spec §8)', () => {
   });
 
   // Spec 8 makes the meter a target in its own right and Enter the generic activation key.
-  // A role="application" widget nothing can focus is unreachable for assistive tech, so the
+  // A role="button" widget nothing can focus is unreachable for assistive tech, so the
   // tabindex and the Enter handler stand or fall together.
   it('is focusable and captures on Enter when it holds focus', () => {
     enterFight();

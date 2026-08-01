@@ -1561,11 +1561,11 @@ describe('renderFight timing meter (spec §6.4)', () => {
 
   it('announces itself and draws the three nested zones plus a cursor', () => {
     const html = renderFight(fightState(), CONFIG);
-    // role="application" tells assistive tech to stop intercepting keys and hand them to the
-    // widget — which is only reachable, and only meaningful, if the widget can hold focus.
-    // Without tabindex the role is unreachable AND suppresses browse mode for nothing, and
-    // spec 8's focus-visible + 44px-target floor never applies to the meter at all.
-    expect(meterTag(html)).toContain('role="application"');
+    // role="button" (design 2026-08-01 §4b, item 16): announced usefully ("button"),
+    // activation semantics for free, and browse mode is not suppressed for a control whose
+    // only children are presentational divs. tabindex stays — a div button is not natively
+    // focusable.
+    expect(meterTag(html)).toContain('role="button"');
     expect(meterTag(html)).toContain('tabindex="0"');
     const label = meterTag(html).match(/aria-label="([^"]*)"/)[1];
     expect(label).toMatch(/^Timing meter .* press Space or click to strike$/);

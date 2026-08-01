@@ -101,7 +101,7 @@ describe('every control is reachable (spec §8)', () => {
     expect(unreachable).toEqual([]);
   });
 
-  // Spec §6.4 gives the meter `role="application"`, which is unreachable without a tabindex —
+  // Spec §6.4 gives the meter `role="button"`, which is unreachable without a tabindex —
   // and §8 then demands focus-visible and Enter-to-activate on it. The role and the tabindex
   // stand or fall together.
   it('keeps the timing meter in the tab ring', () => {

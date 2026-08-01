@@ -398,7 +398,7 @@ function renderMeter(state, config) {
   // Spec 6.4 puts the first-fight taunt above the track.
   return `
       ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}
-      <div class="meter" data-meter="1" tabindex="0" role="application"
+      <div class="meter" data-meter="1" tabindex="0" role="button"
         aria-label="Timing meter \u2014 press Space or click to strike">
         ${zone('graze')}
         ${zone('hit')}

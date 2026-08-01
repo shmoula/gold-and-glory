@@ -646,7 +646,7 @@ timestamp formula above is a **required** fix, not a refactor preference.
 is one element moved via `transform: translateX()` in a `requestAnimationFrame` loop.
 
 ```html
-<div class="meter" role="application" aria-label="Timing meter — press Space or click to strike">
+<div class="meter" role="button" aria-label="Timing meter — press Space or click to strike">
   <div
     class="meter__zone meter__zone--graze"
     style="left:var(--graze-start);width:var(--graze-size)"
@@ -663,6 +663,10 @@ is one element moved via `transform: translateX()` in a `requestAnimationFrame` 
 </div>
 <div class="meter__labels"><!-- MISS · GRAZE · HIT · CRIT ticks, aligned to zone edges --></div>
 ```
+
+`role="button", not "application"`: announced usefully, free activation semantics, and browse
+mode stays available — "application" suppressed it for a control whose only children are
+presentational (decided 2026-08-01, item 16). The div still needs its tabindex.
 
 ```css
 .meter {
