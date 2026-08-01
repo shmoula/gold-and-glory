@@ -2,7 +2,8 @@
 // duration a JS animation restates must be the token the CSS animates on.
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS } from '../src/ui/effects.js';
+import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS, spawnShortfallChip } from '../src/ui/effects.js';
+import { MINUS } from '../src/ui/format.js';
 import { mountAll } from './support/screens.js';
 
 const SHEETS = [
@@ -966,5 +967,27 @@ describe('the parchment trio is declared once (design 2026-08-01 §5, item 31)',
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// Item 35: the shortfall is worded in two places — §6.2's ::after (CSS) and the rejection
+// chip (JS) — and only the JS half was test-pinned, so the CSS half could drift silently.
+// This derives the wording FROM the stylesheet and demands the chip agree with it: change
+// either side's copy alone and this fails.
+describe('the shortfall is spelled once (design 2026-08-01 §5, item 35)', () => {
+  it('the JS chip and the CSS ::after agree on the wording', () => {
+    const m = css.match(/content:\s*'([^']*)'\s*attr\(data-missing\)\s*'([^']*)'/);
+    expect(m, 'the §6.2 shortfall ::after is gone or restructured').not.toBeNull();
+    // CSS says " (need X more)"; the chip says "−need X more": same words, chip drops the
+    // parentheses and leads with the minus. Strip the CSS's parens to get the shared words.
+    const lead = m[1].replace(/^\s*\(/, ''); // "need "
+    const tail = m[2].replace(/\)\s*$/, ''); // " more"
+    const purse = document.createElement('span');
+    document.body.appendChild(purse);
+    spawnShortfallChip(purse, '150 G');
+    const chip = purse.querySelector('.delta-chip');
+    expect(chip, 'spawnShortfallChip rendered no chip').not.toBeNull();
+    expect(chip.textContent).toBe(`${MINUS}${lead}150 G${tail}`);
+    purse.remove();
   });
 });
