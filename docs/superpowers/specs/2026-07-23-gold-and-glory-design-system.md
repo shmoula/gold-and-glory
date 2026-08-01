@@ -1056,6 +1056,11 @@ The "NEXT BOUT" opponent appears exactly once per screen.
 - Dynamic announcements: ledger `aria-live="polite"`, log `aria-live="polite"`,
   result stamps `role="status"`.
 - All text ≥ `--text-xs` (12.5px); mechanics text ≥ `--text-sm`.
+- `.wordmark` is a logotype and exempt from the text-contrast floor (WCAG 1.4.3 logotype
+  exemption); its `opacity: .7` treatment stands. Every other piece of real text — including
+  text inside a dimmed card (locked endings, owned gear) — meets 4.5:1 as composited.
+- Natively `disabled` controls are inactive UI components and exempt from the contrast floor
+  (WCAG 1.4.3); their 0.45 dim stands.
 
 ---
 

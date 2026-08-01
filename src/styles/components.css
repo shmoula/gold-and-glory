@@ -329,13 +329,13 @@
 }
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
 .shop-item.is-owned {
-  opacity: 0.6;
+  opacity: 0.75;
   filter: grayscale(0.6);
   box-shadow: none;
 }
 .shop-item__owned {
   font-weight: 700;
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
 /* ---- 6.10 Sponsor notice ---- */
@@ -611,9 +611,17 @@
   text-align: center;
   transform: rotate(var(--card-tilt, var(--tilt-1)));
 }
+/* Was opacity .55: ink text under that composite measures ~3.4:1 on paper-2 — below §8's
+   floor. .75 keeps the faded locked look and clears 4.5:1 on both paper stops (design
+   2026-08-01 §4a); the grayscale is luminance-preserving, so it is not part of the math. */
 .ending-card--locked {
   filter: grayscale(0.8);
-  opacity: 0.55;
+  opacity: 0.75;
+}
+/* The epitaph is real text a player is meant to read (§4a): full ink, because --ink-soft
+   composited at .75 is ~3.4:1. The grayscale washes the hue difference out anyway. */
+.ending-card--locked .snark {
+  color: var(--color-text);
 }
 .ending-card .snark {
   display: block;

@@ -774,7 +774,7 @@ describe('endings gallery (spec §6.14)', () => {
   it('greys out and fades the endings you did not reach', () => {
     const locked = ruleFor('.ending-card--locked');
     expect(locked).toMatch(/filter:\s*grayscale\(0\.8\)/);
-    expect(locked).toMatch(/opacity:\s*0\.55/);
+    expect(locked).toMatch(/opacity:\s*0\.75/);
   });
 
   // The card owns its own transform and the slot only names the angle. A screen that overrode
@@ -864,5 +864,51 @@ describe('animation durations (spec Law 6)', () => {
       expect(rule[0], selector).toContain(`var(${token})`);
       expect(rule[0], selector).not.toMatch(/\d+m?s\b/);
     }
+  });
+});
+
+// Design 2026-08-01 §4a (item 33): text a player is meant to read clears 4.5:1 even inside a
+// dimmed card. A card dimmed via `opacity` composites its text toward the ground per channel
+// in gamma sRGB space (what browsers actually do): ch' = a*ch + (1-a)*bg. grayscale() is
+// luminance-preserving (its matrix IS the luminance weights), so it barely moves the ratio
+// and is ignored here.
+describe('dimmed-card text still clears the §8 floor (design 2026-08-01 §4a)', () => {
+  const blend = (fg, bg, a) => {
+    const ch = (hex, i) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+    const mix = (i) => Math.round(a * ch(fg, i) + (1 - a) * ch(bg, i));
+    return `#${[0, 1, 2].map((i) => mix(i).toString(16).padStart(2, '0')).join('')}`;
+  };
+  const opacityOf = (selector) => {
+    const rule = css.match(new RegExp(`${reEscape(selector)}\\s*\\{([^}]*)\\}`));
+    expect(rule, `no ${selector} rule`).not.toBeNull();
+    const m = rule[1].match(/opacity:\s*([\d.]+)/);
+    expect(m, `${selector} declares no opacity`).not.toBeNull();
+    return Number(m[1]);
+  };
+  // Both paper stops: the card's gradient runs paper-1 -> paper-3, so text must read on the
+  // darker end too, exactly as the wordmark measurements were taken.
+  const GROUNDS = ['--paper-2', '--paper-3'];
+
+  it('locked ending-card text (title and snark, both ink after the recolor)', () => {
+    const a = opacityOf('.ending-card--locked');
+    for (const g of GROUNDS) {
+      const ratio = round2(contrast(blend(hexOf('--ink'), hexOf(g), a), hexOf(g)));
+      expect(ratio, `ink @ ${a} on ${g}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('recolors the locked snark to full ink (ink-soft cannot clear the floor dimmed)', () => {
+    expect(css).toMatch(
+      /\.ending-card--locked\s+\.snark\s*\{[^}]*color:\s*var\(--color-text\)/
+    );
+  });
+
+  it('owned shop-card text ("✓ Owned" and the name, ink after the recolor)', () => {
+    const a = opacityOf('.shop-item.is-owned');
+    for (const g of GROUNDS) {
+      const ratio = round2(contrast(blend(hexOf('--ink'), hexOf(g), a), hexOf(g)));
+      expect(ratio, `ink @ ${a} on ${g}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(css).toMatch(/\.shop-item__owned\s*\{[^}]*color:\s*var\(--color-text\)/);
   });
 });
