@@ -17,6 +17,17 @@ reviews:
   path_filters:
     - '!**/*.md'
 
+  pre_merge_checks:
+    # Off, not merely lowered past the threshold. This codebase documents with
+    # block comments above the declaration — spec-section citations, the reason
+    # behind a choice, the alternative that was rejected — rather than JSDoc, so
+    # the coverage figure measures a convention the repo deliberately does not
+    # follow. A percentage that can only ever be wrong is noise on every PR.
+    docstrings:
+      # Quoted deliberately: the schema wants the string "off", and a YAML 1.1
+      # parser reads bare `off` as the boolean false.
+      mode: 'off'
+
   tools:
     # markdownlint-cli2 has nothing left to lint once Markdown is filtered out.
     markdownlint:

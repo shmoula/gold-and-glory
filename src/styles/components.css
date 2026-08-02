@@ -1,5 +1,14 @@
 /* components.css — spec §6 catalog */
 
+/* M2's shared treatment (design 2026-08-01 §5, item 31): every parchment card states this trio
+   here, once. Each card keeps its OWN wobble radius, tilt and padding — variety is the point
+   of the wobble tokens, so only the invariant part is shared. */
+.parchment {
+  background: var(--grad-paper);
+  border: var(--border-w) solid var(--border-ink);
+  box-shadow: var(--shadow-paper);
+}
+
 /* ---- 6.1 HUD beam ---- */
 .hud {
   display: flex;
@@ -78,6 +87,11 @@
   display: grid;
   place-items: center;
   font-size: var(--text-xs);
+  /* The track's content box is only 12px tall (16px less its two 2px borders), but the inherited
+     `line-height: normal` gives the numeral a ~18.75px line box that `.bar`'s `overflow: hidden`
+     then clips top and bottom. Collapse it to the em so the centered numeral sits inside the
+     track — the glyph ink (digits + solidus, no descenders) clears 12px comfortably. */
+  line-height: 1;
   color: var(--bone);
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.9);
@@ -177,7 +191,6 @@
   background: linear-gradient(var(--blood-hi), var(--blood));
 }
 
-.btn.is-disabled,
 .btn[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
@@ -214,17 +227,11 @@
   cursor: default;
   box-shadow: none;
 }
-.btn.is-owned:hover {
-  background: var(--grad-wood);
-}
 
 /* ---- 6.5 Wanted poster ---- */
 .poster {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-1);
   padding: var(--space-4);
-  box-shadow: var(--shadow-paper);
 }
 .poster--tilt-1 {
   transform: rotate(var(--tilt-1));
@@ -242,7 +249,7 @@
 }
 .poster__portrait {
   position: relative;
-  height: 104px;
+  aspect-ratio: 4 / 3;
   margin: 0 var(--space-1);
   background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
   border: 2px solid var(--border-ink);
@@ -252,10 +259,10 @@
 .poster__silhouette {
   position: absolute;
   left: 50%;
-  top: 30px;
+  top: 50%;
   width: 54px;
   height: 60px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   background: var(--silhouette);
   border-radius: 46% 46% 40% 40%;
 }
@@ -302,12 +309,9 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-3);
   padding: var(--space-3);
   text-align: left;
-  box-shadow: var(--shadow-paper);
   font: inherit;
   min-height: 44px;
 }
@@ -317,24 +321,32 @@
 .shop-item__name {
   font-weight: 700;
 }
+/* §6.12's icon well: the portrait well's recession treatment, sized for an icon. Empty until
+   the visual phase delivers icons (design 2026-08-01 §3) — an empty recessed well reads as an
+   intentional slot, and §10's zero-asset rule holds. */
+.shop-item__icon {
+  width: 34px;
+  height: 34px;
+  background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  border: 2px solid var(--border-ink);
+  border-radius: 8px 11px 9px 12px;
+}
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
 .shop-item.is-owned {
-  opacity: 0.6;
+  opacity: 0.75;
   filter: grayscale(0.6);
   box-shadow: none;
 }
 .shop-item__owned {
   font-weight: 700;
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
 /* ---- 6.10 Sponsor notice ---- */
 .sponsor-card {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
+  position: relative;
   border-radius: var(--wobble-2);
   padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-3));
   margin-top: var(--space-4);
 }
@@ -347,6 +359,25 @@
 }
 .sponsor-card__name {
   font-size: var(--text-xl);
+}
+
+/* §6.10's dog-eared corner — the recurring comedy vehicle's recognition mark. One pseudo,
+   three gradient stops: the page-tone corner "behind" the fold, the ink fold line, the
+   darker flap. Decorative; pseudo-content is invisible to AT. */
+.sponsor-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(
+    to bottom left,
+    var(--paper-3) 46%,
+    var(--border-ink) 46% 54%,
+    var(--paper-5) 54%
+  );
+  border-bottom-left-radius: 9px;
 }
 
 /* ---- 6.4 Timing meter (the core verb) ----
@@ -422,10 +453,7 @@
   list-style: none;
   margin: 0;
   padding: var(--space-3);
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2);
-  box-shadow: var(--shadow-paper);
   color: var(--color-text);
   max-height: 160px;
   overflow-y: auto;
@@ -474,11 +502,8 @@
    §6.6 asks for "Parchment M2, --tilt-2" but its CSS block never states it, so the card's own
    treatment is written here the way .poster and .sponsor-card state theirs. */
 .ledger {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-3);
   padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-2));
 }
 .ledger dl {
@@ -536,10 +561,7 @@
   font: 400 var(--text-3xl)/1 var(--font-display);
   letter-spacing: 0.03em;
   padding: var(--space-1) var(--space-5);
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-2);
-  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt-3));
   animation: stamp-in var(--dur-stamp) var(--ease-drop);
 }
@@ -573,17 +595,22 @@
    with the chicken: the asset does not exist, and spec §10 requires the UI to look complete
    with zero content assets present. */
 .ending-card {
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-1);
   padding: var(--space-4);
-  box-shadow: var(--shadow-paper);
   text-align: center;
   transform: rotate(var(--card-tilt, var(--tilt-1)));
 }
+/* Was opacity .55: ink text under that composite measures ~3.4:1 on paper-2 — below §8's
+   floor. .75 keeps the faded locked look and clears 4.5:1 on both paper stops (design
+   2026-08-01 §4a); the grayscale is luminance-preserving, so it is not part of the math. */
 .ending-card--locked {
   filter: grayscale(0.8);
-  opacity: 0.55;
+  opacity: 0.75;
+}
+/* The epitaph is real text a player is meant to read (§4a): full ink, because --ink-soft
+   composited at .75 is ~3.4:1. The grayscale washes the hue difference out anyway. */
+.ending-card--locked .snark {
+  color: var(--color-text);
 }
 .ending-card .snark {
   display: block;
@@ -598,10 +625,7 @@
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-lg);
   text-align: center;
-  background: var(--grad-paper);
-  border: var(--border-w) solid var(--border-ink);
   border-radius: var(--wobble-3);
-  box-shadow: var(--shadow-paper);
 }
 /* Law 2: the final purse is money, so it is the one gold-ink figure on the screen. */
 .cause-of-death .amount {

@@ -520,6 +520,12 @@ coordinator's own `Edit` calls when trying to fix it.
 
 ## Open decisions — need a human, not an agent
 
+> **RESOLVED 2026-08-01.** Every decision below was made by the maintainer and is recorded,
+> with its implementation contract, in `docs/superpowers/specs/2026-08-01-cleanup-decisions-design.md`
+> (this cleanup) and `docs/superpowers/specs/2026-08-01-visual-phase-decisions.md` (the visual
+> phase: items 17 and 27 resolve there as "commission the assets"). The text below is kept
+> only so older review reports still resolve; do not work from it.
+
 Everything else in this plan is done. These are the calls no agent should make alone. Each line is
 the conflict, then a recommendation.
 

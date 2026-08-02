@@ -2,7 +2,8 @@
 // duration a JS animation restates must be the token the CSS animates on.
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS } from '../src/ui/effects.js';
+import { BEAT_MS, CHIP_LIFE_MS, SHAKE_MS, spawnShortfallChip } from '../src/ui/effects.js';
+import { MINUS } from '../src/ui/format.js';
 import { mountAll } from './support/screens.js';
 
 const SHEETS = [
@@ -475,14 +476,29 @@ describe('rules inherited from the deleted legacy sheet', () => {
     expect(readFileSync('src/styles.css', 'utf8')).not.toMatch(/legacy/);
   });
 
-  it('still caps the #app column and dims natively disabled buttons', () => {
+  it('caps the column on .screen, not #app, and dims natively disabled buttons (item 34)', () => {
     const app = bare.match(/#app\s*\{[^}]*\}/g) ?? [];
     expect(app.length, 'exactly one #app rule').toBe(1);
-    expect(app[0]).toMatch(/max-width:\s*1180px/);
-    expect(app[0]).toMatch(/margin:\s*0 auto/);
-    // Pinned to the token, not merely to the property's presence: `padding:` on its own is
-    // satisfied by `padding: 0`, so the gutter could be mutated away with the suite still green.
-    expect(app[0]).toMatch(/padding:\s*var\(--space-4\)/);
+    // Item 34 (design 2026-08-01 §5): #app must not re-declare the page column, or the gutter
+    // silently doubles to 32px and .screen's own 1180px cap becomes unreachable.
+    expect(app[0]).not.toMatch(/max-width/);
+
+    // The column moved to `.screen` alone. `.screen {` also matches the ≤640px reset block
+    // (screens.css resets grid-template-columns/areas on that same bare selector there), so an
+    // exact-count assertion would be brittle; instead assert that at least one `.screen` rule
+    // body still carries the full column trio, which only the base rule does.
+    const screenRules = bare.match(/\.screen\s*\{[^}]*\}/g) ?? [];
+    expect(screenRules.length, 'at least one .screen rule').toBeGreaterThan(0);
+    const hasColumn = screenRules.some(
+      (rule) =>
+        /max-width:\s*1180px/.test(rule) &&
+        /margin:\s*0 auto/.test(rule) &&
+        // Pinned to the token, not merely to the property's presence: `padding:` on its own is
+        // satisfied by `padding: 0`, so the gutter could be mutated away with the suite still green.
+        /padding:\s*var\(--space-4\)/.test(rule)
+    );
+    expect(hasColumn, 'a .screen rule declares the 1180px column and --space-4 gutter').toBe(true);
+
     const disabled = bare.match(/button:disabled\s*\{[^}]*\}/g) ?? [];
     expect(disabled.length, 'exactly one button:disabled rule').toBe(1);
     expect(disabled[0]).toMatch(/opacity:/);
@@ -599,7 +615,7 @@ describe('Law 4 — text never sits on stone', () => {
     // Guard against a vacuous pass: an empty ground list would make every element below fail,
     // but a regex that accidentally matched everything would make them all pass.
     expect(grounds.length).toBeGreaterThan(3);
-    expect(grounds).toContain('.ledger');
+    expect(grounds).toContain('.parchment');
     expect(grounds).not.toContain('.screen');
   });
 
@@ -774,7 +790,7 @@ describe('endings gallery (spec §6.14)', () => {
   it('greys out and fades the endings you did not reach', () => {
     const locked = ruleFor('.ending-card--locked');
     expect(locked).toMatch(/filter:\s*grayscale\(0\.8\)/);
-    expect(locked).toMatch(/opacity:\s*0\.55/);
+    expect(locked).toMatch(/opacity:\s*0\.75/);
   });
 
   // The card owns its own transform and the slot only names the angle. A screen that overrode
@@ -864,5 +880,120 @@ describe('animation durations (spec Law 6)', () => {
       expect(rule[0], selector).toContain(`var(${token})`);
       expect(rule[0], selector).not.toMatch(/\d+m?s\b/);
     }
+  });
+});
+
+// Design 2026-08-01 §4a (item 33): text a player is meant to read clears 4.5:1 even inside a
+// dimmed card. A card dimmed via `opacity` composites its text toward the ground per channel
+// in gamma sRGB space (what browsers actually do): ch' = a*ch + (1-a)*bg. grayscale() is
+// luminance-preserving (its matrix IS the luminance weights), so it barely moves the ratio
+// and is ignored here.
+describe('dimmed-card text still clears the §8 floor (design 2026-08-01 §4a)', () => {
+  const blend = (fg, bg, a) => {
+    const ch = (hex, i) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+    const mix = (i) => Math.round(a * ch(fg, i) + (1 - a) * ch(bg, i));
+    return `#${[0, 1, 2].map((i) => mix(i).toString(16).padStart(2, '0')).join('')}`;
+  };
+  const opacityOf = (selector) => {
+    const rule = css.match(new RegExp(`${reEscape(selector)}\\s*\\{([^}]*)\\}`));
+    expect(rule, `no ${selector} rule`).not.toBeNull();
+    const m = rule[1].match(/opacity:\s*([\d.]+)/);
+    expect(m, `${selector} declares no opacity`).not.toBeNull();
+    return Number(m[1]);
+  };
+  // Both paper stops: the card's gradient runs paper-1 -> paper-3, so text must read on the
+  // darker end too, exactly as the wordmark measurements were taken.
+  const GROUNDS = ['--paper-2', '--paper-3'];
+
+  it('locked ending-card text (title and snark, both ink after the recolor)', () => {
+    const a = opacityOf('.ending-card--locked');
+    for (const g of GROUNDS) {
+      const ratio = round2(contrast(blend(hexOf('--ink'), hexOf(g), a), hexOf(g)));
+      expect(ratio, `ink @ ${a} on ${g}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('recolors the locked snark to full ink (ink-soft cannot clear the floor dimmed)', () => {
+    expect(css).toMatch(/\.ending-card--locked\s+\.snark\s*\{[^}]*color:\s*var\(--color-text\)/);
+  });
+
+  it('owned shop-card text ("✓ Owned" and the name, ink after the recolor)', () => {
+    const a = opacityOf('.shop-item.is-owned');
+    for (const g of GROUNDS) {
+      const ratio = round2(contrast(blend(hexOf('--ink'), hexOf(g), a), hexOf(g)));
+      expect(ratio, `ink @ ${a} on ${g}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(css).toMatch(/\.shop-item__owned\s*\{[^}]*color:\s*var\(--color-text\)/);
+  });
+});
+
+// Item 31: the M2 trio is declared once. This is the refactor's safety gate — the trio must
+// live on .parchment and NOWHERE else among the eight cards, and every rendered card must
+// actually wear the class, or its paper silently vanishes.
+describe('the parchment trio is declared once (design 2026-08-01 §5, item 31)', () => {
+  const CARDS = [
+    '.poster',
+    '.shop-item',
+    '.sponsor-card',
+    '.log',
+    '.ledger',
+    '.banner-stamp',
+    '.ending-card',
+    '.cause-of-death',
+  ];
+  const bodyOf = (sel) => {
+    const m = css.match(new RegExp(`(^|,|\\})\\s*${reEscape(sel)}\\s*\\{([^}]*)\\}`, 'm'));
+    expect(m, `no ${sel} rule`).not.toBeNull();
+    return m[2];
+  };
+
+  it('declares the trio on .parchment', () => {
+    const body = bodyOf('.parchment');
+    expect(body).toMatch(/background:\s*var\(--grad-paper\)/);
+    expect(body).toMatch(/border:\s*var\(--border-w\)\s+solid\s+var\(--border-ink\)/);
+    expect(body).toMatch(/box-shadow:\s*var\(--shadow-paper\)/);
+  });
+
+  it('no card rule re-declares any leg of the trio', () => {
+    for (const sel of CARDS) {
+      const body = bodyOf(sel);
+      expect(body, `${sel} re-declares background`).not.toMatch(/--grad-paper/);
+      expect(body, `${sel} re-declares the ink border`).not.toMatch(/border:\s*var\(--border-w\)/);
+      expect(body, `${sel} re-declares the paper shadow`).not.toMatch(/--shadow-paper/);
+    }
+  });
+
+  it('every rendered card wears the class', () => {
+    const missing = [];
+    for (const [name, host] of Object.entries(MOUNTED)) {
+      for (const sel of CARDS) {
+        for (const el of host.querySelectorAll(sel)) {
+          if (!el.classList.contains('parchment')) missing.push(`${name}: ${sel}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+// Item 35: the shortfall is worded in two places — §6.2's ::after (CSS) and the rejection
+// chip (JS) — and only the JS half was test-pinned, so the CSS half could drift silently.
+// This derives the wording FROM the stylesheet and demands the chip agree with it: change
+// either side's copy alone and this fails.
+describe('the shortfall is spelled once (design 2026-08-01 §5, item 35)', () => {
+  it('the JS chip and the CSS ::after agree on the wording', () => {
+    const m = css.match(/content:\s*'([^']*)'\s*attr\(data-missing\)\s*'([^']*)'/);
+    expect(m, 'the §6.2 shortfall ::after is gone or restructured').not.toBeNull();
+    // CSS says " (need X more)"; the chip says "−need X more": same words, chip drops the
+    // parentheses and leads with the minus. Strip the CSS's parens to get the shared words.
+    const lead = m[1].replace(/^\s*\(/, ''); // "need "
+    const tail = m[2].replace(/\)\s*$/, ''); // " more"
+    const purse = document.createElement('span');
+    document.body.appendChild(purse);
+    spawnShortfallChip(purse, '150 G');
+    const chip = purse.querySelector('.delta-chip');
+    expect(chip, 'spawnShortfallChip rendered no chip').not.toBeNull();
+    expect(chip.textContent).toBe(`${MINUS}${lead}150 G${tail}`);
+    purse.remove();
   });
 });

@@ -34,15 +34,12 @@
   --paper-5: #c9b384; /* deepest — the portrait well's outer gradient stop (§6.5) */
 
   /* Wood (planks, HUD beam) */
-  --wood-1: #7a5533;
   --wood-2: #6b4a2a;
   --wood-3: #5f4227;
   --wood-4: #46301b;
 
   /* Stone (page background only — never behind text) */
-  --stone-1: #a08f77;
   --stone-2: #93836d;
-  --stone-3: #7e6f5b;
 
   /* Ink & bone */
   --ink: #2f2318; /* borders, text on paper. 12.42:1 vs --paper-2 */
@@ -69,7 +66,6 @@
   --blood-ink: #9c3226; /* small text on paper — 5.89:1 vs --paper-2 */
 
   /* Moss — income, healing */
-  --moss: #4a7c3f; /* fills only (4.02:1 vs --paper-2 — fails as small text) */
   --moss-ink: #3f6b35; /* text on paper — 5.07:1 vs --paper-2 */
 
   /* Commit blue — irreversible choices, focus */
@@ -83,9 +79,6 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
 
   /* Typography */
   --font-display: 'Bangers', 'Arial Black', sans-serif;
@@ -135,12 +128,10 @@
   );
 
   /* Motion — paper-puppet: stepped, snappy, pivoted (see §5) */
-  --dur-snap: 180ms; /* UI state changes */
   --dur-stamp: 240ms; /* stamps, chicken drop */
   --dur-tally: 350ms; /* per ledger line */
   --dur-chip: 900ms; /* delta chip lifetime */
   --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
-  --ease-snap: steps(3, end);
   --ease-drop: steps(2, end);
 
   /* Z-scale (paper layering) */
@@ -156,8 +147,6 @@
   --color-money-on-dark: var(--gold); /* money text on wood */
   --color-income: var(--moss-ink);
   --color-expense: var(--blood-ink);
-  --color-damage: var(--blood);
-  --color-heal: var(--moss-ink);
   --color-focus: var(--commit-hi);
   --surface-page: var(--stone-2);
   --surface-paper: var(--paper-2);

@@ -25,7 +25,7 @@ import {
 } from './combat.js';
 import { meterDistance, meterPosition, meterPeriod, sweetCenter } from './ui/timing.js';
 import { logEntryText } from './ui/components.js';
-import { ledgerSummary } from './ui/render.js';
+import { ledgerSummary, gameoverSummary } from './ui/render.js';
 import {
   runLedgerTheater,
   spawnDeltaChip,
@@ -66,6 +66,9 @@ let announced = 0;
 // object, so this re-arms itself for the next ledger while making a re-render of the screen
 // already up — a spend, a superseding render — not news worth speaking twice.
 let announcedResult = null;
+// The ending spoken this run. A boolean, not an identity guard: `state.ended` is set once per
+// run and never changes until newRun(), so "already spoken" is the only state to track.
+let announcedEnding = false;
 
 let state;
 let rng;
@@ -99,6 +102,7 @@ function newRun() {
   rng = makeRng(seed);
   // A new run is not a transaction: the old run's purse must not spawn a chip against it.
   lastGold = null;
+  announcedEnding = false;
   render();
 }
 
@@ -133,6 +137,7 @@ function render() {
     announceLedger();
     ledgerTheater = runLedgerTheater(app.querySelector('.screen--result'));
   }
+  if (state.phase === PHASE.GAMEOVER) announceEnding();
 }
 
 // Spec §6.7: every gold change is announced by the purse itself — the number counts toward its
@@ -171,6 +176,15 @@ function announceLedger() {
   if (!result || result === announcedResult) return;
   announcedResult = result;
   ledgerAnnouncer.textContent = ledgerSummary(state, CONFIG);
+}
+
+// The ending, spoken once per run through the ledger's region — which is free on GAMEOVER
+// (no ledger renders there), while #log-announcer is busy with the killing blow in the same
+// tick. See gameoverSummary in ui/render.js for why the renderer only exports the string.
+function announceEnding() {
+  if (announcedEnding) return;
+  announcedEnding = true;
+  ledgerAnnouncer.textContent = gameoverSummary(state, CONFIG);
 }
 
 // --- Timing meter animation ---

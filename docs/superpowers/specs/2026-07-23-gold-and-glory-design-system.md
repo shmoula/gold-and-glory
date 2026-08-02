@@ -47,15 +47,12 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --paper-5: #c9b384; /* deepest — the portrait well's outer gradient stop (§6.5) */
 
   /* Wood (planks, HUD beam) */
-  --wood-1: #7a5533;
   --wood-2: #6b4a2a;
   --wood-3: #5f4227;
   --wood-4: #46301b;
 
   /* Stone (page background only — never behind text) */
-  --stone-1: #a08f77;
   --stone-2: #93836d;
-  --stone-3: #7e6f5b;
 
   /* Ink & bone */
   --ink: #2f2318; /* borders, text on paper */
@@ -82,7 +79,6 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --blood-ink: #9c3226; /* small text on paper — 5.89:1 */
 
   /* Moss — income, healing */
-  --moss: #4a7c3f; /* fills only (4.02:1 — fails as small text) */
   --moss-ink: #3f6b35; /* text on paper — 5.07:1 */
 
   /* Commit blue — irreversible choices, focus */
@@ -96,9 +92,6 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
 
   /* Typography */
   --font-display: 'Bangers', 'Arial Black', sans-serif;
@@ -146,12 +139,10 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   );
 
   /* Motion — paper-puppet: stepped, snappy, pivoted (see §5) */
-  --dur-snap: 180ms; /* UI state changes */
   --dur-stamp: 240ms; /* stamps, chicken drop */
   --dur-tally: 350ms; /* per ledger line */
   --dur-chip: 900ms; /* delta chip lifetime */
   --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
-  --ease-snap: steps(3, end);
   --ease-drop: steps(2, end);
 
   /* Z-scale (paper layering) */
@@ -167,8 +158,6 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --color-money-on-dark: var(--gold); /* money text on wood */
   --color-income: var(--moss-ink);
   --color-expense: var(--blood-ink);
-  --color-damage: var(--blood);
-  --color-heal: var(--moss-ink);
   --color-focus: var(--commit-hi);
   --surface-page: var(--stone-2);
   --surface-paper: var(--paper-2);
@@ -236,24 +225,24 @@ Download latin woff2 subsets (all OFL-licensed) via the Google Fonts css2 API fo
 
 Every pair below was computed (WCAG 2.x relative luminance). Do not substitute values.
 
-| Foreground on background         | Ratio   | Verdict / rule                                     |
-| -------------------------------- | ------- | -------------------------------------------------- |
-| `--ink` on `--paper-2`           | 12.42:1 | Body text on paper                                 |
-| `--ink-soft` on `--paper-2`      | 5.67:1  | Muted + snark on paper                             |
-| `--gold-ink` on `--paper-2`      | 5.26:1  | **The only gold allowed as text on paper**         |
-| `--gold` on `--paper-2`          | 1.83:1  | FAIL — display gold is fills/dark-bg only          |
-| `--blood` on `--paper-2`         | 4.57:1  | Large/bold damage text on paper                    |
-| `--blood-ink` on `--paper-2`     | 5.89:1  | Small expense text on paper                        |
-| `--moss-ink` on `--paper-2`      | 5.07:1  | Income/heal text on paper (`--moss` fails at 4.02) |
-| `--bone` on `--wood-4`           | 10.06:1 | Button/HUD text on wood                            |
-| `--gold` on `--wood-4`           | 5.50:1  | HUD purse                                          |
-| `--bone-dim` on `--wood-3`       | 4.76:1  | Snark aside on a wood button (§6.8)                |
-| `--bone-dim` on `--wood-4`       | 6.43:1  | Same aside, against the plank's dark stop          |
-| `--bone-bright` on `--commit`    | 4.76:1  | Commit banner text (display size)                  |
-| `--bone-bright` on `--commit-lo` | 7.14:1  | Commit banner text, small                          |
-| `--ink` on `--gold`              | 6.79:1  | Gold badges/coins                                  |
-| `--bone` on `--track`            | 13.88:1 | Numbers inside bars                                |
-| `--bone` on `--stone-2`          | 2.99:1  | FAIL — this is why Law 4 exists                    |
+| Foreground on background         | Ratio   | Verdict / rule                                                   |
+| -------------------------------- | ------- | ---------------------------------------------------------------- |
+| `--ink` on `--paper-2`           | 12.42:1 | Body text on paper                                               |
+| `--ink-soft` on `--paper-2`      | 5.67:1  | Muted + snark on paper                                           |
+| `--gold-ink` on `--paper-2`      | 5.26:1  | **The only gold allowed as text on paper**                       |
+| `--gold` on `--paper-2`          | 1.83:1  | FAIL — display gold is fills/dark-bg only                        |
+| `--blood` on `--paper-2`         | 4.57:1  | Large/bold damage text on paper                                  |
+| `--blood-ink` on `--paper-2`     | 5.89:1  | Small expense text on paper                                      |
+| `--moss-ink` on `--paper-2`      | 5.07:1  | Income/heal text on paper (an earlier flat green failed at 4.02) |
+| `--bone` on `--wood-4`           | 10.06:1 | Button/HUD text on wood                                          |
+| `--gold` on `--wood-4`           | 5.50:1  | HUD purse                                                        |
+| `--bone-dim` on `--wood-3`       | 4.76:1  | Snark aside on a wood button (§6.8)                              |
+| `--bone-dim` on `--wood-4`       | 6.43:1  | Same aside, against the plank's dark stop                        |
+| `--bone-bright` on `--commit`    | 4.76:1  | Commit banner text (display size)                                |
+| `--bone-bright` on `--commit-lo` | 7.14:1  | Commit banner text, small                                        |
+| `--ink` on `--gold`              | 6.79:1  | Gold badges/coins                                                |
+| `--bone` on `--track`            | 13.88:1 | Numbers inside bars                                              |
+| `--bone` on `--stone-2`          | 2.99:1  | FAIL — this is why Law 4 exists                                  |
 
 Colorblind redundancy (mandatory): money deltas always carry `+`/`−`; damage log lines carry the
 sword glyph, healing the drop glyph; meter zones are labeled and notched (§6.4); owned vs
@@ -270,7 +259,9 @@ illustrated arena backdrop image may sit behind screens, but must be covered by 
 
 **M2 — Parchment panel.** `--grad-paper` fill, `var(--border-w) solid var(--border-ink)`,
 one `--wobble-*` radius, `--shadow-paper`, one `--tilt-*`. Used for: posters, ledger, log,
-sponsor notice, shop cards, endings, modals.
+sponsor notice, shop cards, endings, modals. The invariant trio (paper fill, ink border, paper
+shadow) is carried by the shared .parchment class; each card states only its own wobble/tilt/
+padding (decided 2026-08-01, item 31).
 
 **M3 — Wood plank.** `--grad-wood` fill, ink border, small wobble radius (`10px 14px 9px 15px`
 family), `--shadow-plank`. Used for: HUD beam, ordinary buttons.
@@ -287,13 +278,15 @@ family), `--shadow-plank`. Used for: HUD beam, ordinary buttons.
 
 Everything moves like a Gilliam cutout: few frames, hard stops, pivot from an edge.
 
-- **Timing functions:** only `--ease-snap` (3 frames) and `--ease-drop` (2 frames). Smooth easing
-  is reserved for exactly two things: the meter sweep (linear, it's gameplay) and bar width
-  transitions (150ms ease-out, they're data).
+- **Timing functions:** `--ease-drop` (2 frames) is the only named easing token; the purse-shake
+  reuses a 3-frame step function directly (`steps(3, end)`, §6.7) rather than through a token.
+  Smooth easing is reserved for exactly two things: the meter sweep (linear, it's gameplay) and
+  bar width transitions (150ms ease-out, they're data).
 - **Transforms only** (`translate`, `rotate`, `scale`); never animate layout properties.
 - **Pivots:** cards animate with `transform-origin` at a taped corner; stamps scale from center.
-- **Budget:** UI state change ≤ `--dur-snap`; theatrical beats (stamp, chicken drop) ≤ `--dur-stamp`;
-  nothing except the ledger sequence exceeds 400ms total.
+- **Budget:** UI state change is instant — no transition property, a hard cut, per the
+  cutout look above; theatrical beats (stamp, chicken drop) ≤ `--dur-stamp`; nothing except
+  the ledger sequence exceeds 400ms total.
 - **`prefers-reduced-motion: reduce`:** all `steps()` animations become instant state changes;
   delta chips appear/disappear without travel; ledger lines appear pre-tallied with a single
   fade; the meter sweep remains (it is the game mechanic), but screen shake and chicken
@@ -329,15 +322,25 @@ Everything moves like a Gilliam cutout: few frames, hard stops, pivot from an ed
 ### 6.0 Closed class index
 
 `hud, hud__purse, hud__stat, hud__label, coin, bar, bar__fill, bar__fill--dur, bar__num,
-pips, pip, pip--filled, btn, btn--commit, btn--danger, btn__price, btn__snark, is-disabled,
+pips, pip, pip--filled, btn, btn--commit, btn--danger, btn__price, btn__snark,
 is-unaffordable, is-owned, is-urgent, meter, meter__zone, meter__zone--graze, meter__zone--hit,
-meter__zone--crit, meter__label, meter__tick, meter-cursor, meter-chicken, meter__stamp,
-poster, poster__name, poster__portrait, poster__sub, tape, snark, ledger, ledger__banner,
-ledger__row, ledger__row--net, ledger__row--balance, amount, amount--pos, amount--neg,
-delta-chip, ticker, log, log__entry, log__turn, sponsor-card, train-row, train-row__meter,
-shop-item, banner-stamp, banner-stamp--victory, banner-stamp--defeat, banner-stamp--death,
-ending-card, ending-card--locked, cause-of-death, modal, modal__scrim, wordmark,
-screen, screen--hub, screen--fight, screen--result, screen--gameover, commit-bar`
+meter__zone--crit, meter__labels, meter__taunt, meter-cursor, meter-chicken, meter__stamp,
+poster, poster__name, poster__portrait, poster__sub, poster__silhouette, poster--tilt-1,
+poster--tilt-2, poster--tilt-3, tape, parchment, snark, ledger, ledger__banner, ledger__row,
+ledger__row--net, ledger__row--balance, amount, amount--pos, amount--neg, delta-chip,
+delta-chip--pos, delta-chip--neg, ticker, log, log__entry, log__turn, sponsor-card,
+sponsor-card__eyebrow, sponsor-card__name, train-row, train-row__meter, train-row__label,
+shop-item, shop-item__icon, shop-item__name, shop-item__owned, banner-stamp,
+banner-stamp--victory, banner-stamp--defeat, banner-stamp--death, ending-card,
+ending-card--locked, cause-of-death, modal, modal__scrim, wordmark, sr-only, is-hidden,
+is-captured, is-shaking, screen, screen--hub, screen--fight, screen--result,
+screen--gameover, commit-bar, hub__sinks, hub__develop, hub__fight, hub__retire,
+hub__commit, hub__next-label, fight__you, fight__stage, fight__foe, fight__log,
+fight__actions, result__recap, result__ledger, result__cta, result__cross, result__flavor,
+gameover__left, gameover__stamp, gameover__right, gameover__cause, gameover__cta`
+
+`modal` and `modal__scrim` (§6.15) are specified, not yet rendered — no screen mounts a modal
+today, but the spec still calls for one (death-match clause confirm).
 
 ### 6.1 HUD beam (persistent, all screens)
 
@@ -536,7 +539,6 @@ Three variants. All: `min-height 44px`, `font-family var(--font-body) 700` (plan
   background: linear-gradient(var(--blood-hi), var(--blood));
 }
 
-.btn.is-disabled,
 .btn[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
@@ -646,7 +648,7 @@ timestamp formula above is a **required** fix, not a refactor preference.
 is one element moved via `transform: translateX()` in a `requestAnimationFrame` loop.
 
 ```html
-<div class="meter" role="application" aria-label="Timing meter — press Space or click to strike">
+<div class="meter" role="button" aria-label="Timing meter — press Space or click to strike">
   <div
     class="meter__zone meter__zone--graze"
     style="left:var(--graze-start);width:var(--graze-size)"
@@ -663,6 +665,10 @@ is one element moved via `transform: translateX()` in a `requestAnimationFrame` 
 </div>
 <div class="meter__labels"><!-- MISS · GRAZE · HIT · CRIT ticks, aligned to zone edges --></div>
 ```
+
+`role="button", not "application"`: announced usefully, free activation semantics, and browse
+mode stays available — "application" suppressed it for a control whose only children are
+presentational (decided 2026-08-01, item 16). The div still needs its tabindex.
 
 ```css
 .meter {
@@ -888,7 +894,7 @@ rather than dropped out of the tab order.)
 ### 6.13 Banner stamps (`.banner-stamp`)
 
 Screen-level result titles, display face, stamped on entry (§5): `--victory` ("VICTORY!",
-`--moss` fill paper banner), `--defeat` ("DEFEAT.", `--blood-ink`), `--death` ("YOU DIED",
+`--moss-ink`), `--defeat` ("DEFEAT.", `--blood-ink`), `--death` ("YOU DIED",
 `--blood`, `--text-4xl`). Rendered as a tilted parchment ribbon with ink border; entrance =
 scale 1.5→1.0, 2 frames, with one ±2° rotation settle frame. On death, the **giant Roman
 sandal** (content image asset, ~40% viewport height) descends behind the stamp using
@@ -1012,7 +1018,7 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
     background: var(--grad-wood);
     border-top: var(--border-w) solid var(--border-ink);
   }
-  /* Hub's Next Fight and Fight's action grid live inside .commit-bar when stacked */
+  /* Hub's Next Fight lives inside .commit-bar when stacked */
 }
 ```
 
@@ -1053,9 +1059,18 @@ The "NEXT BOUT" opponent appears exactly once per screen.
 - Keyboard parity: Space = strike, 1–4 = fight actions, Enter = activate, Escape = close modal.
 - Color never sole channel: signs, glyphs, notches, labels as specified per component.
 - `prefers-reduced-motion` per §5. No UI screen shake, ever (world-layer only, if ever added).
-- Dynamic announcements: ledger `aria-live="polite"`, log `aria-live="polite"`,
-  result stamps `role="status"`.
+- Dynamic announcements: ledger `aria-live="polite"`, combat log — announced by the
+  persistent #log-announcer region only; the rendered strip carries no live region (§6.9),
+  result and game-over stamps — announced once through the persistent `#ledger-announcer`
+  region, written after insertion (a `role="status"` rendered inside #app arrives
+  already-populated and is mute; decided 2026-08-01, items 26/28). The rendered `.banner-stamp`
+  carries no role.
 - All text ≥ `--text-xs` (12.5px); mechanics text ≥ `--text-sm`.
+- `.wordmark` is a logotype and exempt from the text-contrast floor (WCAG 1.4.3 logotype
+  exemption); its `opacity: .7` treatment stands. Every other piece of real text — including
+  text inside a dimmed card (locked endings, owned gear) — meets 4.5:1 as composited.
+- Natively `disabled` controls are inactive UI components and exempt from the contrast floor
+  (WCAG 1.4.3); their 0.45 dim stands.
 
 ---
 

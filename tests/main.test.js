@@ -411,7 +411,7 @@ describe('keyboard parity (spec §8)', () => {
   });
 
   // Spec 8 makes the meter a target in its own right and Enter the generic activation key.
-  // A role="application" widget nothing can focus is unreachable for assistive tech, so the
+  // A role="button" widget nothing can focus is unreachable for assistive tech, so the
   // tabindex and the Enter handler stand or fall together.
   it('is focusable and captures on Enter when it holds focus', () => {
     enterFight();
@@ -560,10 +560,11 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
     expect(region.textContent).toBe(''); // inserted empty, long before a ledger exists
     winTheBout();
     expect(live()).toBe(region); // the same node, so the write is a real content change
-    // …and it states the visible ledger line for line, in the card's own words.
+    // …and it states the visible ledger line for line, in the card's own words — opening with
+    // the same verdict the (mute) drawn stamp carries.
     const lines = cardLines();
     expect(lines.length).toBeGreaterThan(3);
-    expect(region.textContent).toBe(`${lines.join('. ')}.`);
+    expect(region.textContent).toBe(`VICTORY! ${lines.join('. ')}.`);
     // Nothing re-creates the summary inside the screen, where it would be mute.
     expect(app().querySelector('.ledger__summary')).toBeNull();
   });
@@ -601,6 +602,36 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
         expect(el.getAttribute('aria-hidden'), `${el.nodeName}.${el.className}`).toBeNull();
       }
     }
+  });
+
+  // Task 9's game-over twin: the same region, the same "written once" contract, but on
+  // GAMEOVER rather than RESULT. Driven the same way the money-theater describe block's own
+  // GAMEOVER test reaches the screen — `retire` from the hub — since that is the only
+  // game-over-reaching helper already in this file; forcing a death would need to fight the
+  // run's own rng deterministically, which nothing here does.
+  it('announces the ending once, stamp first, and not again on re-render (design §4d)', () => {
+    click('[data-action="retire"]');
+    expect(q('.screen--gameover'), 'retire did not reach GAMEOVER').not.toBeNull();
+    const region = live();
+    // Same lead-ins as the drawn screen (src/ui/render.js's CAUSE_LABEL/PURSE_LABEL and
+    // config.endings.retired.stamp.text) — read off config rather than pasted, so the two
+    // can never drift apart.
+    const stampText = CONFIG.endings.retired.stamp.text;
+    // This stamp ends in its own exclamation, so gameoverSummary contributes the space and no
+    // second terminal mark. Asserted rather than assumed: if the copy ever loses its
+    // punctuation the separator changes with it, and this test should say so out loud.
+    expect(stampText, 'the retired stamp is expected to punctuate itself').toMatch(/[.!?]$/);
+    expect(region.textContent).toBe(`${stampText} Final purse: ${formatGold(CONFIG.startingGold)}`);
+    const spoken = region.textContent;
+    // A render that lands while GAMEOVER stays up — same technique as the result screen's
+    // "not again" test above: a real commerce control, appended and clicked directly, so the
+    // click goes through main.js's one delegated listener on #app without navigating away.
+    const spend = document.createElement('button');
+    spend.setAttribute('data-action', 'train-power');
+    app().appendChild(spend);
+    spend.click();
+    expect(q('.screen--gameover')).not.toBeNull();
+    expect(region.textContent).toBe(spoken); // nothing spoke a second time
   });
 });
 

@@ -118,7 +118,7 @@ export function renderHub(state, config) {
     .join('');
 
   const sponsorCard = state.sponsorUnlocked
-    ? `<aside class="sponsor-card tape">
+    ? `<aside class="sponsor-card parchment tape">
       <span class="sponsor-card__eyebrow">Sponsor</span>
       <h3 class="sponsor-card__name">Lord Biggus</h3>
       <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
@@ -133,14 +133,14 @@ export function renderHub(state, config) {
       <div class="hub__sinks">
         <h2>The Ludus</h2>
         <p>Wins: ${state.wins}</p>
-        ${btn('repair', 'Repair weapon', {
+        ${btn('repair', 'Repair Weapon', {
           cost: repairCost(missing, config),
           gold: state.gold,
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
           disabled: missing <= 0,
         })}
-        ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}`, {
+        ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'Injury' : 'Injuries'}`, {
           cost: healCost(state.injuries, config),
           gold: state.gold,
           snark: config.snark.heal,
@@ -152,7 +152,7 @@ export function renderHub(state, config) {
             ? btn(null, 'Bribed ✓', { disabled: true })
             : btn(
                 'bribe',
-                `Bribe official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
+                `Bribe Official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
                 { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe }
               )
         }
@@ -255,10 +255,18 @@ function ledgerLines(state, config) {
 // inside it, and a live region inserted already-populated announces nothing at all — the same
 // defect that put #log-announcer outside #app in the first place (see src/main.js).
 //
+// §6.13's result verdicts, spelled once for the drawn stamp AND the spoken announcement —
+// two spellings of a stamp is how the drawn one and the spoken one drift (item 29's lesson).
+const RESULT_STAMPS = {
+  won: { variant: 'victory', text: 'VICTORY!' },
+  lost: { variant: 'defeat', text: 'DEFEAT.' },
+};
+const resultStamp = (r) => (r.won ? RESULT_STAMPS.won : RESULT_STAMPS.lost);
+
 // So the renderer's job ends at the *string*: this states every line the card states, in the
 // card's own words, and main.js writes it into a region that already exists.
 export function ledgerSummary(state, config) {
-  return `${ledgerLines(state, config)
+  return `${resultStamp(state.lastResult).text} ${ledgerLines(state, config)
     .map((l) => `${l.label}: ${l.text}`)
     .join('. ')}.`;
 }
@@ -268,12 +276,10 @@ export function renderResult(state, config) {
   const foe = foeOf(state, config);
   const rows = ledgerLines(state, config).map(ledgerRow).join('');
 
-  // §6.13 + §8: the screen-level stamp, announced as a status. Victory gets the exclamation,
-  // defeat the deadpan period (§9) — death never reaches this screen, it goes to GAMEOVER.
-  // Through the shared component, so this screen's stamp and game over's are one thing (§6.13).
-  const banner = r.won
-    ? bannerStamp('victory', 'VICTORY!', { status: true })
-    : bannerStamp('defeat', 'DEFEAT.', { status: true });
+  // §6.13: the screen-level stamp. Victory gets the exclamation, defeat the deadpan period
+  // (§9). Drawn here; SPOKEN by ledgerSummary through the persistent region (design §4d).
+  const stamp = resultStamp(r);
+  const banner = bannerStamp(stamp.variant, stamp.text);
 
   return `
     ${renderHud(state, config)}
@@ -295,7 +301,7 @@ export function renderResult(state, config) {
         <p class="snark result__flavor">${escapeHtml(r.commentary)}</p>
       </div>
       <div class="result__ledger">
-        <section class="ledger tape">
+        <section class="ledger parchment tape">
           <h2>The ledger</h2>
           <dl>${rows}</dl>
           <span class="wordmark">GOLD &amp; GLORY</span>
@@ -321,6 +327,11 @@ const endingOrder = (config) => Object.keys(config.endings);
 // here either — and printing "undefined" as a cause of death is worse than saying nothing.
 const UNRECORDED_CAUSE = 'Unrecorded.';
 
+// §6.14's payload lead-ins, spelled once so `renderGameOver`'s markup and `gameoverSummary`'s
+// spoken string state the same words for the same fact (mirrors resultStamp's reasoning above).
+const CAUSE_LABEL = 'Cause of Death:';
+const PURSE_LABEL = 'Final purse:';
+
 // One ending's card. Locked cards are info cards, never buttons (§6.14) — `aria-disabled` on an
 // <article> is what the spec asks for, and there is nothing here to focus or activate.
 // `.poster__name`/`.poster__portrait` are reused rather than invented: §6.0's class index is
@@ -329,7 +340,7 @@ const UNRECORDED_CAUSE = 'Unrecorded.';
 function endingCard(key, config, achieved) {
   const ending = config.endings[key];
   const locked = key !== achieved;
-  return `<article class="ending-card tape${locked ? ' ending-card--locked' : ''}"${
+  return `<article class="ending-card parchment tape${locked ? ' ending-card--locked' : ''}"${
     locked ? ' aria-disabled="true"' : ''
   }>
         <h3 class="poster__name">${escapeHtml(ending.title)}${locked ? '?' : ''}</h3>
@@ -359,8 +370,8 @@ export function renderGameOver(state, config) {
   // gallery with no stamp.
   const payload =
     achieved === 'dead'
-      ? `<strong>Cause of Death:</strong> ${escapeHtml(state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE)}`
-      : `<strong>Final purse:</strong> <span class="amount">${formatGold(state.gold)}</span>`;
+      ? `<strong>${CAUSE_LABEL}</strong> ${escapeHtml(state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE)}`
+      : `<strong>${PURSE_LABEL}</strong> <span class="amount">${formatGold(state.gold)}</span>`;
   // §6.1: "On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate
   // storytelling." It reads the same playerHealth() selector as every other screen, so the
   // corpse's beam states the number the fight left behind rather than a fresh one — but not
@@ -377,11 +388,31 @@ export function renderGameOver(state, config) {
       </div>
       <div class="gameover__right">${gallery(others.slice(half))}</div>
       <div class="gameover__cause">
-        <p class="cause-of-death">${payload}
+        <p class="cause-of-death parchment">${payload}
           <span class="wordmark">GOLD &amp; GLORY</span></p>
       </div>
       <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
     </section>`;
+}
+
+// The ending, spoken once (design 2026-08-01 §4d, items 26+28). Same persistent-region
+// arrangement as the ledger: this is only a string; main.js writes it into #ledger-announcer,
+// which is free on GAMEOVER (no ledger speaks there) — while the killing blow still goes to
+// #log-announcer, exactly the fight-end split of responsibilities.
+export function gameoverSummary(state, config) {
+  const order = endingOrder(config);
+  const achieved = order.includes(state.ended) ? state.ended : null;
+  // The separator is a sentence break, not decoration: the stamp and the payload are two
+  // statements, and a screen reader needs the pause between them. §6.13's victory stamps
+  // already carry their own exclamation (`CHAMPION!`), so adding a period there would speak
+  // "CHAMPION! ." — supply one only for the stamps that end bare (`YOU DIED`).
+  const stampText = achieved ? config.endings[achieved].stamp.text : '';
+  const stamp = stampText ? `${stampText}${/[.!?]$/.test(stampText) ? '' : '.'} ` : '';
+  const payload =
+    achieved === 'dead'
+      ? `${CAUSE_LABEL} ${state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE}`
+      : `${PURSE_LABEL} ${formatGold(state.gold)}`;
+  return `${stamp}${payload}`;
 }
 
 // Spec §6.4: three nested bands drawn around this turn's sweet spot, weakest painted first so
@@ -398,7 +429,7 @@ function renderMeter(state, config) {
   // Spec 6.4 puts the first-fight taunt above the track.
   return `
       ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}
-      <div class="meter" data-meter="1" tabindex="0" role="application"
+      <div class="meter" data-meter="1" tabindex="0" role="button"
         aria-label="Timing meter \u2014 press Space or click to strike">
         ${zone('graze')}
         ${zone('hit')}
@@ -449,7 +480,7 @@ export function renderFight(state, config) {
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
       })}</div>
-      <div class="fight__log"><h2>Commentary</h2><ul class="log" tabindex="0" aria-label="Combat log" aria-live="polite">${logHtml}</ul></div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
       <div class="fight__actions">
         ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
         <div class="fight__grid">
