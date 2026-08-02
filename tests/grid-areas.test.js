@@ -554,6 +554,22 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
     expect(wrong).toEqual([]);
   });
 
+  // §6.17's --frame-w is declared once in tokens.css (14px) and overridden on :root inside a
+  // ≤640px media query in base.css - a cross-file cascade the two sheets' text alone cannot
+  // prove correct: a typo'd selector, the media query landing in the wrong file, or a reverted
+  // breakpoint would all leave `--frame-w: 8px` sitting inertly in the sheet while every consumer
+  // (the frame border, the body's frame-clearance padding, the sticky commit bar's `bottom`)
+  // silently kept resolving to 14px. `winner()` resolves the real cascade rather than just
+  // grepping for the declaration, and `document.documentElement.matches(':root')` is `true` in
+  // jsdom, so it applies unchanged to a custom property on the root. `max-width: 640px` is
+  // inclusive, so 640 must resolve to the override and 641 must not.
+  it('overrides --frame-w to 8px at and below the 640px breakpoint, 14px above it (§6.17)', () => {
+    const root = document.documentElement;
+    expect(winner(root, '--frame-w', 900)).toBe('14px');
+    expect(winner(root, '--frame-w', 641)).toBe('14px');
+    expect(winner(root, '--frame-w', 640)).toBe('8px');
+  });
+
   // "The HUD wraps without clipping." Two halves, and the second is the one worth a test: the
   // beam is a flex row of five stats, and the only reason a narrow viewport does not cut the
   // last one off is that it wraps rather than being clipped. A `height` or an `overflow: hidden`
