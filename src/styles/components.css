@@ -87,7 +87,7 @@
   display: grid;
   place-items: center;
   font-size: var(--text-xs);
-  /* The track's content box is only 12px tall (16px − two 2px borders), but the inherited
+  /* The track's content box is only 12px tall (16px less its two 2px borders), but the inherited
      `line-height: normal` gives the numeral a ~18.75px line box that `.bar`'s `overflow: hidden`
      then clips top and bottom. Collapse it to the em so the centered numeral sits inside the
      track — the glyph ink (digits + solidus, no descenders) clears 12px comfortably. */
