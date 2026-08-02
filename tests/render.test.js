@@ -5,6 +5,7 @@ import { createGameState } from '../src/state.js';
 import {
   btn,
   meter,
+  bar,
   poster,
   shopItem,
   renderHud,
@@ -288,6 +289,16 @@ describe('iconWell', () => {
     expect(host.children).toHaveLength(1);
     expect(host.querySelector('script')).toBeNull();
     expect(host.firstElementChild.getAttribute('data-icon')).toBe(hostile);
+  });
+});
+
+describe('bar', () => {
+  // Every current call site (renderHud) passes `well`, so this path is otherwise unexercised:
+  // a regression that made bar() always emit a well would leave one showing wherever a caller
+  // deliberately omits it, and nothing would catch it.
+  it('emits no icon well when opts.well is not supplied', () => {
+    const html = bar('Health', 3, 10);
+    expect(dom(html).querySelectorAll('.icon-well')).toHaveLength(0);
   });
 });
 
@@ -836,6 +847,31 @@ describe('shopItem', () => {
     expect(() => shopItem(CONFIG.gear.blade, { gold: NaN })).toThrow(/gold/);
     // An owned card carries no price, so it needs no purse.
     expect(() => shopItem(CONFIG.gear.blade, { owned: true })).not.toThrow();
+  });
+
+  // §6.18: the shop slot is the icon well generalized, keeping its own class for §6.12's layout
+  // selectors while getting the well's treatment and Phase 2's data-icon mask hook. Both branches
+  // render the icon column, so a regression in either would otherwise ship silently.
+  it('gives the owned branch an icon well keyed by the item id (§6.18)', () => {
+    const { charm } = CONFIG.gear;
+    const card = shopItem(charm, { owned: true, gold: 0 });
+    const well = dom(card).querySelector(`[data-icon="${charm.id}"]`);
+    expect(well, 'no well on the owned card').not.toBeNull();
+    expect([...well.classList]).toEqual(
+      expect.arrayContaining(['shop-item__icon', 'icon-well'])
+    );
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('gives the buyable branch an icon well keyed by the item id (§6.18)', () => {
+    const { blade } = CONFIG.gear;
+    const card = shopItem(blade, { gold: blade.cost });
+    const well = dom(card).querySelector(`[data-icon="${blade.id}"]`);
+    expect(well, 'no well on the buyable card').not.toBeNull();
+    expect([...well.classList]).toEqual(
+      expect.arrayContaining(['shop-item__icon', 'icon-well'])
+    );
+    expect(well.getAttribute('aria-hidden')).toBe('true');
   });
 });
 

@@ -332,6 +332,9 @@
    from §6.12's shop slot: empty until Phase 2 delivers icons, and an empty recessed well reads
    as an intentional slot, so §10's zero-asset rule holds. data-icon is Phase 2's mask hook. */
 .icon-well {
+  /* The well sits as a flex item in both of its contexts — `.hud__stat` (inline-flex row) and
+     `.shop-item` (flex column) — and must not shrink in either: `flex: none` pins it to its own
+     width/height so a cramped row or a narrow card cannot squash the well before the label. */
   flex: none;
   width: 34px;
   height: 34px;
