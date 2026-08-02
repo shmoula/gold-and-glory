@@ -283,7 +283,7 @@
      is left content-sized at either mobile width. */
   .commit-bar {
     position: sticky;
-    bottom: 0;
+    bottom: var(--frame-w);
     z-index: var(--z-hud);
     justify-self: stretch;
     text-align: center;

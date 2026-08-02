@@ -138,6 +138,9 @@
   --z-hud: 10;
   --z-chip: 20;
   --z-modal: 30;
+  --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
+  --z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
+  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
 
   /* ============ TIER 2 — SEMANTIC ============ */
   --color-text: var(--ink);

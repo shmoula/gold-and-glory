@@ -530,7 +530,9 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
         const bottom = winner(bar, 'bottom', width);
         const justify = winner(bar, 'justify-self', width);
         if (pos !== 'sticky') wrong.push(`${width}px: ${name} commit bar is "${pos}", not sticky`);
-        if (bottom !== '0')
+        // Was a literal `0` before the stage frame (§6.17) existed; the bar now seats on the
+        // frame's inner edge so its border-top does not rest under the frame's own border.
+        if (bottom !== 'var(--frame-w)')
           wrong.push(`${width}px: ${name} commit bar sticks at bottom "${bottom}"`);
         if (!STRETCHES.includes(justify)) {
           wrong.push(
