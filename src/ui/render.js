@@ -100,6 +100,7 @@ export function renderHub(state, config) {
     .map((stat) => {
       const cost = trainingCost(state.trainingLevels[stat], config);
       return `<div class="train-row">
+      ${iconWell(stat)}
       <span class="train-row__label">${stat[0].toUpperCase() + stat.slice(1)} ${eff[stat]}</span>
       ${meter(`${stat} training`, eff[stat], TRAIN_METER_CAP, {
         fillClass: ' bar__fill--dur',
@@ -143,6 +144,7 @@ export function renderHub(state, config) {
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
           disabled: missing <= 0,
+          icon: 'repair',
         })}
         ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'Injury' : 'Injuries'}`, {
           cost: healCost(state.injuries, config),
@@ -150,14 +152,22 @@ export function renderHub(state, config) {
           snark: config.snark.heal,
           urgent: hurt,
           disabled: !hurt,
+          icon: 'heal',
         })}
         ${
+          // The bribe well names the action, not its remaining availability this fight: the
+          // spent state stays an inert plank ("Bribed ✓"), but the slot must not vanish with it.
           state.bribedThisFight
-            ? btn(null, 'Bribed ✓', { disabled: true })
+            ? btn(null, 'Bribed ✓', { disabled: true, icon: 'bribe' })
             : btn(
                 'bribe',
                 `Bribe Official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
-                { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe }
+                {
+                  cost: config.arena.bribeCost,
+                  gold: state.gold,
+                  snark: config.snark.bribe,
+                  icon: 'bribe',
+                }
               )
         }
       </div>
@@ -185,11 +195,23 @@ export function renderHub(state, config) {
 // those from zero as the row lands (§6.6's "money rows count from 0 to value over the beat"),
 // and the unit names the formatter, so the counter's last write is by construction the same
 // string the server already rendered. A line with no unit is not money and does not count.
-function ledgerRow({ label, text, value = null, unit = null, tone = '', cls = '', snark = '' }) {
+function ledgerRow({
+  label,
+  text,
+  value = null,
+  unit = null,
+  tone = '',
+  cls = '',
+  snark = '',
+  icon = '',
+}) {
   const data = unit && Number.isFinite(value) ? ` data-value="${value}" data-unit="${unit}"` : '';
   const aside = snark ? ` <span class="snark">(${escapeHtml(snark)})</span>` : '';
+  // §6.18: a small well naming the line's *source* (purse, tax, sponsor). Sums and tallies (net
+  // gold, injuries, wear, balance) pass no `icon` and stay well-less — they are not a source.
+  const well = icon ? iconWell(icon, { small: true }) : '';
   return `<div class="ledger__row is-hidden${cls}">
-            <dt>${escapeHtml(label)}${aside}</dt>
+            <dt>${well}${escapeHtml(label)}${aside}</dt>
             <dd class="amount${tone}"${data}>${text}</dd>
           </div>`;
 }
@@ -229,10 +251,10 @@ function ledgerLines(state, config) {
   // The tax label states no rate: the result carries the amount, not the rate that produced
   // it, and a rate re-derived from a rounded amount would be a number that lies (Law 1).
   return [
-    moneyRow('Purse', r.purse),
-    moneyRow('Arena tax', -r.tax, { snark: config.snark.tax }),
+    moneyRow('Purse', r.purse, { icon: 'purse' }),
+    moneyRow('Arena tax', -r.tax, { snark: config.snark.tax, icon: 'tax' }),
     r.sponsorIncome
-      ? moneyRow('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward })
+      ? moneyRow('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward, icon: 'sponsor' })
       : null,
     moneyRow('Net gold', r.netGold, { cls: ' ledger__row--net' }),
     tallyRow('Injuries gained', r.injuriesGained, `${r.injuriesGained}`),

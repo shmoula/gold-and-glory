@@ -90,6 +90,7 @@ export function btn(
     urgent = false,
     disabled = false,
     owned = false,
+    icon = '',
   } = {}
 ) {
   // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
@@ -123,9 +124,14 @@ export function btn(
   const shown = cost ?? price;
   const priceSlot = shown != null ? `<span class="btn__price">${formatGold(shown)}</span>` : '';
   const missingAmount = cost != null ? shortfallAmount(cost, gold) : '';
+  // §6.2 amendment: an optional leading icon well for the sinks (Repair/Heal/Bribe) — default
+  // size, not `--sm`: a button is not the HUD's cramped context, and §6.18's well only ever
+  // shrinks for the HUD beam and the ledger. Absent for every other button, so most `.btn`s keep
+  // their original [label][price][snark] anatomy with no leading span.
+  const well = icon ? iconWell(icon) : '';
   return (
     `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
+    `${well}${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
   );
 }
 

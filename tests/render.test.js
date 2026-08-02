@@ -128,6 +128,24 @@ describe('btn', () => {
   it('escapes the label of a hand-passed inert plank', () => {
     expect(btn(null, '✓ <Blade> — OWNED', { owned: true })).toContain('&lt;Blade&gt;');
   });
+
+  // §6.2 amendment: buttons may carry a leading `.icon-well` (the sinks), emitted by
+  // `btn({ icon })`. Default-sized, not `--sm` — a button is not the HUD's cramped context.
+  // Parsed to DOM per this file's own rule, not matched against a literal markup string.
+  it('prepends a default-size icon well when opts.icon is given (§6.2 amendment)', () => {
+    const html = btn('repair', 'Repair Weapon', { icon: 'repair' });
+    const button = dom(html).querySelector('button');
+    const well = button.querySelector('[data-icon="repair"]');
+    expect(well, 'no icon well').not.toBeNull();
+    expect([...well.classList]).toEqual(['icon-well']); // default size, no --sm
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+    // Leads the button: label, price and snark all come after it (spec §6.2's anatomy).
+    expect(button.firstChild).toBe(well);
+  });
+
+  it('omits the well entirely when no icon is given', () => {
+    expect(dom(btn('heal', 'Heal')).querySelector('.icon-well')).toBeNull();
+  });
 });
 
 describe('renderHud', () => {
@@ -555,6 +573,28 @@ describe('renderHub', () => {
     expect(html).toContain('is-owned');
     expect(html).not.toContain('data-action="buy-shield"');
   });
+
+  // §6.2 amendment / §6.18: each sink button gets a named icon well so Phase 2 has a hook to
+  // paint a glyph into. Parsed to DOM per this file's own rule, not matched against raw markup.
+  it('gives each sink button a leading icon well named for its action', () => {
+    const s = createGameState(1, CONFIG);
+    const host = dom(renderHub(s, CONFIG));
+    for (const name of ['repair', 'heal', 'bribe']) {
+      const well = host.querySelector(`[data-icon="${name}"]`);
+      expect(well, `no well for ${name}`).not.toBeNull();
+      expect([...well.classList]).toEqual(['icon-well']);
+    }
+  });
+
+  // The bribe well must not vanish once the bribe is spent for the fight — the slot names the
+  // action, not its remaining availability, so the inert "Bribed ✓" plank still carries it.
+  it('keeps the bribe well once bribed-out, rather than dropping the slot when spent', () => {
+    const s = createGameState(1, CONFIG);
+    s.bribedThisFight = true;
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('Bribed');
+    expect(dom(html).querySelector('[data-icon="bribe"]')).not.toBeNull();
+  });
 });
 
 describe('meter', () => {
@@ -781,6 +821,21 @@ describe('renderHub layout', () => {
     }
   });
 
+  // §6.11 amendment / §6.18: the icon column widens to 34px, carrying a default-size icon well
+  // named for the stat it trains. Parsed to DOM, and anchored per-row (not just "3 wells
+  // somewhere") so a well drifting onto the wrong stat's row would fail.
+  it('gives each training row a leading, default-size icon well named for its stat', () => {
+    const s = createGameState(1, CONFIG);
+    const rowEls = [...dom(renderHub(s, CONFIG)).querySelectorAll('.train-row')];
+    expect(rowEls).toHaveLength(3);
+    for (const [i, stat] of ['power', 'guard', 'speed'].entries()) {
+      const well = rowEls[i].querySelector(`[data-icon="${stat}"]`);
+      expect(well, `no well for ${stat}`).not.toBeNull();
+      expect([...well.classList]).toEqual(['icon-well']); // default size, not --sm
+      expect(rowEls[i].firstElementChild).toBe(well); // leads the row
+    }
+  });
+
   it('renders gear as shop cards in the available / unaffordable / owned triad', () => {
     const s = createGameState(1, CONFIG);
     const { shield, blade, charm } = CONFIG.gear;
@@ -857,9 +912,7 @@ describe('shopItem', () => {
     const card = shopItem(charm, { owned: true, gold: 0 });
     const well = dom(card).querySelector(`[data-icon="${charm.id}"]`);
     expect(well, 'no well on the owned card').not.toBeNull();
-    expect([...well.classList]).toEqual(
-      expect.arrayContaining(['shop-item__icon', 'icon-well'])
-    );
+    expect([...well.classList]).toEqual(expect.arrayContaining(['shop-item__icon', 'icon-well']));
     expect(well.getAttribute('aria-hidden')).toBe('true');
   });
 
@@ -868,9 +921,7 @@ describe('shopItem', () => {
     const card = shopItem(blade, { gold: blade.cost });
     const well = dom(card).querySelector(`[data-icon="${blade.id}"]`);
     expect(well, 'no well on the buyable card').not.toBeNull();
-    expect([...well.classList]).toEqual(
-      expect.arrayContaining(['shop-item__icon', 'icon-well'])
-    );
+    expect([...well.classList]).toEqual(expect.arrayContaining(['shop-item__icon', 'icon-well']));
     expect(well.getAttribute('aria-hidden')).toBe('true');
   });
 });
@@ -901,10 +952,18 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     lastResult,
   });
   const resultOf = (lastResult, over = {}) => renderResult(stateOf(lastResult, over), CONFIG);
+  // A ledger row's label text: the snark aside stripped off, and — since Task 5 — tolerant of an
+  // optional leading `.icon-well` sharing the `<dt>`. The well is empty and aria-hidden, so it
+  // contributes nothing to `textContent`; reading `firstChild` instead (the old approach) broke
+  // the moment a row gained a leading element node, so this reads by content, not position.
+  const dtLabel = (dt) => {
+    const aside = dt.querySelector('.snark');
+    return (aside ? dt.textContent.replace(aside.textContent, '') : dt.textContent).trim();
+  };
   // Rows as { label, amount } with the snark aside stripped off the term.
   const ledgerRows = (html) =>
     [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
-      label: row.querySelector('dt').firstChild.textContent.trim(),
+      label: dtLabel(row.querySelector('dt')),
       amount: row.querySelector('dd').textContent,
       classes: [...row.classList],
       tone: [...row.querySelector('dd').classList],
@@ -913,7 +972,7 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   // The same lookup, by label, but keeping the element — so nothing has to know a row's index.
   const rowElFor = (html, label) =>
     [...dom(html).querySelectorAll('.ledger__row')].find(
-      (row) => row.querySelector('dt').firstChild.textContent.trim() === label
+      (row) => dtLabel(row.querySelector('dt')) === label
     );
 
   it('renders a win recap card', () => {
@@ -1043,6 +1102,30 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(paid).toContain(CONFIG.snark.sponsorReward);
   });
 
+  // §6.18: the money rows that name a *source* (purse, tax, sponsor) get a small icon well;
+  // the rows that sum or tally (net gold, injuries, wear, balance) stay well-less — they are
+  // sums, not sources. Reuses the sponsor fixture above so `sponsorIncome > 0` puts all three
+  // source rows on the card at once.
+  it('gives the purse, tax and sponsor rows a small icon well named for the source', () => {
+    const paid = resultOf({ ...WIN, sponsorIncome: 80, netGold: 120 });
+    for (const [label, icon] of [
+      ['Purse', 'purse'],
+      ['Arena tax', 'tax'],
+      ['Sponsor', 'sponsor'],
+    ]) {
+      const row = rowElFor(paid, label);
+      expect(row, `no ${label} row`).not.toBeUndefined();
+      const well = row.querySelector(`[data-icon="${icon}"]`);
+      expect(well, `${label} row has no ${icon} well`).not.toBeNull();
+      expect([...well.classList]).toEqual(expect.arrayContaining(['icon-well', 'icon-well--sm']));
+    }
+    // Sums and tallies carry no well at all.
+    for (const label of ['Net gold', 'Injuries gained', 'Weapon wear', 'New balance']) {
+      const row = rowElFor(paid, label);
+      expect(row.querySelector('.icon-well'), `${label} row should have no well`).toBeNull();
+    }
+  });
+
   it('hangs the §6.8 aside off the tax line from the config string table', () => {
     const aside = dom(resultOf(WIN)).querySelector('.ledger__row .snark');
     expect(aside.textContent).toBe(`(${CONFIG.snark.tax})`);
@@ -1059,7 +1142,7 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(
       [...dom(html).querySelectorAll('.ledger__row')]
         .filter((row) => row.querySelector('.amount[data-unit]'))
-        .map((row) => row.querySelector('dt').firstChild.textContent.trim())
+        .map((row) => dtLabel(row.querySelector('dt')))
     ).toEqual(['Purse', 'Arena tax', 'Net gold', 'New balance']);
     for (const dd of cells) {
       const value = Number(dd.getAttribute('data-value'));

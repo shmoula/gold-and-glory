@@ -141,7 +141,12 @@
 /* ---- 6.2 Buttons ---- */
 .btn {
   display: inline-flex;
-  align-items: baseline;
+  /* `center`, not `baseline`: Task 5 gives some buttons a leading `.icon-well` (34px, fixed
+     height, no text), and an empty box has no real baseline — a flex line synthesizes one from
+     its bottom margin edge, which shoved the well up against the label's baseline rather than
+     centering it in the button the way `.hud__stat` (the well's other inline-flex context)
+     already centers its own. */
+  align-items: center;
   gap: var(--space-3);
   font: 700 var(--text-md)/1.2 var(--font-body);
   color: var(--color-text-inverse);
@@ -293,9 +298,11 @@
 }
 
 /* ---- 6.11 Training row ---- */
+/* §6.11 amendment: a 34px leading column for the row's icon well, ahead of the label/meter/btn
+   columns the base spec named. */
 .train-row {
   display: grid;
-  grid-template-columns: 90px 1fr auto;
+  grid-template-columns: 34px 90px 1fr auto;
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-2) 0;
@@ -532,6 +539,14 @@
   gap: var(--space-4);
   padding: var(--space-1) 0;
   border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
+}
+/* §6.18: the purse/tax/sponsor rows carry a leading small icon well inside `dt` alongside the
+   label text — lay the two out as their own inline-flex row so the well sits beside the label
+   rather than stacking above it (the `dt` is otherwise a plain block). */
+.ledger__row dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 .ledger__row--net {
   border-top: var(--border-w) solid var(--border-ink);

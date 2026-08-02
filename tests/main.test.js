@@ -541,11 +541,19 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
     expect(q('.screen--result'), 'the fight did not end').not.toBeNull();
   }
 
+  // A ledger row's label, tolerant of the optional leading `.icon-well` Task 5 gives the
+  // purse/tax/sponsor rows: the well is empty and aria-hidden, so it contributes nothing to
+  // `textContent`, but it does become `dt`'s first *child node* — reading `firstChild` (the old
+  // approach) broke the moment a row gained a leading element. Read by content instead: strip
+  // the snark aside's own text out of the `dt`'s full text, whatever else shares the node.
+  const dtLabel = (dt) => {
+    const aside = dt.querySelector('.snark');
+    return (aside ? dt.textContent.replace(aside.textContent, '') : dt.textContent).trim();
+  };
   // The rows as the card states them, so the announcement can be held to the card's own words.
   const cardLines = () =>
     [...app().querySelectorAll('.ledger__row')].map(
-      (row) =>
-        `${row.querySelector('dt').firstChild.textContent.trim()}: ${row.querySelector('dd').textContent}`
+      (row) => `${dtLabel(row.querySelector('dt'))}: ${row.querySelector('dd').textContent}`
     );
 
   // The silence guard. Every assertion is about *when* the text lands relative to the region's
