@@ -402,7 +402,12 @@ export function renderGameOver(state, config) {
 export function gameoverSummary(state, config) {
   const order = endingOrder(config);
   const achieved = order.includes(state.ended) ? state.ended : null;
-  const stamp = achieved ? `${config.endings[achieved].stamp.text}. ` : '';
+  // The separator is a sentence break, not decoration: the stamp and the payload are two
+  // statements, and a screen reader needs the pause between them. §6.13's victory stamps
+  // already carry their own exclamation (`CHAMPION!`), so adding a period there would speak
+  // "CHAMPION! ." — supply one only for the stamps that end bare (`YOU DIED`).
+  const stampText = achieved ? config.endings[achieved].stamp.text : '';
+  const stamp = stampText ? `${stampText}${/[.!?]$/.test(stampText) ? '' : '.'} ` : '';
   const payload =
     achieved === 'dead'
       ? `${CAUSE_LABEL} ${state.lastResult?.causeOfDeath ?? UNRECORDED_CAUSE}`

@@ -617,9 +617,11 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
     // config.endings.retired.stamp.text) — read off config rather than pasted, so the two
     // can never drift apart.
     const stampText = CONFIG.endings.retired.stamp.text;
-    expect(region.textContent).toBe(
-      `${stampText}. Final purse: ${formatGold(CONFIG.startingGold)}`
-    );
+    // This stamp ends in its own exclamation, so gameoverSummary contributes the space and no
+    // second terminal mark. Asserted rather than assumed: if the copy ever loses its
+    // punctuation the separator changes with it, and this test should say so out loud.
+    expect(stampText, 'the retired stamp is expected to punctuate itself').toMatch(/[.!?]$/);
+    expect(region.textContent).toBe(`${stampText} Final purse: ${formatGold(CONFIG.startingGold)}`);
     const spoken = region.textContent;
     // A render that lands while GAMEOVER stays up — same technique as the result screen's
     // "not again" test above: a real commerce control, appended and clicked directly, so the

@@ -1061,7 +1061,8 @@ describe('renderGameOver (spec §6.14)', () => {
   // drawn and spoken halves drift apart exactly the way item 29 already warned about once.
   describe('gameoverSummary (design 2026-08-01 §4d)', () => {
     // Verified against src/config.js: endings.dead.stamp.text is 'YOU DIED' (no trailing
-    // punctuation of its own — the ". " below is gameoverSummary's own separator, verbatim).
+    // punctuation of its own — the period below is gameoverSummary supplying the sentence
+    // break the bare stamp lacks).
     it('speaks the cause of death when one was recorded', () => {
       const s = overOf('dead');
       expect(s.lastResult.causeOfDeath).toBe('Tripped on a turnip.'); // the fixture's real cause
@@ -1078,13 +1079,13 @@ describe('renderGameOver (spec §6.14)', () => {
     });
 
     // A non-death achieved ending: the stamp prefix and the purse payload, formatted through
-    // formatGold like every other money line on this screen (spec §2).
+    // formatGold like every other money line on this screen (spec §2). This stamp ends in its
+    // own exclamation, so gameoverSummary adds only the space — never a second terminal mark,
+    // which a screen reader would speak as "CHAMPION! period".
     it('speaks the stamp and the final purse for a survivor ending', () => {
       const s = overOf('win-circuit');
       expect(CONFIG.endings['win-circuit'].stamp.text).toBe('CHAMPION!'); // the real config copy
-      expect(gameoverSummary(s, CONFIG)).toBe(
-        `CHAMPION!. Final purse: ${formatGold(s.gold)}` // the ". " is gameoverSummary's own, verbatim
-      );
+      expect(gameoverSummary(s, CONFIG)).toBe(`CHAMPION! Final purse: ${formatGold(s.gold)}`);
     });
 
     // `achieved` falls back to null for an `ended` the config does not know — the same guard
