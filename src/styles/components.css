@@ -87,6 +87,11 @@
   display: grid;
   place-items: center;
   font-size: var(--text-xs);
+  /* The track's content box is only 12px tall (16px − two 2px borders), but the inherited
+     `line-height: normal` gives the numeral a ~18.75px line box that `.bar`'s `overflow: hidden`
+     then clips top and bottom. Collapse it to the em so the centered numeral sits inside the
+     track — the glyph ink (digits + solidus, no descenders) clears 12px comfortably. */
+  line-height: 1;
   color: var(--bone);
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.9);
