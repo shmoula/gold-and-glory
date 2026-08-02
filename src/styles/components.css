@@ -119,6 +119,13 @@
   align-items: center;
   gap: var(--space-2);
 }
+/* §6.1 amendment: the injuries numeral, sat between the label and the pips. */
+.hud__count {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--bone);
+  margin-right: var(--space-1);
+}
 .hud__purse .ticker {
   font-variant-numeric: tabular-nums;
 }
@@ -321,15 +328,21 @@
 .shop-item__name {
   font-weight: 700;
 }
-/* §6.12's icon well: the portrait well's recession treatment, sized for an icon. Empty until
-   the visual phase delivers icons (design 2026-08-01 §3) — an empty recessed well reads as an
-   intentional slot, and §10's zero-asset rule holds. */
-.shop-item__icon {
+/* §6.18's icon well — the portrait well's recession treatment, sized for an icon. Generalized
+   from §6.12's shop slot: empty until Phase 2 delivers icons, and an empty recessed well reads
+   as an intentional slot, so §10's zero-asset rule holds. data-icon is Phase 2's mask hook. */
+.icon-well {
+  flex: none;
   width: 34px;
   height: 34px;
   background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
   border: 2px solid var(--border-ink);
   border-radius: 8px 11px 9px 12px;
+}
+.icon-well--sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px 8px 7px 9px;
 }
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
 .shop-item.is-owned {

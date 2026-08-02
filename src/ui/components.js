@@ -59,6 +59,16 @@ export function snarkAside(snark, missing = '', shortfall = '') {
   return `<span class="btn__snark snark"${missing}>${body}${at}</span>`;
 }
 
+// The generic empty slot (spec §6.18): decorative, named for Phase 2's CSS mask hook. The
+// well never carries meaning — the label/numeral next to it does.
+// `name` is escaped even though every current call site is a literal or config-internal id
+// (shopItem's `item.id`): shopItem already escapes that same id going into `data-action`, and a
+// second sink for the identical value only holds to the same rule if it escapes too — an
+// unescaped `data-icon` would otherwise be the one attribute in this file that trusts config data.
+export function iconWell(name, { small = false } = {}) {
+  return `<span class="icon-well${small ? ' icon-well--sm' : ''}" aria-hidden="true" data-icon="${escapeHtml(name)}"></span>`;
+}
+
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?].
 // variant: '' (plank) | 'commit' (irreversible) | 'danger'.
 // `action` is optional: buttons that are not clickable at all (owned gear, already bribed) still
@@ -157,10 +167,11 @@ export function meter(
     </span>`;
 }
 
-export function bar(label, value, max, opts) {
+export function bar(label, value, max, opts = {}) {
+  const well = opts.well ? iconWell(opts.well, { small: true }) : '';
   // Escaped here as well as in meter(): the `.hud__label` span is a second sink for the same
   // string, so the "every call site passes it raw" contract only holds if both are escaped.
-  return `<span class="hud__stat"><span class="hud__label">${escapeHtml(label)}</span>
+  return `<span class="hud__stat">${well}<span class="hud__label">${escapeHtml(label)}</span>
     ${meter(label, value, max, opts)}</span>`;
 }
 
@@ -172,7 +183,7 @@ export function bar(label, value, max, opts) {
 export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   if (owned) {
     return `<div class="shop-item parchment is-owned">
-        <span class="shop-item__icon" aria-hidden="true"></span>
+        <span class="shop-item__icon icon-well" aria-hidden="true" data-icon="${escapeHtml(item.id)}"></span>
         <span class="shop-item__name">${escapeHtml(item.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
   }
@@ -185,7 +196,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   }
   const missingAttr = shortfallAttr(item.cost, gold);
   return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item parchment${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
-      <span class="shop-item__icon" aria-hidden="true"></span>
+      <span class="shop-item__icon icon-well" aria-hidden="true" data-icon="${escapeHtml(item.id)}"></span>
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
       ${snarkAside(snark, missingAttr, shortfallAmount(item.cost, gold))}</button>`;

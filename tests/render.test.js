@@ -16,6 +16,7 @@ import {
   renderFight,
   escapeHtml,
   titlePlaque,
+  iconWell,
   meterDistance,
   meterPosition,
   meterPeriod,
@@ -218,6 +219,75 @@ describe('renderHud', () => {
     expect(html).toContain('2,450\u00A0G');
     expect(html).toContain('data-value="2450"');
     expect(html).not.toContain('data-gold');
+  });
+
+  // Spec \u00A76.18 / the \u00A76.1 amendment: each stat gains a leading small icon well, keyed by
+  // data-icon so Phase 2 can paint a glyph into it. Parsed to DOM per this file's own rule
+  // above `dom()`, not matched against a literal markup string.
+  it('gives each HUD stat an empty icon well with a data-icon hook (\u00A76.18)', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHud(s, CONFIG);
+    const host = dom(html);
+    for (const name of ['health', 'durability', 'injuries']) {
+      const well = host.querySelector(`[data-icon="${name}"]`);
+      expect(well, `no well for ${name}`).not.toBeNull();
+      expect([...well.classList]).toEqual(expect.arrayContaining(['icon-well', 'icon-well--sm']));
+      expect(well.getAttribute('aria-hidden')).toBe('true');
+      // Never carries meaning of its own: the adjacent label/numeral does (spec \u00A76.18).
+      expect(well.textContent).toBe('');
+    }
+  });
+
+  // Decision 3: numeral + pips announce once, through a single wrapper aria-label, rather than
+  // as two separate accessible facts about the same count.
+  it('shows the injuries numeral beside the pips, announced exactly once (decision 3)', () => {
+    const s = createGameState(1, CONFIG);
+    s.injuries = 3;
+    const html = renderHud(s, CONFIG);
+    const host = dom(html);
+    const wrapper = host.querySelector('[role="img"][aria-label="3 injuries"]');
+    expect(wrapper, 'no injuries wrapper').not.toBeNull();
+    const count = wrapper.querySelector('.hud__count');
+    expect(count, 'no .hud__count numeral').not.toBeNull();
+    expect(count.textContent).toBe('3');
+    expect(count.getAttribute('aria-hidden')).toBe('true');
+    const pips = wrapper.querySelector('.pips');
+    expect(pips, 'no .pips inside the wrapper').not.toBeNull();
+    expect(pips.getAttribute('aria-hidden')).toBe('true');
+    // One announcement: no other element restates the injury count as its own aria-label.
+    expect(host.querySelectorAll('[aria-label$="injuries"], [aria-label$="injury"]')).toHaveLength(
+      1
+    );
+  });
+});
+
+describe('iconWell', () => {
+  it('renders a default-size well as an empty, decorative, named slot (\u00A76.18)', () => {
+    const html = iconWell('health');
+    const host = dom(html);
+    const well = host.firstElementChild;
+    expect(well.tagName).toBe('SPAN');
+    expect([...well.classList]).toEqual(['icon-well']);
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+    expect(well.getAttribute('data-icon')).toBe('health');
+    expect(well.textContent).toBe('');
+  });
+
+  it('adds the small modifier for the HUD without dropping the base class', () => {
+    const html = iconWell('durability', { small: true });
+    expect([...dom(html).firstElementChild.classList]).toEqual(
+      expect.arrayContaining(['icon-well', 'icon-well--sm'])
+    );
+  });
+
+  it('escapes a hostile name so it cannot break out of the data-icon attribute', () => {
+    const hostile = '"><script>alert(1)</script>';
+    const html = iconWell(hostile);
+    const host = dom(html);
+    // A broken-out attribute would parse as more than one element, or mint a live <script>.
+    expect(host.children).toHaveLength(1);
+    expect(host.querySelector('script')).toBeNull();
+    expect(host.firstElementChild.getAttribute('data-icon')).toBe(hostile);
   });
 });
 
