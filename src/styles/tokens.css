@@ -136,7 +136,9 @@
 
   /* Z-scale (paper layering) */
   --z-hud: 10;
-  --z-plaque: 11; /* title plaque — one step above the beam it overlaps (§6.16) */
+  --z-plaque: 11; /* title plaque (§6.16) — .hud is plain non-positioned flow, so the plaque
+    only needs a stacking context of its own to paint over it; the negative top margin
+    (components.css) is what makes the two actually overlap, not this number against --z-hud */
   --z-chip: 20;
   --z-modal: 30;
   --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */

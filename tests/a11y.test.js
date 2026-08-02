@@ -67,6 +67,27 @@ describe('the state matrix covers every screen', () => {
   });
 });
 
+// --- Spec §6.16 / WCAG 1.3.1: the title plaque carries the screen's only h1, and a document's
+// headings nest rather than jump back up — so no h2 may sit ahead of it in source order. ---
+describe('heading hierarchy: one h1 per screen, and it leads (spec §6.16)', () => {
+  it('gives every rendered state exactly one h1, before any h2', () => {
+    const offenders = [];
+    for (const [name, host] of Object.entries(SCREENS)) {
+      const h1s = [...host.querySelectorAll('h1')];
+      if (h1s.length !== 1) {
+        offenders.push(`${name}: ${h1s.length} h1(s), want 1`);
+        continue;
+      }
+      // Tree order, not two separate queries: the first heading of either kind must be the h1.
+      const firstHeading = host.querySelector('h1, h2');
+      if (firstHeading !== h1s[0]) {
+        offenders.push(`${name}: an h2 precedes the h1`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 // --- Spec §8: "Keyboard parity … Tab order follows source order." ---
 describe('every control is reachable (spec §8)', () => {
   // The action names main.js will answer to, read out of its own handler table rather than

@@ -15,6 +15,7 @@ import {
   gameoverSummary,
   renderFight,
   escapeHtml,
+  titlePlaque,
   meterDistance,
   meterPosition,
   meterPeriod,
@@ -56,6 +57,38 @@ const logRows = (html) =>
       text: li.textContent.replace(stamp?.textContent ?? '', '').trim(),
     };
   });
+
+// A minimal `lastResult`/`ended` pair, hoisted to module scope so the `renderResult` and
+// `renderGameOver` describes below and the cross-screen title-plaque check further down share
+// one copy each — a required field added to either shape only has to be updated here, not
+// re-typed by hand in two unlinked fixtures that quietly drift apart.
+const RESULT_WIN = {
+  won: true,
+  died: false,
+  opponentName: 'The Brute',
+  purse: 50,
+  tax: 10,
+  sponsorIncome: 0,
+  netGold: 40,
+  durabilityLost: 3,
+  injuriesGained: 0,
+  causeOfDeath: null,
+  commentary: 'The Brute falls.',
+};
+const GAMEOVER_DEATH = {
+  died: true,
+  won: false,
+  opponentName: 'The Champion',
+  causeOfDeath: 'Tripped on a turnip.',
+};
+// Ended states as the game actually leaves them: dead means health 0 (§6.1's fatal state).
+const gameOverState = (ended, over = {}) => ({
+  ...createGameState(1, CONFIG),
+  phase: 'GAMEOVER',
+  ended,
+  ...(ended === 'dead' ? { health: 0, lastResult: GAMEOVER_DEATH } : {}),
+  ...over,
+});
 
 describe('btn', () => {
   it('throws when a priced button is built without the purse', () => {
@@ -263,39 +296,28 @@ describe('the HUD beam and the player poster read one health field (spec 6.5)', 
 });
 
 describe('title plaques (§6.16)', () => {
-  const plaqueText = (html) => {
-    const m = html.match(/<div class="title-plaque parchment tape"><h1>([^<]*)<\/h1><\/div>/);
-    return m && m[1];
-  };
+  // Parsed to DOM rather than matched against markup, per this file's own rule above `dom()`:
+  // adding or reordering a class, or reformatting the tag, must stay a harmless refactor.
+  const plaqueText = (html) => dom(html).querySelector('.title-plaque h1')?.textContent ?? null;
   const fightHtml = () => renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+  // Reuses the module-scope fixtures the `renderResult`/`renderGameOver` describes below share,
+  // rather than a third hand-typed copy of the same shape.
   const resultHtml = () =>
-    renderResult(
-      {
-        ...createGameState(1, CONFIG),
-        lastResult: {
-          won: true,
-          died: false,
-          opponentName: 'The Brute',
-          purse: 50,
-          tax: 10,
-          sponsorIncome: 0,
-          netGold: 40,
-          durabilityLost: 3,
-          injuriesGained: 0,
-          causeOfDeath: null,
-          commentary: 'The Brute falls.',
-        },
-      },
-      CONFIG
-    );
-  const gameoverHtml = () =>
-    renderGameOver({ ...createGameState(1, CONFIG), phase: 'GAMEOVER', ended: 'dead' }, CONFIG);
+    renderResult({ ...createGameState(1, CONFIG), lastResult: RESULT_WIN }, CONFIG);
+  const gameoverHtml = () => renderGameOver(gameOverState('dead'), CONFIG);
 
-  it('gives every screen exactly one h1, inside the plaque', () => {
+  it('gives every screen exactly one h1, inside a parchment-and-tape plaque', () => {
     const s = createGameState(1, CONFIG);
     for (const html of [renderHub(s, CONFIG), fightHtml(), resultHtml(), gameoverHtml()]) {
-      expect((html.match(/<h1[\s>]/g) || []).length).toBe(1);
-      expect(plaqueText(html)).toBeTruthy();
+      const host = dom(html);
+      expect(host.querySelectorAll('h1')).toHaveLength(1);
+      const plaque = host.querySelector('.title-plaque');
+      expect(plaque, 'no .title-plaque found').not.toBeNull();
+      expect(plaque.querySelector('h1'), 'the plaque carries no h1').not.toBeNull();
+      // A set check, not a literal class string: order and any extra class are a no-op refactor.
+      expect([...plaque.classList]).toEqual(
+        expect.arrayContaining(['title-plaque', 'parchment', 'tape'])
+      );
     }
   });
 
@@ -306,6 +328,25 @@ describe('title plaques (§6.16)', () => {
     expect(plaqueText(fightHtml())).toBe('Fight');
     expect(plaqueText(resultHtml())).toBe('Result');
     expect(plaqueText(gameoverHtml())).toBe('Game over');
+  });
+});
+
+describe('titlePlaque', () => {
+  it('wraps sentence-case text in a parchment, taped plaque with one h1', () => {
+    const html = titlePlaque('Fight');
+    expect(classesOf(html)).toEqual(expect.arrayContaining(['title-plaque', 'parchment', 'tape']));
+    expect(html).toContain('<h1>Fight</h1>');
+  });
+
+  it('escapes hostile text exactly once', () => {
+    const html = titlePlaque('<script>alert(1)</script> & "Boss"');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;Boss&quot;');
+    // ...and not twice over: a second pass would spell these `&amp;lt;` etc.
+    expect(html).not.toContain('&amp;lt;');
+    expect(html).not.toContain('&amp;gt;');
+    expect(html).not.toContain('&amp;quot;');
+    expect(html).not.toContain('&amp;amp;');
   });
 });
 
@@ -732,19 +773,9 @@ describe('shopItem', () => {
 // line carries the data the theater counts it from, and nothing on this screen formats money
 // by hand. §6.13 stamps the title, §7 lays out recap / ledger / cta, §8 announces both.
 describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
-  const WIN = {
-    won: true,
-    died: false,
-    opponentName: 'The Brute',
-    purse: 50,
-    tax: 10,
-    sponsorIncome: 0,
-    netGold: 40,
-    durabilityLost: 3,
-    injuriesGained: 0,
-    causeOfDeath: null,
-    commentary: 'The Brute falls.',
-  };
+  // Hoisted to module scope (above) so the cross-screen title-plaque check can reuse it without
+  // hand-typing a second copy of the same shape.
+  const WIN = RESULT_WIN;
   const LOSS = {
     won: false,
     died: false,
@@ -1004,20 +1035,9 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
 // §6.1 keeps the HUD on screen showing the fatal state, §7 lays the trio out, §2 formats the
 // purse. The screen is the screenshot payload, so every one of those has to be true at once.
 describe('renderGameOver (spec §6.14)', () => {
-  const DEATH = {
-    died: true,
-    won: false,
-    opponentName: 'The Champion',
-    causeOfDeath: 'Tripped on a turnip.',
-  };
-  // Ended states as the game actually leaves them: dead means health 0 (§6.1's fatal state).
-  const overOf = (ended, over = {}) => ({
-    ...createGameState(1, CONFIG),
-    phase: 'GAMEOVER',
-    ended,
-    ...(ended === 'dead' ? { health: 0, lastResult: DEATH } : {}),
-    ...over,
-  });
+  // Hoisted to module scope (above) so the cross-screen title-plaque check can build the same
+  // "dead" shape without a second hand-rolled copy.
+  const overOf = gameOverState;
   const gameOver = (ended, over = {}) => renderGameOver(overOf(ended, over), CONFIG);
   const cardsIn = (html) => [...dom(html).querySelectorAll('.ending-card')];
   const titleOf = (card) => card.querySelector('.poster__name').textContent;
@@ -1295,7 +1315,7 @@ describe('renderGameOver (spec §6.14)', () => {
   // future recap keyed on an opponent's name would use. Escaped once, like everything else.
   it('escapes the cause of death', () => {
     const html = gameOver('dead', {
-      lastResult: { ...DEATH, causeOfDeath: 'Felled by <script>alert("x")</script>.' },
+      lastResult: { ...GAMEOVER_DEATH, causeOfDeath: 'Felled by <script>alert("x")</script>.' },
     });
     expect(html).not.toContain('<script>');
     expect(dom(html).querySelector('.cause-of-death').textContent).toContain(

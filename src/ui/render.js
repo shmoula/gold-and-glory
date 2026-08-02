@@ -35,6 +35,7 @@ export {
   logEntry,
   logEntryText,
   bannerStamp,
+  titlePlaque,
 } from './components.js';
 export { meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter } from './timing.js';
 
