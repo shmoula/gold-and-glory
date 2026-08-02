@@ -149,6 +149,10 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --z-hud: 10;
   --z-chip: 20;
   --z-modal: 30;
+  --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
+  --z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
+  --z-plaque: 11; /* title plaque — one step above the beam it overlaps (§6.16) */
+  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
 
   /* ============ TIER 2 — SEMANTIC ============ */
   --color-text: var(--ink);
@@ -165,6 +169,9 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --border-ink: var(--ink);
 }
 ```
+
+Additions (visual-upgrade design §3.3): `--z-backdrop: -1`, `--z-frame: 5`,
+`--z-plaque: 11`, `--frame-w: 14px` (8px at ≤640px).
 
 **No dark mode.** The game commits to one lit arena; there is no theme switch. (Deliberate, not an omission.)
 
@@ -337,7 +344,9 @@ is-captured, is-shaking, screen, screen--hub, screen--fight, screen--result,
 screen--gameover, commit-bar, hub__sinks, hub__develop, hub__fight, hub__retire,
 hub__commit, hub__next-label, fight__you, fight__stage, fight__foe, fight__log,
 fight__actions, result__recap, result__ledger, result__cta, result__cross, result__flavor,
-gameover__left, gameover__stamp, gameover__right, gameover__cause, gameover__cta`
+gameover__left, gameover__stamp, gameover__right, gameover__cause, gameover__cta,
+title-plaque, stage-backdrop, stage-frame, icon-well, icon-well--sm, hud__count,
+btn--arrow, fight__press, is-flashing`
 
 `modal` and `modal__scrim` (§6.15) are specified, not yet rendered — no screen mounts a modal
 today, but the spec still calls for one (death-match clause confirm).
@@ -480,6 +489,13 @@ Rules:
 - On GAMEOVER the HUD persists showing the fatal state (0/100) — deliberate storytelling.
 - Purse ticker + delta chips: §6.7.
 
+**Amendment (visual-upgrade design §3.4, decision 3):** each stat gains a leading
+`.icon-well .icon-well--sm` (`data-icon`: `health`, `durability`, `injuries`; the purse keeps
+its existing `.coin`). The injuries cell shows icon + numeral + pips together: a `.hud__count`
+numeral (body 700, `--bone`) sits between label and pips. The `role="img"` +
+"N injuries" `aria-label` moves to a wrapper spanning numeral + pips; both children are
+`aria-hidden` so the count is announced exactly once.
+
 ### 6.2 Buttons
 
 Three variants. All: `min-height 44px`, `font-family var(--font-body) 700` (plank/danger) or
@@ -587,6 +603,12 @@ Semantics:
   injuries ≥ 1 (Heal).
 - Keyboard: hub actions get `accesskey`-free numeric hints; fight actions bind 1–4, Space = strike
   (see §6.4), Enter activates focused control.
+
+**Amendment (visual-upgrade design §3.1):** `.btn--arrow`, a modifier stacked on
+`.btn--commit` for the fight screen's PRESS THE ATTACK: display face at `--text-commit`, an
+ink-outlined triangular right end drawn with a `::after` border-triangle (the focus ring stays
+on the rectangular button box — no `clip-path`, which would clip the §8 ring). Buttons may also
+carry a leading `.icon-well` (sinks) emitted by `btn({ icon })`.
 
 ### 6.3 Stat bars & training meters
 
@@ -872,6 +894,9 @@ recurring comedy vehicle is instantly recognizable. Anatomy: "SPONSOR:" eyebrow 
 `Power 24/50` / `Train +5` / price `200 G`. Escalating cost comes from config; after a purchase
 the row's meter fill transitions (150ms) and a delta chip fires.
 
+**Amendment (visual-upgrade design):** the icon column widens to 34px, carrying a
+default-size `.icon-well` per §6.18 rather than a bare 24px icon.
+
 ### 6.12 Shop item card — the state triad
 
 Parchment mini-card (M2, no tape), anatomy: icon well, name (body 700), price slot, snark slot.
@@ -916,6 +941,36 @@ the absurd line at `--text-lg`, the screenshot payload, with `.wordmark` in fram
 `Escape` = cancel; confirm button is `.btn--commit`, cancel is plain `.btn`. Confirm/cancel
 order fixed: cancel left, commit right, on every modal.
 
+### 6.16 Title plaque (`.title-plaque`)
+
+Per-screen parchment plaque carrying the screen's `h1`, overlapping the HUD beam's bottom edge
+(visual-upgrade design §3.2). M2 parchment + tape, `width: max-content`, centered, negative top
+margin, `z-index: var(--z-plaque)` (one step above the beam), tilt `--tilt-3`. Text comes from
+existing screen state; CSS uppercases it (`text-transform`), the string stays sentence-case in
+JS. One component, four screens: Hub (Current wins: N) / Fight / Result / Game over. The `h1`
+is the screen's only `h1`.
+
+### 6.17 Stage layers (`.stage-backdrop`, `.stage-frame`)
+
+Viewport-fixed decorative layers wrapping every screen (visual-upgrade design §3.3):
+stone body (M1) → `.stage-backdrop` (`--z-backdrop`) → `.stage-frame` (`--z-frame`,
+`pointer-events: none`) → screen content. Both `aria-hidden="true"`, both static in
+`index.html` — they are not re-rendered. Empty backdrop = the body's stone shows through
+(§10 zero-asset rule). Phase 1 frame is a plain `--stone-2` border of width `--frame-w`
+(14px, 8px ≤640px); Phase 3 replaces it with cartoon-masonry `border-image`. The body gains
+`padding: var(--frame-w)` so content never sits under the border; interactive layers
+(`--z-hud` and up) stay above the frame. Regular content clears the frame via the body's
+padding offset, not z-order: it is non-positioned (`z-index: auto`), so only `--z-hud` and
+above are explicitly stacked above the frame's `--z-frame: 5`.
+
+### 6.18 Icon well (`.icon-well`)
+
+The generic empty-slot treatment, generalized from §6.12's `.shop-item__icon` (which now also
+carries the class): recessed paper radial, ink border, wobble radius. 34px default,
+24px as `.icon-well--sm` (HUD). Always `aria-hidden="true"` with a `data-icon="<name>"` hook —
+Phase 2 paints the named glyph via CSS mask; until then the recessed well reads as an
+intentional slot. Never carries meaning: the adjacent label/numeral does.
+
 ---
 
 ## 7. Screen Layouts — `src/styles/screens.css`
@@ -944,6 +999,7 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
 
 /* FIGHT — posters flank, meter center-stage, log left / actions right */
+/* areas superseded — see the fight-grid amendment below */
 .screen--fight {
   grid-template-columns: 260px 1fr 300px;
   grid-template-rows: auto 1fr auto;
@@ -1021,6 +1077,18 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
   /* Hub's Next Fight lives inside .commit-bar when stacked */
 }
 ```
+
+**Amendment (visual-upgrade design §3.1, decision 2):** the fight grid becomes
+
+    'hud  hud     hud'
+    'you  stage   foe'
+    'you  actions foe'
+    'log  log     press'
+
+DOM order: you, stage, foe, actions, log, press — interactive flow stays meter → actions →
+log → press. `.fight__press` holds the PRESS THE ATTACK arrow bottom-right; at ≤900px areas
+stack `'you stage' / 'foe stage' / 'actions actions' / 'log log' / 'press press'`; at ≤640px
+the standard area reset returns everything to source-order flow.
 
 **Two resets that a stacked grid cannot do without.** Dropping `grid-template-areas` does _not_
 return named children to auto-placement: per CSS Grid §8.3 an unmatched `<custom-ident>` in
