@@ -136,6 +136,7 @@
 
   /* Z-scale (paper layering) */
   --z-hud: 10;
+  --z-plaque: 11; /* title plaque — one step above the beam it overlaps (§6.16) */
   --z-chip: 20;
   --z-modal: 30;
   --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */

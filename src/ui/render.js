@@ -16,6 +16,7 @@ import {
   shopItem,
   logEntry,
   bannerStamp,
+  titlePlaque,
 } from './components.js';
 import { meterZones } from './timing.js';
 
@@ -129,10 +130,10 @@ export function renderHub(state, config) {
 
   return `
     ${renderHud(state, config)}
+    ${titlePlaque(`Current wins: ${state.wins}`)}
     <section class="screen screen--hub">
       <div class="hub__sinks">
         <h2>The Ludus</h2>
-        <p>Wins: ${state.wins}</p>
         ${btn('repair', 'Repair Weapon', {
           cost: repairCost(missing, config),
           gold: state.gold,
@@ -283,6 +284,7 @@ export function renderResult(state, config) {
 
   return `
     ${renderHud(state, config)}
+    ${titlePlaque('Result')}
     <section class="screen screen--result">
       <div class="result__recap">
         ${banner}
@@ -380,6 +382,7 @@ export function renderGameOver(state, config) {
   // poster plate: the run is over, and an alarm that points at nothing is noise.
   return `
     ${renderHud(state, config, { urgent: false })}
+    ${titlePlaque('Game over')}
     <section class="screen screen--gameover">
       <div class="gameover__left">${gallery(others.slice(0, half))}</div>
       <div class="gameover__stamp">
@@ -464,6 +467,7 @@ export function renderFight(state, config) {
   // at the shared urgency threshold — the fight screen states no number by hand.
   return `
     ${renderHud(state, config)}
+    ${titlePlaque('Fight')}
     <section class="screen screen--fight">
       <div class="fight__you">${poster({
         name: 'You',

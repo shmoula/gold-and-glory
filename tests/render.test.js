@@ -262,6 +262,53 @@ describe('the HUD beam and the player poster read one health field (spec 6.5)', 
   });
 });
 
+describe('title plaques (§6.16)', () => {
+  const plaqueText = (html) => {
+    const m = html.match(/<div class="title-plaque parchment tape"><h1>([^<]*)<\/h1><\/div>/);
+    return m && m[1];
+  };
+  const fightHtml = () => renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+  const resultHtml = () =>
+    renderResult(
+      {
+        ...createGameState(1, CONFIG),
+        lastResult: {
+          won: true,
+          died: false,
+          opponentName: 'The Brute',
+          purse: 50,
+          tax: 10,
+          sponsorIncome: 0,
+          netGold: 40,
+          durabilityLost: 3,
+          injuriesGained: 0,
+          causeOfDeath: null,
+          commentary: 'The Brute falls.',
+        },
+      },
+      CONFIG
+    );
+  const gameoverHtml = () =>
+    renderGameOver({ ...createGameState(1, CONFIG), phase: 'GAMEOVER', ended: 'dead' }, CONFIG);
+
+  it('gives every screen exactly one h1, inside the plaque', () => {
+    const s = createGameState(1, CONFIG);
+    for (const html of [renderHub(s, CONFIG), fightHtml(), resultHtml(), gameoverHtml()]) {
+      expect((html.match(/<h1[\s>]/g) || []).length).toBe(1);
+      expect(plaqueText(html)).toBeTruthy();
+    }
+  });
+
+  it('titles the hub with the win count and the other screens with their names', () => {
+    const s = createGameState(1, CONFIG);
+    s.wins = 2;
+    expect(plaqueText(renderHub(s, CONFIG))).toBe('Current wins: 2');
+    expect(plaqueText(fightHtml())).toBe('Fight');
+    expect(plaqueText(resultHtml())).toBe('Result');
+    expect(plaqueText(gameoverHtml())).toBe('Game over');
+  });
+});
+
 describe('renderHub', () => {
   it('lists management actions with costs and a Next Fight button', () => {
     const s = createGameState(1, CONFIG);

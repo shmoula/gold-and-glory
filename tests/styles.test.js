@@ -659,7 +659,6 @@ describe('Law 4 — text never sits on stone', () => {
     'div.hub__sinks > h2', // "The Ludus", --ink 4.15:1 (clears 3:1 as large text, not Law 4)
     'div.hub__develop > h2', // "Training" / "Gear shop", --ink 4.15:1
     'div.fight__log > h2', // "Commentary", --ink 4.15:1
-    'div.hub__sinks > p', // hub "Wins: N", --ink 4.15:1
     'span.train-row__label', // --ink 4.15:1
     'span.hub__next-label', // --bone 2.99:1
     'div.meter__labels > span', // --bone 2.99:1

@@ -255,6 +255,12 @@ export function bannerStamp(variant, text) {
   );
 }
 
+// Title plaque (spec §6.16): the screen's h1 on a parchment plate that overlaps the HUD beam.
+// Sentence-case in, CSS uppercases — §9 keeps shouting a presentation concern.
+export function titlePlaque(text) {
+  return `<div class="title-plaque parchment tape"><h1>${escapeHtml(text)}</h1></div>`;
+}
+
 // Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.
 // `sub` is markup — call sites embed `.amount` spans in it — so it is deliberately not
 // escaped; everything else here is. hp: {value, max} | null. tilt: 1|2|3, and neighbouring
