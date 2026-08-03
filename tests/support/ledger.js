@@ -20,6 +20,6 @@
 // more than one aside.
 export const dtLabel = (dt) => {
   const clone = dt.cloneNode(true);
-  clone.querySelector('.snark')?.remove();
+  clone.querySelectorAll('.snark').forEach((aside) => aside.remove());
   return clone.textContent.trim();
 };
