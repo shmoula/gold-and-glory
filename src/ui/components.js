@@ -91,6 +91,7 @@ export function btn(
     disabled = false,
     owned = false,
     icon = '',
+    arrow = false,
   } = {}
 ) {
   // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
@@ -102,6 +103,9 @@ export function btn(
   }
   const classes = ['btn'];
   if (variant) classes.push(`btn--${variant}`);
+  // §6.2 amendment: a modifier, not a variant — the arrow end is stacked on `.btn--commit`,
+  // so it is opted into separately rather than replacing the banner it decorates.
+  if (arrow) classes.push('btn--arrow');
   if (urgent) classes.push('is-urgent');
   if (owned) classes.push('is-owned');
   let attrs = '';

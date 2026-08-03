@@ -207,6 +207,36 @@
   outline-color: var(--bone-bright);
 }
 
+/* §6.2 amendment: the fight screen's PRESS THE ATTACK. A commit button with a display face
+   and a triangular right end. The triangle is ::after, NOT clip-path on the button: the §8
+   focus ring must stay on the rectangular box, and clipping would cut it off. The face is
+   restated rather than inherited because `.btn--arrow` is a modifier — it must read the same
+   whether or not the cascade puts `.btn--commit`'s shorthand before it. */
+.btn--arrow {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: var(--text-commit);
+  letter-spacing: 0.04em;
+  /* Room the ::after occupies beside the border box. Margin, not padding: the triangle sits
+     *outside* the button, so the slot that content-sizes to this button (`.fight__press`)
+     hugs the margin box and the triangle stays inside the grid cell. Must equal the
+     `border-left` width below, or the two disagree about how wide the arrow is. */
+  margin-right: 22px;
+}
+.btn--arrow::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  /* A border triangle: transparent top/bottom halves and a solid left edge point it right.
+     Flat `--commit` rather than `--grad-commit` — a border cannot take a gradient, and
+     `--commit` is the midpoint of the banner's hi→lo ramp, so the end reads as part of it. */
+  border-top: 24px solid transparent;
+  border-bottom: 24px solid transparent;
+  border-left: 22px solid var(--commit);
+}
+
 .btn--danger {
   background: linear-gradient(var(--blood-hi), var(--blood));
 }

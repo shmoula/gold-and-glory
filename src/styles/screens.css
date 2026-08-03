@@ -60,19 +60,22 @@
   text-shadow: 0 1.5px 0 rgba(31, 22, 12, 0.8);
 }
 
-/* FIGHT — posters flank, meter center-stage, log left / actions right. Areas are spec §7
-   verbatim; as on the hub, the `hud` row is reserved for the beam that still renders above
-   the section. Must stay above the ≤640px block: the `.screen > *` reset there is what hands
-   these children back to auto-placement when the areas go away (see tests/grid-areas.test.js). */
+/* FIGHT — posters flank a centre column that reads meter → actions → log, with the commit
+   arrow closing it bottom-right. Areas are spec §7's decision-2 amendment; as on the hub, the
+   `hud` row is reserved for the beam that still renders above the section. The posters span
+   both centre rows, so `you`/`foe` are full-height flanks rather than half-height plates.
+   Must stay above the ≤640px block: the `.screen > *` reset there is what hands these children
+   back to auto-placement when the areas go away (see tests/grid-areas.test.js). */
 .screen--fight {
   grid-template-columns: 260px 1fr 300px;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   grid-template-areas:
-    'hud  hud    hud'
-    'you  stage  foe'
-    'log  log    actions';
+    'hud  hud     hud'
+    'you  stage   foe'
+    'you  actions foe'
+    'log  log     press';
 }
-/* stage: taunt line + .meter + labels · actions: Press-the-Attack slot above 2×2 action grid */
+/* stage: taunt line + .meter + labels · actions: the 2×2 action grid · press: the commit arrow */
 .fight__you {
   grid-area: you;
 }
@@ -86,23 +89,29 @@
 .fight__log {
   grid-area: log;
 }
-/* Placement *and* inner layout, stated once: the slot stacks the optional Press button above
-   the action grid, and the grid is the 2×2 the spec §7 comment above describes. Both were
-   filed under components.css §6.9 by mistake — they are this screen's layout, not §6 catalog
-   entries, and `.fight__actions` had rules in two sheets. Nothing else in any sheet declares
-   `display`/`flex-*`/`gap`/`align-items`/`grid-template-columns` on either element, so the
-   merge is cascade-neutral (verified element-by-element at every declared breakpoint). */
+/* The slot now holds nothing but the 2×2 grid — the §7 amendment moved Press the Attack out to
+   its own area — so the flex column that used to stack the two of them is gone with it: with a
+   single block child it declared nothing the block box does not already do (verified
+   element-by-element at every declared breakpoint; no pixel moves). The pair still lives here
+   rather than in components.css §6.9, where they were filed by mistake: they are this screen's
+   layout, not §6 catalog entries. */
 .fight__actions {
   grid-area: actions;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: stretch;
 }
 .fight__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
+}
+/* §7 amendment (decision 2): the commit arrow closes the screen's reading order, seated in the
+   corner of its own area rather than stretched across it — `justify-self`/`align-self` are what
+   make a bottom-right button out of a full-width cell. Content-sizing the slot is also what
+   keeps `.btn--arrow`'s triangle inside the grid: the triangle lives in the button's
+   `margin-right`, so the cell has to hug the button's margin box, not the track. */
+.fight__press {
+  grid-area: press;
+  justify-self: end;
+  align-self: end;
 }
 
 /* RESULT — recap and ledger co-primary. Areas are spec §7 verbatim; as on the hub and the
@@ -210,20 +219,20 @@
     grid-template-columns: 1fr 1fr;
     grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
   }
-  /* Same rule here: area order is renderFight's DOM order — you, stage, foe, log, actions — so
-     visual, reading and tab order stay one thing (§8). The posters stack down the left column
-     with the meter spanning beside them; the commentary and actions take full-width bands below,
-     log before actions because that is the order the markup emits them in. */
-  /* Rows must be reset with the areas. The base rule's `auto 1fr auto` is written for the
-     three-row desktop grid where row 2 *is* the stage; this grid has more rows and a spanning
-     stage, so the leftover `1fr` would land on whatever row 2 happens to be. Inert while
-     `.screen` is auto-height (free space is 0), but it is a trap the moment Tasks 8/9 give a
-     screen a definite height. `none` rather than a hand-counted track list: at this width every
-     row should size to its content. */
+  /* Same rule here: area order is renderFight's DOM order — you, stage, foe, actions, log,
+     press — so visual, reading and tab order stay one thing (§8). The posters stack down the
+     left column with the meter spanning beside them; actions, commentary and the commit arrow
+     take full-width bands below, in the order the markup emits them. */
+  /* Rows must be reset with the areas. The base rule's `auto auto 1fr auto` is written for the
+     four-row desktop grid where the free space belongs to the actions row; this grid has more
+     rows and a spanning stage, so the leftover `1fr` would land on whatever row 3 happens to
+     be. Inert while `.screen` is auto-height (free space is 0), but it is a trap the moment
+     Tasks 8/9 give a screen a definite height. `none` rather than a hand-counted track list: at
+     this width every row should size to its content. */
   .screen--fight {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'log log' 'actions actions';
+    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'actions actions' 'log log' 'press press';
   }
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep

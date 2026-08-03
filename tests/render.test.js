@@ -146,6 +146,25 @@ describe('btn', () => {
   it('omits the well entirely when no icon is given', () => {
     expect(dom(btn('heal', 'Heal')).querySelector('.icon-well')).toBeNull();
   });
+
+  // §6.2 amendment: `.btn--arrow` is a *modifier* stacked on `.btn--commit`, never a variant of
+  // its own — the fight screen's PRESS THE ATTACK keeps the commit banner's blue and gains the
+  // triangular end. Class set, not a literal class string, per this file's rule at the top.
+  it('stacks the arrow modifier on the commit banner when opts.arrow is set (§6.2 amendment)', () => {
+    const button = dom(btn('press', 'Press ▸', { variant: 'commit', arrow: true })).querySelector(
+      'button'
+    );
+    expect([...button.classList]).toEqual(
+      expect.arrayContaining(['btn', 'btn--commit', 'btn--arrow'])
+    );
+  });
+
+  it('omits the arrow modifier unless it is asked for', () => {
+    for (const opts of [{}, { variant: 'commit' }, { variant: 'commit', arrow: false }]) {
+      const button = dom(btn('press', 'Press ▸', opts)).querySelector('button');
+      expect([...button.classList]).not.toContain('btn--arrow');
+    }
+  });
 });
 
 describe('renderHud', () => {
@@ -1670,6 +1689,14 @@ describe('logEntry (spec §6.9)', () => {
 });
 
 describe('renderFight', () => {
+  // A real fight, with the press offer switched on or off — the one branch in this screen's
+  // composition. `canPress` is the only knob, so the tests below differ by that alone.
+  const fightHtml = ({ canPress }) => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.canPress = canPress;
+    return renderFight(s, CONFIG);
+  };
+
   it('shows both combatants and the four action buttons', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
     const html = renderFight(s, CONFIG);
@@ -1824,28 +1851,64 @@ describe('renderFight', () => {
     expect(foe).not.toContain('-6');
   });
 
-  it('renders Press the Attack as a commit banner only when pressable', () => {
-    const s = startFight(createGameState(1, CONFIG), CONFIG);
-    expect(renderFight(s, CONFIG)).not.toContain('data-action="press"');
-    s.combat.canPress = true;
-    const html = renderFight(s, CONFIG);
-    expect(html).toContain('data-action="press"');
-    expect(html).toContain('btn--commit');
-    // A banner above the 2x2 grid, not a fifth cell in it.
-    expect(html.indexOf('data-action="press"')).toBeLessThan(html.indexOf('fight__grid'));
+  // §7 amendment (decision 2). Source order *is* reading order and tab order — the grid areas
+  // move these blocks around the screen, they never reorder them — so the order of the
+  // section's own children is the behaviour worth pinning, not the pixels.
+  it('composes the fight centre column meter → actions → log → press (decision 2)', () => {
+    const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
+    const areas = [...section.children].map((el) =>
+      [...el.classList].find((c) => c.startsWith('fight__'))
+    );
+    expect(areas).toEqual([
+      'fight__you',
+      'fight__stage',
+      'fight__foe',
+      'fight__actions',
+      'fight__log',
+      'fight__press',
+    ]);
+  });
+
+  // The tab order that composition buys, stated as itself: everything focusable on the screen
+  // below the HUD, in document order. The log is `tabindex="0"`, so it is a stop too.
+  it('gives the fight screen the tab order meter → the four actions → log → press', () => {
+    const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
+    const stops = [...section.querySelectorAll('button, [tabindex="0"]')].map(
+      (el) => el.getAttribute('data-action') ?? [...el.classList][0]
+    );
+    expect(stops).toEqual(['meter', 'strike', 'heavy', 'block', 'feint', 'log', 'press']);
+  });
+
+  it('renders Press the Attack as an arrow commit button in its own area, only when pressable', () => {
+    const press = dom(fightHtml({ canPress: true })).querySelector('.fight__press button');
+    expect(press.getAttribute('data-action')).toBe('press');
+    expect([...press.classList]).toEqual(
+      expect.arrayContaining(['btn', 'btn--commit', 'btn--arrow'])
+    );
+
+    // The slot is unconditional — the grid area exists whether or not the offer does, so the
+    // layout does not reflow the moment a press becomes available. Only the button is
+    // conditional.
+    const idle = dom(fightHtml({ canPress: false }));
+    const slot = idle.querySelector('.fight__press');
+    expect(slot, 'no .fight__press slot').not.toBeNull();
+    expect(slot.children).toHaveLength(0);
+    expect(idle.querySelector('[data-action="press"]')).toBeNull();
   });
 
   it('wraps each grid area of the spec 7 fight layout', () => {
-    const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+    const host = dom(renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG));
     for (const cls of [
       'fight__you',
       'fight__stage',
       'fight__foe',
       'fight__log',
       'fight__actions',
+      'fight__press',
     ]) {
-      expect(html, `missing wrapper ${cls}`).toContain(`class="${cls}"`);
+      expect(host.querySelector(`.${cls}`), `missing wrapper ${cls}`).not.toBeNull();
     }
+    const html = host.innerHTML;
     // The meter is the stage, not a stray sibling of it.
     expect(html.indexOf('fight__stage')).toBeLessThan(html.indexOf('data-meter'));
     expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'));

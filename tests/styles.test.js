@@ -761,11 +761,17 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
     .map(([, prelude, body]) => ({ sel: prelude.trim(), body }))
     .filter((r) => !r.sel.startsWith('@') && r.sel !== ':root');
 
-  it('spends the commit palette on three selectors, all of them commit or focus', () => {
+  it('spends the commit palette on four selectors, all of them commit or focus', () => {
     const blue = rules
       .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
       .map((r) => r.sel);
-    expect(blue.sort()).toEqual([':focus-visible', '.btn--commit', '.btn:focus-visible'].sort());
+    // `.btn--arrow::after` is the fourth, and it is not a widening of Law 3: §6.2's amendment
+    // stacks the modifier on `.btn--commit` only, so the triangle it draws is a piece of a
+    // commit banner rather than a new blue surface. Flat `--commit` because a border cannot
+    // take `--grad-commit`.
+    expect(blue.sort()).toEqual(
+      [':focus-visible', '.btn--commit', '.btn--arrow::after', '.btn:focus-visible'].sort()
+    );
     // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
     // rather than reaching for more blue. Named here so "three selectors" is not read as a gap.
     expect(css).toMatch(

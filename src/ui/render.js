@@ -490,6 +490,12 @@ export function renderFight(state, config) {
   const logHtml = c.log.map(logEntry).join('');
   // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
   // at the shared urgency threshold — the fight screen states no number by hand.
+  //
+  // Child order is the §7-amendment reading order — you, stage, foe, actions, log, press — and
+  // therefore the tab order: meter → the four actions → log (it is `tabindex="0"`) → press. The
+  // grid areas in screens.css move these blocks around the screen at each breakpoint; they never
+  // reorder them. `.fight__press` is emitted whether or not the offer stands, so the slot (and
+  // its grid area) is a fixture of the layout rather than something that appears mid-fight.
   return `
     ${renderHud(state, config)}
     ${titlePlaque('Fight')}
@@ -509,9 +515,7 @@ export function renderFight(state, config) {
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
       })}</div>
-      <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
       <div class="fight__actions">
-        ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
         <div class="fight__grid">
           ${btn('strike', 'Strike')}
           ${btn('heavy', 'Heavy')}
@@ -519,5 +523,7 @@ export function renderFight(state, config) {
           ${btn('feint', 'Feint')}
         </div>
       </div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
+      <div class="fight__press">${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit', arrow: true }) : ''}</div>
     </section>`;
 }
