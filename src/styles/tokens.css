@@ -111,6 +111,7 @@
 
   /* Borders & shadows — hard offsets, zero blur = paper-cutout look */
   --border-w: 2.5px;
+  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
   --shadow-paper: 4px 6px 0 rgba(31, 22, 12, 0.35);
   --shadow-plank: 0 3.5px 0 rgba(31, 22, 12, 0.5);
   --shadow-plank-pressed: 0 1px 0 rgba(31, 22, 12, 0.5);
@@ -134,8 +135,16 @@
   --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
   --ease-drop: steps(2, end);
 
-  /* Z-scale (paper layering) */
+  /* Z-scale (paper layering) — ascending, so the stack reads in paint order */
+  --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
+  --z-frame: 5; /* stone frame (§6.17). NOT "below the interactive layers": --z-hud has exactly
+    one consumer in the whole sheet set (.commit-bar, ≤640px), so every other control is
+    non-positioned in-flow content and paints *below* this. What keeps content clear of the frame
+    is the body's padding: var(--frame-w), not this number — see §6.17's Phase 3 constraint */
   --z-hud: 10;
+  --z-plaque: 11; /* title plaque (§6.16) — .hud is plain non-positioned flow, so the plaque
+    only needs a stacking context of its own to paint over it; the negative top margin
+    (components.css) is what makes the two actually overlap, not this number against --z-hud */
   --z-chip: 20;
   --z-modal: 30;
 

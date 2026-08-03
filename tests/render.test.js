@@ -5,6 +5,7 @@ import { createGameState } from '../src/state.js';
 import {
   btn,
   meter,
+  bar,
   poster,
   shopItem,
   renderHud,
@@ -15,6 +16,8 @@ import {
   gameoverSummary,
   renderFight,
   escapeHtml,
+  titlePlaque,
+  iconWell,
   meterDistance,
   meterPosition,
   meterPeriod,
@@ -28,6 +31,8 @@ import { formatGold } from '../src/ui/format.js';
 import { startFight, effectiveStats, resolveFightOutcome } from '../src/game.js';
 import { makeRng } from '../src/rng.js';
 import { resolveTiming, timingWindowWidth } from '../src/combat.js';
+import { FOCUSABLE } from './support/screens.js';
+import { dtLabel } from './support/ledger.js';
 
 // Match classes as a set, never as a literal class string: adding or reordering a class is a
 // harmless refactor and must not turn a passing suite red.
@@ -56,6 +61,38 @@ const logRows = (html) =>
       text: li.textContent.replace(stamp?.textContent ?? '', '').trim(),
     };
   });
+
+// A minimal `lastResult`/`ended` pair, hoisted to module scope so the `renderResult` and
+// `renderGameOver` describes below and the cross-screen title-plaque check further down share
+// one copy each — a required field added to either shape only has to be updated here, not
+// re-typed by hand in two unlinked fixtures that quietly drift apart.
+const RESULT_WIN = {
+  won: true,
+  died: false,
+  opponentName: 'The Brute',
+  purse: 50,
+  tax: 10,
+  sponsorIncome: 0,
+  netGold: 40,
+  durabilityLost: 3,
+  injuriesGained: 0,
+  causeOfDeath: null,
+  commentary: 'The Brute falls.',
+};
+const GAMEOVER_DEATH = {
+  died: true,
+  won: false,
+  opponentName: 'The Champion',
+  causeOfDeath: 'Tripped on a turnip.',
+};
+// Ended states as the game actually leaves them: dead means health 0 (§6.1's fatal state).
+const gameOverState = (ended, over = {}) => ({
+  ...createGameState(1, CONFIG),
+  phase: 'GAMEOVER',
+  ended,
+  ...(ended === 'dead' ? { health: 0, lastResult: GAMEOVER_DEATH } : {}),
+  ...over,
+});
 
 describe('btn', () => {
   it('throws when a priced button is built without the purse', () => {
@@ -92,6 +129,43 @@ describe('btn', () => {
 
   it('escapes the label of a hand-passed inert plank', () => {
     expect(btn(null, '✓ <Blade> — OWNED', { owned: true })).toContain('&lt;Blade&gt;');
+  });
+
+  // §6.2 amendment: buttons may carry a leading `.icon-well` (the sinks), emitted by
+  // `btn({ icon })`. Default-sized, not `--sm` — a button is not the HUD's cramped context.
+  // Parsed to DOM per this file's own rule, not matched against a literal markup string.
+  it('prepends a default-size icon well when opts.icon is given (§6.2 amendment)', () => {
+    const html = btn('repair', 'Repair Weapon', { icon: 'repair' });
+    const button = dom(html).querySelector('button');
+    const well = button.querySelector('[data-icon="repair"]');
+    expect(well, 'no icon well').not.toBeNull();
+    expect([...well.classList]).toEqual(['icon-well']); // default size, no --sm
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+    // Leads the button: label, price and snark all come after it (spec §6.2's anatomy).
+    expect(button.firstChild).toBe(well);
+  });
+
+  it('omits the well entirely when no icon is given', () => {
+    expect(dom(btn('heal', 'Heal')).querySelector('.icon-well')).toBeNull();
+  });
+
+  // §6.2 amendment: `.btn--arrow` is a *modifier* stacked on `.btn--commit`, never a variant of
+  // its own — the fight screen's PRESS THE ATTACK keeps the commit banner's blue and gains the
+  // triangular end. Class set, not a literal class string, per this file's rule at the top.
+  it('stacks the arrow modifier on the commit banner when opts.arrow is set (§6.2 amendment)', () => {
+    const button = dom(btn('press', 'Press ▸', { variant: 'commit', arrow: true })).querySelector(
+      'button'
+    );
+    expect([...button.classList]).toEqual(
+      expect.arrayContaining(['btn', 'btn--commit', 'btn--arrow'])
+    );
+  });
+
+  it('omits the arrow modifier unless it is asked for', () => {
+    for (const opts of [{}, { variant: 'commit' }, { variant: 'commit', arrow: false }]) {
+      const button = dom(btn('press', 'Press ▸', opts)).querySelector('button');
+      expect([...button.classList]).not.toContain('btn--arrow');
+    }
   });
 });
 
@@ -186,6 +260,85 @@ describe('renderHud', () => {
     expect(html).toContain('data-value="2450"');
     expect(html).not.toContain('data-gold');
   });
+
+  // Spec \u00A76.18 / the \u00A76.1 amendment: each stat gains a leading small icon well, keyed by
+  // data-icon so Phase 2 can paint a glyph into it. Parsed to DOM per this file's own rule
+  // above `dom()`, not matched against a literal markup string.
+  it('gives each HUD stat an empty icon well with a data-icon hook (\u00A76.18)', () => {
+    const s = createGameState(1, CONFIG);
+    const html = renderHud(s, CONFIG);
+    const host = dom(html);
+    for (const name of ['health', 'durability', 'injuries']) {
+      const well = host.querySelector(`[data-icon="${name}"]`);
+      expect(well, `no well for ${name}`).not.toBeNull();
+      expect([...well.classList]).toEqual(expect.arrayContaining(['icon-well', 'icon-well--sm']));
+      expect(well.getAttribute('aria-hidden')).toBe('true');
+      // Never carries meaning of its own: the adjacent label/numeral does (spec \u00A76.18).
+      expect(well.textContent).toBe('');
+    }
+  });
+
+  // Decision 3: numeral + pips announce once, through a single wrapper aria-label, rather than
+  // as two separate accessible facts about the same count.
+  it('shows the injuries numeral beside the pips, announced exactly once (decision 3)', () => {
+    const s = createGameState(1, CONFIG);
+    s.injuries = 3;
+    const html = renderHud(s, CONFIG);
+    const host = dom(html);
+    const wrapper = host.querySelector('[role="img"][aria-label="3 injuries"]');
+    expect(wrapper, 'no injuries wrapper').not.toBeNull();
+    const count = wrapper.querySelector('.hud__count');
+    expect(count, 'no .hud__count numeral').not.toBeNull();
+    expect(count.textContent).toBe('3');
+    expect(count.getAttribute('aria-hidden')).toBe('true');
+    const pips = wrapper.querySelector('.pips');
+    expect(pips, 'no .pips inside the wrapper').not.toBeNull();
+    expect(pips.getAttribute('aria-hidden')).toBe('true');
+    // One announcement: no other element restates the injury count as its own aria-label.
+    expect(host.querySelectorAll('[aria-label$="injuries"], [aria-label$="injury"]')).toHaveLength(
+      1
+    );
+  });
+});
+
+describe('iconWell', () => {
+  it('renders a default-size well as an empty, decorative, named slot (\u00A76.18)', () => {
+    const html = iconWell('health');
+    const host = dom(html);
+    const well = host.firstElementChild;
+    expect(well.tagName).toBe('SPAN');
+    expect([...well.classList]).toEqual(['icon-well']);
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+    expect(well.getAttribute('data-icon')).toBe('health');
+    expect(well.textContent).toBe('');
+  });
+
+  it('adds the small modifier for the HUD without dropping the base class', () => {
+    const html = iconWell('durability', { small: true });
+    expect([...dom(html).firstElementChild.classList]).toEqual(
+      expect.arrayContaining(['icon-well', 'icon-well--sm'])
+    );
+  });
+
+  it('escapes a hostile name so it cannot break out of the data-icon attribute', () => {
+    const hostile = '"><script>alert(1)</script>';
+    const html = iconWell(hostile);
+    const host = dom(html);
+    // A broken-out attribute would parse as more than one element, or mint a live <script>.
+    expect(host.children).toHaveLength(1);
+    expect(host.querySelector('script')).toBeNull();
+    expect(host.firstElementChild.getAttribute('data-icon')).toBe(hostile);
+  });
+});
+
+describe('bar', () => {
+  // Every current call site (renderHud) passes `icon`, so this path is otherwise unexercised:
+  // a regression that made bar() always emit a well would leave one showing wherever a caller
+  // deliberately omits it, and nothing would catch it.
+  it('emits no icon well when opts.icon is not supplied', () => {
+    const html = bar('Health', 3, 10);
+    expect(dom(html).querySelectorAll('.icon-well')).toHaveLength(0);
+  });
 });
 
 // Spec 6.5: "Player poster and HUD may both show HP; they must read from the same state field."
@@ -259,6 +412,61 @@ describe('the HUD beam and the player poster read one health field (spec 6.5)', 
     const steady = renderFight(s, CONFIG);
     expect(hudPlate(steady).urgent).toBe(false);
     expect(posterPlate(steady).urgent).toBe(false);
+  });
+});
+
+describe('title plaques (§6.16)', () => {
+  // Parsed to DOM rather than matched against markup, per this file's own rule above `dom()`:
+  // adding or reordering a class, or reformatting the tag, must stay a harmless refactor.
+  const plaqueText = (html) => dom(html).querySelector('.title-plaque h1')?.textContent ?? null;
+  const fightHtml = () => renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+  // Reuses the module-scope fixtures the `renderResult`/`renderGameOver` describes below share,
+  // rather than a third hand-typed copy of the same shape.
+  const resultHtml = () =>
+    renderResult({ ...createGameState(1, CONFIG), lastResult: RESULT_WIN }, CONFIG);
+  const gameoverHtml = () => renderGameOver(gameOverState('dead'), CONFIG);
+
+  it('gives every screen exactly one h1, inside a parchment-and-tape plaque', () => {
+    const s = createGameState(1, CONFIG);
+    for (const html of [renderHub(s, CONFIG), fightHtml(), resultHtml(), gameoverHtml()]) {
+      const host = dom(html);
+      expect(host.querySelectorAll('h1')).toHaveLength(1);
+      const plaque = host.querySelector('.title-plaque');
+      expect(plaque, 'no .title-plaque found').not.toBeNull();
+      expect(plaque.querySelector('h1'), 'the plaque carries no h1').not.toBeNull();
+      // A set check, not a literal class string: order and any extra class are a no-op refactor.
+      expect([...plaque.classList]).toEqual(
+        expect.arrayContaining(['title-plaque', 'parchment', 'tape'])
+      );
+    }
+  });
+
+  it('titles the hub with the win count and the other screens with their names', () => {
+    const s = createGameState(1, CONFIG);
+    s.wins = 2;
+    expect(plaqueText(renderHub(s, CONFIG))).toBe('Current wins: 2');
+    expect(plaqueText(fightHtml())).toBe('Fight');
+    expect(plaqueText(resultHtml())).toBe('Result');
+    expect(plaqueText(gameoverHtml())).toBe('Game over');
+  });
+});
+
+describe('titlePlaque', () => {
+  it('wraps sentence-case text in a parchment, taped plaque with one h1', () => {
+    const html = titlePlaque('Fight');
+    expect(classesOf(html)).toEqual(expect.arrayContaining(['title-plaque', 'parchment', 'tape']));
+    expect(html).toContain('<h1>Fight</h1>');
+  });
+
+  it('escapes hostile text exactly once', () => {
+    const html = titlePlaque('<script>alert(1)</script> & "Boss"');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;Boss&quot;');
+    // ...and not twice over: a second pass would spell these `&amp;lt;` etc.
+    expect(html).not.toContain('&amp;lt;');
+    expect(html).not.toContain('&amp;gt;');
+    expect(html).not.toContain('&amp;quot;');
+    expect(html).not.toContain('&amp;amp;');
   });
 });
 
@@ -385,6 +593,28 @@ describe('renderHub', () => {
     const html = renderHub(s, CONFIG);
     expect(html).toContain('is-owned');
     expect(html).not.toContain('data-action="buy-shield"');
+  });
+
+  // §6.2 amendment / §6.18: each sink button gets a named icon well so Phase 2 has a hook to
+  // paint a glyph into. Parsed to DOM per this file's own rule, not matched against raw markup.
+  it('gives each sink button a leading icon well named for its action', () => {
+    const s = createGameState(1, CONFIG);
+    const host = dom(renderHub(s, CONFIG));
+    for (const name of ['repair', 'heal', 'bribe']) {
+      const well = host.querySelector(`[data-icon="${name}"]`);
+      expect(well, `no well for ${name}`).not.toBeNull();
+      expect([...well.classList]).toEqual(['icon-well']);
+    }
+  });
+
+  // The bribe well must not vanish once the bribe is spent for the fight — the slot names the
+  // action, not its remaining availability, so the inert "Bribed ✓" plank still carries it.
+  it('keeps the bribe well once bribed-out, rather than dropping the slot when spent', () => {
+    const s = createGameState(1, CONFIG);
+    s.bribedThisFight = true;
+    const html = renderHub(s, CONFIG);
+    expect(html).toContain('Bribed');
+    expect(dom(html).querySelector('[data-icon="bribe"]')).not.toBeNull();
   });
 });
 
@@ -612,6 +842,21 @@ describe('renderHub layout', () => {
     }
   });
 
+  // §6.11 amendment / §6.18: the icon column widens to 34px, carrying a default-size icon well
+  // named for the stat it trains. Parsed to DOM, and anchored per-row (not just "3 wells
+  // somewhere") so a well drifting onto the wrong stat's row would fail.
+  it('gives each training row a leading, default-size icon well named for its stat', () => {
+    const s = createGameState(1, CONFIG);
+    const rowEls = [...dom(renderHub(s, CONFIG)).querySelectorAll('.train-row')];
+    expect(rowEls).toHaveLength(3);
+    for (const [i, stat] of ['power', 'guard', 'speed'].entries()) {
+      const well = rowEls[i].querySelector(`[data-icon="${stat}"]`);
+      expect(well, `no well for ${stat}`).not.toBeNull();
+      expect([...well.classList]).toEqual(['icon-well']); // default size, not --sm
+      expect(rowEls[i].firstElementChild).toBe(well); // leads the row
+    }
+  });
+
   it('renders gear as shop cards in the available / unaffordable / owned triad', () => {
     const s = createGameState(1, CONFIG);
     const { shield, blade, charm } = CONFIG.gear;
@@ -679,25 +924,42 @@ describe('shopItem', () => {
     // An owned card carries no price, so it needs no purse.
     expect(() => shopItem(CONFIG.gear.blade, { owned: true })).not.toThrow();
   });
+
+  // §6.18: the shop slot IS the icon well, keyed by the item id. Both branches render the icon
+  // column, so a regression in either would otherwise ship silently.
+  //
+  // Held to iconWell()'s own output rather than to a class list, deliberately. The card used to
+  // hand-roll the well's markup — same classes, same attributes, spelled a second time — so
+  // anything Phase 2 adds inside iconWell() (an inner glyph span, a `data-glyph` state attribute)
+  // would have appeared on four surfaces and not on the shop, with a class-list assertion still
+  // green. Comparing against the function makes "the shop calls iconWell" the thing under test.
+  it('gives the owned branch the §6.18 well, keyed by the item id', () => {
+    const { charm } = CONFIG.gear;
+    const card = shopItem(charm, { owned: true, gold: 0 });
+    expect(card).toContain(iconWell(charm.id));
+    // The well is still reachable by the hook Phase 2's CSS mask selects on, in a parsed DOM.
+    const well = dom(card).querySelector(`[data-icon="${charm.id}"]`);
+    expect(well, 'no well on the owned card').not.toBeNull();
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('gives the buyable branch the §6.18 well, keyed by the item id', () => {
+    const { blade } = CONFIG.gear;
+    const card = shopItem(blade, { gold: blade.cost });
+    expect(card).toContain(iconWell(blade.id));
+    const well = dom(card).querySelector(`[data-icon="${blade.id}"]`);
+    expect(well, 'no well on the buyable card').not.toBeNull();
+    expect(well.getAttribute('aria-hidden')).toBe('true');
+  });
 });
 
 // Spec §6.6: the ledger IS the product. Every line states an amount the same way, every money
 // line carries the data the theater counts it from, and nothing on this screen formats money
 // by hand. §6.13 stamps the title, §7 lays out recap / ledger / cta, §8 announces both.
 describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
-  const WIN = {
-    won: true,
-    died: false,
-    opponentName: 'The Brute',
-    purse: 50,
-    tax: 10,
-    sponsorIncome: 0,
-    netGold: 40,
-    durabilityLost: 3,
-    injuriesGained: 0,
-    causeOfDeath: null,
-    commentary: 'The Brute falls.',
-  };
+  // Hoisted to module scope (above) so the cross-screen title-plaque check can reuse it without
+  // hand-typing a second copy of the same shape.
+  const WIN = RESULT_WIN;
   const LOSS = {
     won: false,
     died: false,
@@ -717,10 +979,14 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     lastResult,
   });
   const resultOf = (lastResult, over = {}) => renderResult(stateOf(lastResult, over), CONFIG);
+  // `dtLabel` (a ledger row's label, aside stripped, well-tolerant) comes from
+  // tests/support/ledger.js — tests/main.test.js reads the same rows to hold the live-region
+  // announcement to the card's own words, and two copies of the reader would let one file's idea
+  // of a row label drift from the other's.
   // Rows as { label, amount } with the snark aside stripped off the term.
   const ledgerRows = (html) =>
     [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
-      label: row.querySelector('dt').firstChild.textContent.trim(),
+      label: dtLabel(row.querySelector('dt')),
       amount: row.querySelector('dd').textContent,
       classes: [...row.classList],
       tone: [...row.querySelector('dd').classList],
@@ -729,7 +995,7 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   // The same lookup, by label, but keeping the element — so nothing has to know a row's index.
   const rowElFor = (html, label) =>
     [...dom(html).querySelectorAll('.ledger__row')].find(
-      (row) => row.querySelector('dt').firstChild.textContent.trim() === label
+      (row) => dtLabel(row.querySelector('dt')) === label
     );
 
   it('renders a win recap card', () => {
@@ -859,6 +1125,30 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(paid).toContain(CONFIG.snark.sponsorReward);
   });
 
+  // §6.18: the money rows that name a *source* (purse, tax, sponsor) get a small icon well;
+  // the rows that sum or tally (net gold, injuries, wear, balance) stay well-less — they are
+  // sums, not sources. Reuses the sponsor fixture above so `sponsorIncome > 0` puts all three
+  // source rows on the card at once.
+  it('gives the purse, tax and sponsor rows a small icon well named for the source', () => {
+    const paid = resultOf({ ...WIN, sponsorIncome: 80, netGold: 120 });
+    for (const [label, icon] of [
+      ['Purse', 'purse'],
+      ['Arena tax', 'tax'],
+      ['Sponsor', 'sponsor'],
+    ]) {
+      const row = rowElFor(paid, label);
+      expect(row, `no ${label} row`).not.toBeUndefined();
+      const well = row.querySelector(`[data-icon="${icon}"]`);
+      expect(well, `${label} row has no ${icon} well`).not.toBeNull();
+      expect([...well.classList]).toEqual(expect.arrayContaining(['icon-well', 'icon-well--sm']));
+    }
+    // Sums and tallies carry no well at all.
+    for (const label of ['Net gold', 'Injuries gained', 'Weapon wear', 'New balance']) {
+      const row = rowElFor(paid, label);
+      expect(row.querySelector('.icon-well'), `${label} row should have no well`).toBeNull();
+    }
+  });
+
   it('hangs the §6.8 aside off the tax line from the config string table', () => {
     const aside = dom(resultOf(WIN)).querySelector('.ledger__row .snark');
     expect(aside.textContent).toBe(`(${CONFIG.snark.tax})`);
@@ -875,7 +1165,7 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     expect(
       [...dom(html).querySelectorAll('.ledger__row')]
         .filter((row) => row.querySelector('.amount[data-unit]'))
-        .map((row) => row.querySelector('dt').firstChild.textContent.trim())
+        .map((row) => dtLabel(row.querySelector('dt')))
     ).toEqual(['Purse', 'Arena tax', 'Net gold', 'New balance']);
     for (const dd of cells) {
       const value = Number(dd.getAttribute('data-value'));
@@ -957,20 +1247,9 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
 // §6.1 keeps the HUD on screen showing the fatal state, §7 lays the trio out, §2 formats the
 // purse. The screen is the screenshot payload, so every one of those has to be true at once.
 describe('renderGameOver (spec §6.14)', () => {
-  const DEATH = {
-    died: true,
-    won: false,
-    opponentName: 'The Champion',
-    causeOfDeath: 'Tripped on a turnip.',
-  };
-  // Ended states as the game actually leaves them: dead means health 0 (§6.1's fatal state).
-  const overOf = (ended, over = {}) => ({
-    ...createGameState(1, CONFIG),
-    phase: 'GAMEOVER',
-    ended,
-    ...(ended === 'dead' ? { health: 0, lastResult: DEATH } : {}),
-    ...over,
-  });
+  // Hoisted to module scope (above) so the cross-screen title-plaque check can build the same
+  // "dead" shape without a second hand-rolled copy.
+  const overOf = gameOverState;
   const gameOver = (ended, over = {}) => renderGameOver(overOf(ended, over), CONFIG);
   const cardsIn = (html) => [...dom(html).querySelectorAll('.ending-card')];
   const titleOf = (card) => card.querySelector('.poster__name').textContent;
@@ -1248,7 +1527,7 @@ describe('renderGameOver (spec §6.14)', () => {
   // future recap keyed on an opponent's name would use. Escaped once, like everything else.
   it('escapes the cause of death', () => {
     const html = gameOver('dead', {
-      lastResult: { ...DEATH, causeOfDeath: 'Felled by <script>alert("x")</script>.' },
+      lastResult: { ...GAMEOVER_DEATH, causeOfDeath: 'Felled by <script>alert("x")</script>.' },
     });
     expect(html).not.toContain('<script>');
     expect(dom(html).querySelector('.cause-of-death').textContent).toContain(
@@ -1412,6 +1691,14 @@ describe('logEntry (spec §6.9)', () => {
 });
 
 describe('renderFight', () => {
+  // A real fight, with the press offer switched on or off — the one branch in this screen's
+  // composition. `canPress` is the only knob, so the tests below differ by that alone.
+  const fightHtml = ({ canPress }) => {
+    const s = startFight(createGameState(1, CONFIG), CONFIG);
+    s.combat.canPress = canPress;
+    return renderFight(s, CONFIG);
+  };
+
   it('shows both combatants and the four action buttons', () => {
     const s = startFight(createGameState(1, CONFIG), CONFIG);
     const html = renderFight(s, CONFIG);
@@ -1566,28 +1853,76 @@ describe('renderFight', () => {
     expect(foe).not.toContain('-6');
   });
 
-  it('renders Press the Attack as a commit banner only when pressable', () => {
-    const s = startFight(createGameState(1, CONFIG), CONFIG);
-    expect(renderFight(s, CONFIG)).not.toContain('data-action="press"');
-    s.combat.canPress = true;
-    const html = renderFight(s, CONFIG);
-    expect(html).toContain('data-action="press"');
-    expect(html).toContain('btn--commit');
-    // A banner above the 2x2 grid, not a fifth cell in it.
-    expect(html.indexOf('data-action="press"')).toBeLessThan(html.indexOf('fight__grid'));
+  // §7 amendment (decision 2). Source order *is* reading order and tab order — the grid areas
+  // move these blocks around the screen, they never reorder them — so the order of the
+  // section's own children is the behaviour worth pinning, not the pixels.
+  it('composes the fight centre column meter → actions → log → press (decision 2)', () => {
+    const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
+    const areas = [...section.children].map((el) =>
+      [...el.classList].find((c) => c.startsWith('fight__'))
+    );
+    expect(areas).toEqual([
+      'fight__you',
+      'fight__stage',
+      'fight__foe',
+      'fight__actions',
+      'fight__log',
+      'fight__press',
+    ]);
+  });
+
+  // The tab order that composition buys, stated as itself: every tab stop on the screen below
+  // the HUD, in document order. The log is `tabindex="0"`, so it is a stop too. `FOCUSABLE` is
+  // the same selector tests/a11y.test.js audits the ring with — a narrower spelling here could
+  // pass over stops that file polices. It is membership only, so the filter is what turns it
+  // into the *tab* ring: `disabled` buttons and `tabindex="-1"` are focusable-ish but not stops.
+  it('gives the fight screen the tab order meter → the four actions → log → press', () => {
+    const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
+    const stops = [...section.querySelectorAll(FOCUSABLE)]
+      .filter((el) => !el.disabled && el.tabIndex >= 0)
+      // Keyed off the hooks the app itself uses, never off class *order*: `[...classList][0]`
+      // would rename these stops the day someone writes `class="parchment log"`.
+      .map((el) => {
+        if (el.matches('[data-meter]')) return 'meter';
+        if (el.matches('.log')) return 'log';
+        return el.getAttribute('data-action');
+      });
+    expect(stops).toEqual(['meter', 'strike', 'heavy', 'block', 'feint', 'log', 'press']);
+  });
+
+  it('renders Press the Attack as an arrow commit button in its own area, only when pressable', () => {
+    const press = dom(fightHtml({ canPress: true })).querySelector('.fight__press button');
+    expect(press.getAttribute('data-action')).toBe('press');
+    // Exact, not `arrayContaining`: at this call site the set is fully known, so equality is
+    // free and catches a stray `is-urgent` or a doubled modifier. (The `btn` unit test keeps
+    // `arrayContaining`, where other options legitimately add classes.) `.btn--arrow` never
+    // travels without `.btn--commit` — components.css scopes both arrow rules to the pair, and
+    // tests/a11y.test.js holds the markup half of that invariant across every screen.
+    expect([...press.classList].sort()).toEqual(['btn', 'btn--arrow', 'btn--commit']);
+
+    // The slot is unconditional — the grid area exists whether or not the offer does, so the
+    // layout does not reflow the moment a press becomes available. Only the button is
+    // conditional.
+    const idle = dom(fightHtml({ canPress: false }));
+    const slot = idle.querySelector('.fight__press');
+    expect(slot, 'no .fight__press slot').not.toBeNull();
+    expect(slot.children).toHaveLength(0);
+    expect(idle.querySelector('[data-action="press"]')).toBeNull();
   });
 
   it('wraps each grid area of the spec 7 fight layout', () => {
-    const html = renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+    const host = dom(renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG));
     for (const cls of [
       'fight__you',
       'fight__stage',
       'fight__foe',
       'fight__log',
       'fight__actions',
+      'fight__press',
     ]) {
-      expect(html, `missing wrapper ${cls}`).toContain(`class="${cls}"`);
+      expect(host.querySelector(`.${cls}`), `missing wrapper ${cls}`).not.toBeNull();
     }
+    const html = host.innerHTML;
     // The meter is the stage, not a stray sibling of it.
     expect(html.indexOf('fight__stage')).toBeLessThan(html.indexOf('data-meter'));
     expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'));

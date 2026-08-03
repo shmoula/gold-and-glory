@@ -59,6 +59,16 @@ export function snarkAside(snark, missing = '', shortfall = '') {
   return `<span class="btn__snark snark"${missing}>${body}${at}</span>`;
 }
 
+// The generic empty slot (spec §6.18): decorative, named for Phase 2's CSS mask hook. The
+// well never carries meaning — the label/numeral next to it does.
+// `name` is escaped even though every current call site is a literal or config-internal id
+// (shopItem's `item.id`): shopItem already escapes that same id going into `data-action`, and a
+// second sink for the identical value only holds to the same rule if it escapes too — an
+// unescaped `data-icon` would otherwise be the one attribute in this file that trusts config data.
+export function iconWell(name, { small = false } = {}) {
+  return `<span class="icon-well${small ? ' icon-well--sm' : ''}" aria-hidden="true" data-icon="${escapeHtml(name)}"></span>`;
+}
+
 // Commerce button per spec §6.2: [label] [price slot] [snark slot?].
 // variant: '' (plank) | 'commit' (irreversible) | 'danger'.
 // `action` is optional: buttons that are not clickable at all (owned gear, already bribed) still
@@ -80,6 +90,8 @@ export function btn(
     urgent = false,
     disabled = false,
     owned = false,
+    icon = '',
+    arrow = false,
   } = {}
 ) {
   // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
@@ -91,6 +103,9 @@ export function btn(
   }
   const classes = ['btn'];
   if (variant) classes.push(`btn--${variant}`);
+  // §6.2 amendment: a modifier, not a variant — the arrow end is stacked on `.btn--commit`,
+  // so it is opted into separately rather than replacing the banner it decorates.
+  if (arrow) classes.push('btn--arrow');
   if (urgent) classes.push('is-urgent');
   if (owned) classes.push('is-owned');
   let attrs = '';
@@ -113,9 +128,14 @@ export function btn(
   const shown = cost ?? price;
   const priceSlot = shown != null ? `<span class="btn__price">${formatGold(shown)}</span>` : '';
   const missingAmount = cost != null ? shortfallAmount(cost, gold) : '';
+  // §6.2 amendment: an optional leading icon well for the sinks (Repair/Heal/Bribe) — default
+  // size, not `--sm`: a button is not the HUD's cramped context, and §6.18's well only ever
+  // shrinks for the HUD beam and the ledger. Absent for every other button, so most `.btn`s keep
+  // their original [label][price][snark] anatomy with no leading span.
+  const well = icon ? iconWell(icon) : '';
   return (
     `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
+    `${well}${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
   );
 }
 
@@ -157,10 +177,14 @@ export function meter(
     </span>`;
 }
 
-export function bar(label, value, max, opts) {
+// `opts.icon` is a §6.18 well name, spelled `icon` to match `btn({ icon })` and
+// `ledgerRow({ icon })` — three welled surfaces, one option name. The rest of `opts` passes
+// through to meter() untouched.
+export function bar(label, value, max, opts = {}) {
+  const well = opts.icon ? iconWell(opts.icon, { small: true }) : '';
   // Escaped here as well as in meter(): the `.hud__label` span is a second sink for the same
   // string, so the "every call site passes it raw" contract only holds if both are escaped.
-  return `<span class="hud__stat"><span class="hud__label">${escapeHtml(label)}</span>
+  return `<span class="hud__stat">${well}<span class="hud__label">${escapeHtml(label)}</span>
     ${meter(label, value, max, opts)}</span>`;
 }
 
@@ -169,10 +193,15 @@ export function bar(label, value, max, opts) {
 // so it renders as an inert div. It carries no `aria-disabled`: on a role-less div assistive
 // tech ignores the attribute, and the visible "✓ Owned" already states the case.
 // `item` is a config.gear entry ({ id, name, cost }); `snark` is the raw aside text.
+// The icon column comes from iconWell() (§6.18) like every other well, rather than being spelled
+// out twice here. It used to be hand-rolled markup carrying an extra `.shop-item__icon` class that
+// no rule in src/styles/ ever targeted — so the well's treatment already came from `.icon-well`,
+// and the shop was the one surface where an element or attribute added to iconWell() would have
+// been silently skipped in two places.
 export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   if (owned) {
     return `<div class="shop-item parchment is-owned">
-        <span class="shop-item__icon" aria-hidden="true"></span>
+        ${iconWell(item.id)}
         <span class="shop-item__name">${escapeHtml(item.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
   }
@@ -185,7 +214,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   }
   const missingAttr = shortfallAttr(item.cost, gold);
   return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item parchment${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
-      <span class="shop-item__icon" aria-hidden="true"></span>
+      ${iconWell(item.id)}
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
       ${snarkAside(snark, missingAttr, shortfallAmount(item.cost, gold))}</button>`;
@@ -253,6 +282,12 @@ export function bannerStamp(variant, text) {
     `<p class="banner-stamp parchment banner-stamp--${escapeHtml(variant)}">` +
     `${escapeHtml(text)}</p>`
   );
+}
+
+// Title plaque (spec §6.16): the screen's h1 on a parchment plate that overlaps the HUD beam.
+// Sentence-case in, CSS uppercases — §9 keeps shouting a presentation concern.
+export function titlePlaque(text) {
+  return `<div class="title-plaque parchment tape"><h1>${escapeHtml(text)}</h1></div>`;
 }
 
 // Wanted poster (spec §6.5): name, portrait well, one optional HP plate, sub line, snark.

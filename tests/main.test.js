@@ -12,6 +12,7 @@ import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
 import { formatGold } from '../src/ui/format.js';
 import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS } from '../src/ui/effects.js';
+import { dtLabel } from './support/ledger.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
 const SEED = Math.floor(SEED_ROLL * 1e9); // …and the run seed main.js derives from it
@@ -255,6 +256,89 @@ describe('capture and freeze', () => {
     captureAt(renderedCenter());
     act('1'); // crit lands → press offered, meter re-rendered
     expect(q('[data-meter]').classList.contains('is-captured')).toBe(false);
+  });
+});
+
+// Spec §6.4 steps 2–3. The freeze is how players calibrate their timing, so the verdict has to
+// be readable AT the freeze — before any action key resolves the turn. Both signals are pure
+// DOM work over the position that was just captured, so they live in main.js beside it.
+describe('freeze feedback (spec §6.4 steps 2–3)', () => {
+  const stampLeft = () => Number(/([\d.]+)%/.exec(q('.meter__stamp').style.left)[1]) / 100;
+  // Band edges read back out of the rendered geometry, for the same reason renderedCenter does
+  // it: the test never replays the run's rng or the stat maths to know where a tier begins.
+  const zoneStart = (name) =>
+    Number(
+      q(`.meter__zone--${name}`)
+        .getAttribute('style')
+        .match(/left:([\d.]+)%/)[1]
+    ) / 100;
+  // A point strictly inside `outer`'s left arm and strictly outside the tighter band nested in
+  // it — i.e. a capture that resolves as exactly `outer`.
+  const insideOnly = (outer, inner) => (zoneStart(outer) + zoneStart(inner)) / 2;
+
+  it('pops the verdict stamp at the frozen cursor and flashes the struck zone', () => {
+    enterFight();
+    const center = renderedCenter();
+    captureAt(center); // dead centre → crit
+    const stamp = q('.meter__stamp');
+    expect(stamp).not.toBeNull();
+    expect(stamp.textContent).toBe('CRIT!');
+    // The log line and the announcer carry the verdict for AT; the stamp is the visual channel.
+    expect(stamp.getAttribute('aria-hidden')).toBe('true');
+    // "At the frozen cursor": the stamp is placed from the same captured position the cursor is
+    // parked on, so it can never point somewhere the game did not judge.
+    expect(stampLeft()).toBeCloseTo(center, 3);
+    expect(q('.meter__zone--crit').classList.contains('is-flashing')).toBe(true);
+    expect(q('.meter__zone--hit').classList.contains('is-flashing')).toBe(false);
+  });
+
+  // The three landing tiers each own a band, so each has a zone to flash. Only `graze` and `hit`
+  // are asserted here; `crit` is the case above.
+  it.each([
+    ['graze', 'hit'],
+    ['hit', 'crit'],
+  ])('stamps %s! and flashes its own band', (tier, inner) => {
+    enterFight();
+    renderedCenter(); // guard: refuse to read edges off a band clamped by the track
+    captureAt(insideOnly(tier, inner));
+    expect(q('.meter__stamp').textContent).toBe(`${tier.toUpperCase()}!`);
+    expect([...app().querySelectorAll('.is-flashing')].map((z) => z.className)).toEqual([
+      `meter__zone meter__zone--${tier} is-flashing`,
+    ]);
+  });
+
+  // The stamp is centred display type opening at 1.5×, so at the track's extremes it overhangs
+  // past the page gutter and a glyph is clipped (measured at 375px: `MISS!` at position 0 opens
+  // 1.2px off-screen left, `GRAZE!` at position 1 runs 8.1px past the right edge). It is nudged
+  // inward for that reason alone — and the cursor is deliberately NOT, because it is the readout
+  // of what the game judged. These two track each other everywhere except here, so pin the seam:
+  // a clamp that leaked onto the cursor would make the freeze lie about the last 6% of the track.
+  it.each([
+    [0.01, 0.06],
+    [0.99, 0.94],
+  ])('nudges a stamp captured at %s inward without moving the cursor', (captured, drawn) => {
+    enterFight();
+    pinWidth();
+    captureAt(captured);
+    expect(stampLeft()).toBeCloseTo(drawn, 4);
+    expect(cursorX()).toBeCloseTo(captured * WIDTH, 6);
+  });
+
+  it('stamps MISS! with no zone flash when captured far from the sweet spot', () => {
+    enterFight();
+    captureAt(farFrom(renderedCenter()));
+    expect(q('.meter__stamp').textContent).toBe('MISS!');
+    expect(q('.is-flashing')).toBeNull(); // a miss struck no zone
+  });
+
+  // No cleanup code backs this: every action re-renders the fight, and mount() rebuilds the
+  // meter without a stamp. If that ever stops being true the stamp outlives its verdict.
+  it('clears the stamp with the next render', () => {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1'); // resolve the action → re-render
+    expect(q('.meter__stamp')).toBeNull();
+    expect(q('.is-flashing')).toBeNull();
   });
 });
 
@@ -541,11 +625,12 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
     expect(q('.screen--result'), 'the fight did not end').not.toBeNull();
   }
 
+  // `dtLabel` comes from tests/support/ledger.js — the same reader tests/render.test.js uses on
+  // the rendered card, so this file cannot hold the announcement to a differently-read label.
   // The rows as the card states them, so the announcement can be held to the card's own words.
   const cardLines = () =>
     [...app().querySelectorAll('.ledger__row')].map(
-      (row) =>
-        `${row.querySelector('dt').firstChild.textContent.trim()}: ${row.querySelector('dd').textContent}`
+      (row) => `${dtLabel(row.querySelector('dt'))}: ${row.querySelector('dd').textContent}`
     );
 
   // The silence guard. Every assertion is about *when* the text lands relative to the region's

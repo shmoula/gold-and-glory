@@ -119,6 +119,13 @@
   align-items: center;
   gap: var(--space-2);
 }
+/* §6.1 amendment: the injuries numeral, sat between the label and the pips. */
+.hud__count {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--bone);
+  margin-right: var(--space-1);
+}
 .hud__purse .ticker {
   font-variant-numeric: tabular-nums;
 }
@@ -134,6 +141,12 @@
 /* ---- 6.2 Buttons ---- */
 .btn {
   display: inline-flex;
+  /* Baseline, not center: spec §6.2's own block specifies it, and it is what keeps the label and
+     the price slot (two different font sizes) sitting on the same text baseline in every
+     icon-less priced button (the three Train buttons, Return to Ludus). The container stays on
+     baseline; the well below opts itself out with `align-self`, since an empty box has no real
+     baseline to align by — centering the *container* to accommodate it would misalign every
+     button that has no well at all. */
   align-items: baseline;
   gap: var(--space-3);
   font: 700 var(--text-md)/1.2 var(--font-body);
@@ -161,6 +174,13 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--text-lg);
 }
+/* The sink icon well opts itself out of `.btn`'s baseline alignment: it has no text of its own
+   to set a baseline, so left on `baseline` it inherits a synthesized one from its bottom margin
+   edge and rides high against the label. `align-self: center` seats it in the button's own
+   height instead, without touching how the label and price slot align with each other. */
+.btn .icon-well {
+  align-self: center;
+}
 /* Law 5 forbids a literal hex in a component rule, but spec §6.2's own block spelled this one
    `#cdb98e` and Task 4 kept the block byte-exact to the fence. Same colour, now a token
    (backlog item 6). */
@@ -185,6 +205,44 @@
 }
 .btn--commit:focus-visible {
   outline-color: var(--bone-bright);
+}
+
+/* §6.2 amendment: the fight screen's PRESS THE ATTACK — a commit banner with a triangular
+   right end. Both rules are `.btn--commit.btn--arrow`, never `.btn--arrow` alone: the modifier
+   only ever decorates a commit banner (that is what keeps it inside Law 3, and what lets it
+   inherit the display face rather than restate it), so the sheet states the invariant instead
+   of trusting call sites. tests/a11y.test.js checks the markup half.
+   `--arrow-w` is declared here rather than spelled twice: the margin the triangle sits in and
+   the triangle's own width are one number, and a comment asking two literals to stay equal is
+   not a mechanism. Margin, not padding — the end sits *outside* the button, so the slot that
+   content-sizes to it (`.fight__press`) hugs the margin box and the arrow stays in its cell. */
+.btn--commit.btn--arrow {
+  --arrow-w: 22px;
+  position: relative;
+  margin-right: var(--arrow-w);
+  /* Tighter than `.btn--commit`'s 0.05em: the arrow is the one commit banner whose label runs
+     up against a hard diagonal instead of ending in the plank's own padding, and the extra
+     0.01em of trailing space read as a gap between the last letter and the point. */
+  letter-spacing: 0.04em;
+}
+.btn--commit.btn--arrow::after {
+  content: '';
+  position: absolute;
+  /* `left: 100%` is 100% of the *padding* box, so on its own the triangle starts one border
+     inside the button and paints over its right ink edge. Step out to the border box. */
+  left: calc(100% + var(--border-w));
+  /* Ties the end's height to the button's border box at whatever height it actually has —
+     a wrapped two-line label grows the banner and the arrow with it. The border-triangle this
+     replaced hard-coded two 24px half-heights, which matched a 44px button and nothing else. */
+  inset-block: calc(-1 * var(--border-w));
+  width: var(--arrow-w);
+  /* The same ramp as the banner, so the seam is invisible; a border-triangle could not take a
+     gradient. The clip is on the pseudo-element, NOT on `.btn--arrow`: an outline paints
+     outside its own element's border box, so clipping the button would cut §8's focus ring,
+     while clipping a child cannot reach it. (§6.2 amendment: no ink outline on the diagonal
+     yet — a clipped box cannot carry one. Deferred to Phase 2/3.) */
+  background: var(--grad-commit);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .btn--danger {
@@ -286,12 +344,25 @@
 }
 
 /* ---- 6.11 Training row ---- */
+/* §6.11 amendment: a 34px leading column for the row's icon well, ahead of the label/meter/btn
+   columns the base spec named. */
 .train-row {
   display: grid;
-  grid-template-columns: 90px 1fr auto;
+  grid-template-columns: 34px 90px 1fr auto;
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-2) 0;
+}
+/* At ≤640px (screens.css's own mobile-stacked breakpoint) the fixed 90px label column plus the
+   new 34px well and two 12px gaps leave the `1fr` meter column too little room to read as a
+   meter at all (measured ~15px wide at 375px, down from ~61px before the well). Let the label
+   column size to its own content instead of holding a fixed 90px, and shrink the gap a step —
+   the meter gets its width back with no markup or named grid-area change. */
+@media (max-width: 640px) {
+  .train-row {
+    grid-template-columns: 34px auto 1fr auto;
+    gap: var(--space-2);
+  }
 }
 .train-row__label {
   font-weight: 700;
@@ -321,15 +392,27 @@
 .shop-item__name {
   font-weight: 700;
 }
-/* §6.12's icon well: the portrait well's recession treatment, sized for an icon. Empty until
-   the visual phase delivers icons (design 2026-08-01 §3) — an empty recessed well reads as an
-   intentional slot, and §10's zero-asset rule holds. */
-.shop-item__icon {
+/* §6.18's icon well — the portrait well's recession treatment, sized for an icon. Generalized
+   from §6.12's shop slot: empty until Phase 2 delivers icons, and an empty recessed well reads
+   as an intentional slot, so §10's zero-asset rule holds. data-icon is Phase 2's mask hook. */
+.icon-well {
+  /* Five contexts, four of them flex: `.hud__stat` (inline-flex row), `.shop-item` (flex column),
+     `.btn` (inline-flex row) and `.ledger__row dt` (flex row). In those, `flex: none` pins the
+     well to its own width/height so a cramped beam, a narrow card or a long label cannot squash
+     it before the text. The fifth — `.train-row` — is a *grid*, where `flex: none` is inert: the
+     34px first column is what holds the well's box there. Do not read this declaration as the
+     training row's guarantee; changing that column is what would move it. */
+  flex: none;
   width: 34px;
   height: 34px;
   background: radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
   border: 2px solid var(--border-ink);
   border-radius: 8px 11px 9px 12px;
+}
+.icon-well--sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px 8px 7px 9px;
 }
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
 .shop-item.is-owned {
@@ -423,6 +506,57 @@
   background: var(--blood);
   width: 4px;
 }
+/* §6.4 step 3: the verdict pops at the frozen cursor, in display type, reusing §6.13's two-frame
+   `stamp-in`. main.js sets `left` to the captured position; the offsets are stated on the
+   `translate` *property* rather than in `transform` on purpose — `stamp-in` writes `transform`
+   outright, so folding the offsets in there would have the stamp jump to the cursor's lower
+   right for the length of the animation. The individual property composes under `transform`
+   instead, so the scale plays around a stamp that never leaves its spot.
+   Ink outline, not a ground: the stamp overhangs the track onto the stone page for ~240ms
+   (Law 4's waived meter-label case — `--bone` reads 2.99:1 there), and it is decorative besides.
+   `stamp-in` carries no fill, so the stamp settles at its own transform; under the
+   reduced-motion 1ms blanket that resolves to "appears instantly", in place. */
+.meter__stamp {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  translate: -50% 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--bone);
+  text-shadow:
+    -1px 1px 0 var(--ink),
+    1px 1px 0 var(--ink);
+  animation: stamp-in var(--dur-stamp) var(--ease-drop);
+  pointer-events: none; /* the whole track is the click target; the stamp must not eat a press */
+  white-space: nowrap;
+}
+/* §6.4 step 3's opacity blink on the struck zone: lit, dim, lit, in three even beats of 80ms.
+   The cuts are structural — each opacity is stated twice, at the start and end of its own beat —
+   so the hard edges come from the duplicated stops and NOT from the easing. Verified to render
+   identically under `var(--ease-drop)` and under `linear`, which is the point: a beat that leaned
+   on `steps()` to square off its edges would soften into a ramp the moment §5 retuned the token.
+   (A stepped easing does not skip stops, as an earlier revision of this rule claimed — CSS binds
+   the timing function to each keyframe *interval*, so every stop is reachable either way.)
+   No fill, so the band is left at its own full opacity: ends visible, which is what makes the
+   reduced-motion 1ms blanket the right treatment here rather than the `animation: none` carve-out
+   `.delta-chip` needs (see base.css). */
+.meter__zone.is-flashing {
+  animation: zone-flash var(--dur-stamp) var(--ease-drop);
+}
+@keyframes zone-flash {
+  0%,
+  33.32% {
+    opacity: 1;
+  }
+  33.33%,
+  66.65% {
+    opacity: 0.25;
+  }
+  66.66%,
+  100% {
+    opacity: 1;
+  }
+}
 .meter__labels {
   display: flex;
   justify-content: space-between;
@@ -439,6 +573,21 @@
   font-size: var(--text-md);
   color: var(--bone);
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+}
+/* §6.4 amendment: the first-fight taunt is spent the moment the player captures, so it goes as
+   the verdict lands. Not a dodge of a collision but the same tutorial decay §6.4 already asks
+   for, one beat earlier — and it does resolve one: the taunt line sits directly above the track,
+   which is where `.meter__stamp` pops (`bottom: calc(100% + 6px)`), so a centred capture printed
+   the verdict straight through the hint's glyphs: at 1280px the hint spans x 546.6–693.4, and
+   across the whole 0.42–0.58 capture band HIT! (35.8px wide) and CRIT! (47.6px) land *entirely*
+   inside that span, 21.5px deep — the outcomes a player most wants to read. It is not a flicker
+   either: the stamp stands until the next mount(), i.e. until the player picks an action.
+   `visibility`, not `display: none`, so the line keeps its box and the meter below it does not
+   jump upward the instant the stamp appears. `:has()` is this sheet's first use of the selector —
+   Baseline 2023 (Safari 15.4, Chrome/Edge 105, Firefox 121); where it does not parse, the rule is
+   dropped whole and the taunt merely stays put, which is exactly the shipped behaviour today. */
+.fight__stage:has(.meter.is-captured) .meter__taunt {
+  visibility: hidden;
 }
 
 /* ---- 6.9 Combat log ---- */
@@ -490,14 +639,18 @@
 .log__entry .snark {
   font-size: var(--text-xs);
 }
-/* `.fight__grid` and `.fight__actions` are screen layout, not §6 catalog entries — they live
-   with the rest of the `.fight__*` placement in screens.css. Same for `.result__*` below. */
+/* `.fight__grid`, `.fight__actions` and `.fight__press` are screen layout, not §6 catalog
+   entries — they live with the rest of the `.fight__*` placement in screens.css. (What *is* a
+   catalog entry is the button `.fight__press` holds: `.btn--commit.btn--arrow`, §6.2 above.)
+   Same for `.result__*` below. */
 
 /* ---- 6.6 The ledger ----
-   The row/net/balance rules are spec §6.6's block verbatim. Three of its lines are omitted
-   deliberately: `.amount`, `.amount--pos` and `.amount--neg` are already declared, identically,
-   in base.css (they are shared with the hub and the log, not owned by the ledger), and
-   `.ledger__banner` has no markup — the screen-level `.banner-stamp` (§6.13) carries the title
+   The row/net/balance rules are spec §6.6's block verbatim; the three `.ledger__row dt` rules
+   below it are not in that block — they belong to §6.6's Task 5 amendment (the icon well the
+   source money rows carry, per §6.18) and are commented where they sit. Three of §6.6's own
+   lines are omitted deliberately: `.amount`, `.amount--pos` and `.amount--neg` are already
+   declared, identically, in base.css (they are shared with the hub and the log, not owned by
+   the ledger), and `.ledger__banner` has no markup — the screen-level `.banner-stamp` (§6.13) carries the title
    once, in the recap column, rather than printing "VICTORY!" twice on one screen.
    §6.6 asks for "Parchment M2, --tilt-2" but its CSS block never states it, so the card's own
    treatment is written here the way .poster and .sponsor-card state theirs. */
@@ -516,6 +669,34 @@
   gap: var(--space-4);
   padding: var(--space-1) 0;
   border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
+}
+/* §6.18: the purse/tax/sponsor rows carry a leading small icon well inside `dt` alongside the
+   label text — lay the two out as their own flex row so the well sits beside the label rather
+   than stacking above it (the `dt` is otherwise a plain block). Stays on `baseline`, matching
+   `.ledger__row` itself: the well has no baseline of its own, so it opts out with `align-self`
+   below rather than the row exporting a synthesized baseline that would desync the label from
+   its own `dd` amount, and from every well-less row's label/amount alignment on the same card.
+   Spacing is a margin on the well, not `gap`, so it does not also open up between the label text
+   and the trailing `.snark` aside that shares this same flex row on the tax/sponsor lines. */
+.ledger__row dt {
+  display: flex;
+  align-items: baseline;
+}
+.ledger__row dt .icon-well {
+  align-self: center;
+  margin-right: var(--space-2);
+}
+/* …and the same flex context is why the aside needs a margin of its own. `ledgerRow` writes a
+   literal space before the `.snark` span, which is all the separation the old block `dt` needed;
+   flexing the `dt` turns the bare label into an *anonymous flex item*, and a flex item's leading
+   and trailing whitespace is trimmed — so "Arena tax(Ouch)" rendered with a gap of minus 0.30px
+   (glyph to glyph at 1280px). `--space-1` restores it to 3.70px, against 3.84px for the
+   collapsible space it replaces, and unlike that space it cannot be trimmed away again by a
+   future layout change. The literal space stays in the template: harmless here, and it still does
+   the work in a non-flex context. Scoped to `.ledger__row dt` for that reason — the two do stack
+   where the `dt` is not a flex container (7.84px), and every `.ledger__row dt` is one. */
+.ledger__row dt .snark {
+  margin-left: var(--space-1);
 }
 .ledger__row--net {
   border-top: var(--border-w) solid var(--border-ink);
@@ -687,4 +868,35 @@
   66% {
     transform: translateX(3px);
   }
+}
+
+/* ---- 6.16 Title plaque ---- */
+.title-plaque {
+  position: relative;
+  z-index: var(--z-plaque);
+  width: max-content;
+  max-width: 80%;
+  /* The plaque overlaps the beam's bottom EDGE, and no more than that. The tape strips below reach
+     ~7.5px above the plaque's own top, so the total intrusion is the margin plus that — at
+     --space-3 it came to 20px and the strips landed across the bottom of whichever stat happens to
+     sit above centre (`INJURIES` at ~1470px wide, and every stat once the beam stacks ≤640px). The
+     beam keeps ~13px of clear space under its text, so --space-1 fits the whole intrusion inside
+     it: still a visible overlap, never over a glyph. */
+  margin: calc(-1 * var(--space-1)) auto var(--space-2);
+  /* Top padding is deliberately larger than the bottom. `.tape`'s two strips are the plaque's own
+     `::before`/`::after`, positioned `top: -10px` with `height: 20px`, so they hang 10px inside the
+     plaque — and `::after` paints ABOVE the h1 (both are plaque children, and a trailing
+     pseudo-element comes last in paint order). With the 4px that the other taped cards use, a
+     90%-opaque cream strip landed across the top 6.3px of the caps and read as clipped lettering.
+     --space-4 keeps the caps 5.8px clear of the strips at every title length; the other .tape
+     users are tall enough that their headings never reach the strips, so this is local, not a
+     .tape fix. */
+  padding: var(--space-4) var(--space-5) var(--space-1);
+  transform: rotate(var(--tilt-3));
+  text-align: center;
+}
+.title-plaque h1 {
+  font-size: var(--text-xl);
+  text-transform: uppercase;
+  color: var(--ink);
 }

@@ -659,7 +659,6 @@ describe('Law 4 — text never sits on stone', () => {
     'div.hub__sinks > h2', // "The Ludus", --ink 4.15:1 (clears 3:1 as large text, not Law 4)
     'div.hub__develop > h2', // "Training" / "Gear shop", --ink 4.15:1
     'div.fight__log > h2', // "Commentary", --ink 4.15:1
-    'div.hub__sinks > p', // hub "Wins: N", --ink 4.15:1
     'span.train-row__label', // --ink 4.15:1
     'span.hub__next-label', // --bone 2.99:1
     'div.meter__labels > span', // --bone 2.99:1
@@ -762,13 +761,24 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
     .map(([, prelude, body]) => ({ sel: prelude.trim(), body }))
     .filter((r) => !r.sel.startsWith('@') && r.sel !== ':root');
 
-  it('spends the commit palette on three selectors, all of them commit or focus', () => {
+  it('spends the commit palette on four selectors, all of them commit or focus', () => {
     const blue = rules
       .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
       .map((r) => r.sel);
-    expect(blue.sort()).toEqual([':focus-visible', '.btn--commit', '.btn:focus-visible'].sort());
+    // `.btn--commit.btn--arrow::after` is the fourth, and it is not a widening of Law 3: the
+    // selector is compound on purpose, so the triangle can only ever be drawn on a commit
+    // banner — it is a piece of one, not a new blue surface. It paints the banner's own
+    // `--grad-commit`, so the seam between plank and point is invisible.
+    expect(blue.sort()).toEqual(
+      [
+        ':focus-visible',
+        '.btn--commit',
+        '.btn--commit.btn--arrow::after',
+        '.btn:focus-visible',
+      ].sort()
+    );
     // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
-    // rather than reaching for more blue. Named here so "three selectors" is not read as a gap.
+    // rather than reaching for more blue. Named here so "four selectors" is not read as a gap.
     expect(css).toMatch(
       /\.btn--commit:focus-visible\s*\{\s*outline-color:\s*var\(--bone-bright\);\s*\}/
     );
@@ -995,5 +1005,113 @@ describe('the shortfall is spelled once (design 2026-08-01 §5, item 35)', () =>
     expect(chip, 'spawnShortfallChip rendered no chip').not.toBeNull();
     expect(chip.textContent).toBe(`${MINUS}${lead}150 G${tail}`);
     purse.remove();
+  });
+});
+
+// Task 5 review fix: `.btn`'s `align-items` briefly flipped to `center` to seat the sinks' icon
+// well, which silently pulled the label and the price slot (two different font sizes) off their
+// shared text baseline in every icon-less priced button (Train x3, Return to Ludus) — exactly
+// the kind of regression this file exists to pin, since nothing here checked the property before.
+// jsdom cannot resolve a real cascade (see the §Law 4 note above), so this reads the declared
+// rule bodies straight off the sheets, the same way the rest of this file does. Anchored so the
+// bare selector cannot accidentally match a longer one sharing its prefix (`.btn__price`,
+// `.btn--commit`, `.btn:hover`, `.ledger__row--net`...).
+describe('icon wells opt out of their container’s baseline, not the other way round (§6.2/§6.18)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const ruleBody = (selector) => {
+    const re = new RegExp(`(?<![.\\w-])${reEscape(selector)}\\s*\\{([^}]*)\\}`);
+    const match = bare.match(re);
+    expect(match, `no bare "${selector}" rule`).not.toBeNull();
+    return match[1];
+  };
+
+  it('.btn stays on baseline, so the label and the price slot keep sharing one text baseline', () => {
+    expect(ruleBody('.btn')).toMatch(/align-items:\s*baseline/);
+  });
+
+  it('.btn .icon-well opts itself out with align-self, rather than the button re-centering', () => {
+    expect(ruleBody('.btn .icon-well')).toMatch(/align-self:\s*center/);
+  });
+
+  it('.ledger__row dt stays on baseline too, so a welled row lines up with every well-less row', () => {
+    expect(ruleBody('.ledger__row dt')).toMatch(/align-items:\s*baseline/);
+  });
+
+  it('.ledger__row dt .icon-well opts itself out the same way', () => {
+    expect(ruleBody('.ledger__row dt .icon-well')).toMatch(/align-self:\s*center/);
+  });
+
+  // Task 8 acceptance fix, and the same flex context is the cause. `ledgerRow` writes a literal
+  // space before the `.snark` aside; flexing the `dt` made the bare label an anonymous flex item,
+  // whose leading and trailing whitespace is trimmed, so "Arena tax (Ouch)" rendered as
+  // "Arena tax(Ouch)" — a glyph-to-glyph gap of minus 0.30px, against 3.84px before Task 5, and
+  // 3.70px with this margin. (Spelled out, not pasted: src/ may carry no second minus sign, and
+  // tests/format.test.js walks for it.)
+  //
+  // Asserted on the rule, not on the markup, because no markup assertion CAN see it: whitespace
+  // collapsing does not touch `textContent`, so every existing check on that string passes in both
+  // states and jsdom lays nothing out. The margin is what makes the separation independent of a
+  // collapsible space, so the margin is the thing to pin.
+  it('gives the ledger aside a margin, so its gap does not ride on trimmable whitespace', () => {
+    expect(ruleBody('.ledger__row dt .snark')).toMatch(/margin-left:\s*var\(--space-1\)/);
+  });
+});
+
+// Task 8 acceptance fix: §6.4's first-fight taunt sits on the line directly above the track, which
+// is exactly where Task 7's `.meter__stamp` pops (`bottom: calc(100% + 6px)`) — so a capture near
+// centre printed the verdict through the hint's glyphs — at 1280px HIT! (35.8px) and CRIT! (47.6px)
+// land entirely inside the hint's x 546.6–693.4 span across the whole 0.42–0.58 capture band, 21.5px
+// deep — and it stood there until the player picked an action. The taunt is
+// hidden on capture instead, which is §6.4's own tutorial decay one beat earlier.
+//
+// Selector-vs-markup, not text-only: the selector is *derived* from the sheet and then run against
+// the rendered first-bout fight, so a rule that hides some other element, or one scoped to a
+// wrapper the markup does not have, fails here rather than passing on a substring match.
+describe('the freeze verdict does not print over the taunt (§6.4 amendment)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Harvested on *any* way of hiding the taunt, not just the one this fix uses — filtering on
+  // `visibility` alone would let a later `display: none` rule in unexamined, which is the exact
+  // regression the first test below exists to forbid.
+  const hiders = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(
+      ([, prelude, body]) =>
+        /\.meter__taunt\b/.test(prelude) && /visibility:\s*hidden|display:\s*none/.test(body)
+    )
+    .flatMap(([, prelude, body]) => prelude.split(',').map((sel) => [sel.trim(), body]));
+
+  it('hides the taunt with visibility, so the line keeps its box and nothing below it jumps', () => {
+    expect(hiders.length, 'no rule hides .meter__taunt').toBeGreaterThan(0);
+    for (const [sel, body] of hiders) {
+      // Verified in-browser: the meter's top and the log's top are byte-identical before and after
+      // the capture (181.20 / 514.23 at 1280px). `display: none` would pull both up by a line.
+      expect(body, `${sel} must not collapse the line`).not.toMatch(/display:\s*none/);
+      expect(body, sel).toMatch(/visibility:\s*hidden/);
+    }
+  });
+
+  it('matches the rendered taunt once the meter is captured, and only then', () => {
+    const host = MOUNTED['fight (first bout)'];
+    const taunt = host.querySelector('.meter__taunt');
+    expect(taunt, 'the first-bout matrix renders no taunt').not.toBeNull();
+    const meter = host.querySelector('.meter');
+    expect(meter, 'the first-bout matrix renders no meter').not.toBeNull();
+
+    // Untouched state first: a rule that matched here would hide the hint before it was read.
+    expect(
+      hiders.filter(([sel]) => taunt.matches(sel)).map(([sel]) => sel),
+      'the taunt is hidden before the player has captured'
+    ).toEqual([]);
+
+    // MOUNTED is one shared mount for the whole file, so the state is put back either way.
+    meter.classList.add('is-captured');
+    try {
+      expect(
+        hiders.some(([sel]) => taunt.matches(sel)),
+        'no rule reaches the taunt while the meter is captured'
+      ).toBe(true);
+    } finally {
+      meter.classList.remove('is-captured');
+    }
+    expect(taunt.matches(hiders[0][0])).toBe(false);
   });
 });
