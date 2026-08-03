@@ -1073,6 +1073,16 @@ landed across the top 6.3px of the caps and read as clipped lettering. `--space-
 caps clear at every title length. This is a plaque-local constraint, not a `.tape` defect: every
 other `.tape` user is tall enough that its heading never reaches the strips.
 
+The same strips bound the overlap from the other side, which is why the negative margin is
+`--space-1` and not deeper. The plaque overlaps the beam's bottom **edge**; it must not reach the
+beam's _content_. Because the strips stand ~7.5px above the plaque's own top, the total intrusion is
+the margin plus that — at `--space-3` it came to 20px, and a strip landed across the bottom 7px of
+whichever stat sits above centre (`INJURIES` at ~1470px wide; any of them once the beam stacks
+≤640px). The beam keeps ~13px of clear space under its text, so `--space-1` fits the whole
+intrusion inside that band. Both bounds are glyph-level: an `elementFromPoint` probe of the stat
+boxes reports no collision even while a strip is painting over the letters, so changes here must be
+checked against text run geometry (`Range.getBoundingClientRect`), not hit-testing.
+
 ### 6.17 Stage layers (`.stage-backdrop`, `.stage-frame`)
 
 Viewport-fixed decorative layers wrapping every screen (visual-upgrade design §3.3):

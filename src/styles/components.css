@@ -876,7 +876,13 @@
   z-index: var(--z-plaque);
   width: max-content;
   max-width: 80%;
-  margin: calc(-1 * var(--space-3)) auto var(--space-2);
+  /* The plaque overlaps the beam's bottom EDGE, and no more than that. The tape strips below reach
+     ~7.5px above the plaque's own top, so the total intrusion is the margin plus that — at
+     --space-3 it came to 20px and the strips landed across the bottom of whichever stat happens to
+     sit above centre (`INJURIES` at ~1470px wide, and every stat once the beam stacks ≤640px). The
+     beam keeps ~13px of clear space under its text, so --space-1 fits the whole intrusion inside
+     it: still a visible overlap, never over a glyph. */
+  margin: calc(-1 * var(--space-1)) auto var(--space-2);
   /* Top padding is deliberately larger than the bottom. `.tape`'s two strips are the plaque's own
      `::before`/`::after`, positioned `top: -10px` with `height: 20px`, so they hang 10px inside the
      plaque — and `::after` paints ABOVE the h1 (both are plaque children, and a trailing
