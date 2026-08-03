@@ -1065,6 +1065,14 @@ content, and `.hud` is exactly that — no `position`, no `z-index` of its own. 
 value is not being weighed against `--z-hud`; nothing but `.commit-bar` (≤640px) consumes that
 token.
 
+The plaque's top padding is asymmetric — larger than its bottom — and must stay that way. `.tape`'s
+strips are the plaque's own `::before`/`::after` at `top: -10px`, `height: 20px`, so they hang 10px
+inside it, and `::after` paints _above_ the `h1` (a trailing pseudo-element comes last in paint
+order among an element's children). At the 4px the taller taped cards use, a 90%-opaque cream strip
+landed across the top 6.3px of the caps and read as clipped lettering. `--space-4` on top keeps the
+caps clear at every title length. This is a plaque-local constraint, not a `.tape` defect: every
+other `.tape` user is tall enough that its heading never reaches the strips.
+
 ### 6.17 Stage layers (`.stage-backdrop`, `.stage-frame`)
 
 Viewport-fixed decorative layers wrapping every screen (visual-upgrade design §3.3):

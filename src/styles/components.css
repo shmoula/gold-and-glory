@@ -877,7 +877,15 @@
   width: max-content;
   max-width: 80%;
   margin: calc(-1 * var(--space-3)) auto var(--space-2);
-  padding: var(--space-1) var(--space-5);
+  /* Top padding is deliberately larger than the bottom. `.tape`'s two strips are the plaque's own
+     `::before`/`::after`, positioned `top: -10px` with `height: 20px`, so they hang 10px inside the
+     plaque — and `::after` paints ABOVE the h1 (both are plaque children, and a trailing
+     pseudo-element comes last in paint order). With the 4px that the other taped cards use, a
+     90%-opaque cream strip landed across the top 6.3px of the caps and read as clipped lettering.
+     --space-4 keeps the caps 5.8px clear of the strips at every title length; the other .tape
+     users are tall enough that their headings never reach the strips, so this is local, not a
+     .tape fix. */
+  padding: var(--space-4) var(--space-5) var(--space-1);
   transform: rotate(var(--tilt-3));
   text-align: center;
 }
