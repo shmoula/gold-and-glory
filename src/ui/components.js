@@ -177,8 +177,11 @@ export function meter(
     </span>`;
 }
 
+// `opts.icon` is a §6.18 well name, spelled `icon` to match `btn({ icon })` and
+// `ledgerRow({ icon })` — three welled surfaces, one option name. The rest of `opts` passes
+// through to meter() untouched.
 export function bar(label, value, max, opts = {}) {
-  const well = opts.well ? iconWell(opts.well, { small: true }) : '';
+  const well = opts.icon ? iconWell(opts.icon, { small: true }) : '';
   // Escaped here as well as in meter(): the `.hud__label` span is a second sink for the same
   // string, so the "every call site passes it raw" contract only holds if both are escaped.
   return `<span class="hud__stat">${well}<span class="hud__label">${escapeHtml(label)}</span>
@@ -190,10 +193,15 @@ export function bar(label, value, max, opts = {}) {
 // so it renders as an inert div. It carries no `aria-disabled`: on a role-less div assistive
 // tech ignores the attribute, and the visible "✓ Owned" already states the case.
 // `item` is a config.gear entry ({ id, name, cost }); `snark` is the raw aside text.
+// The icon column comes from iconWell() (§6.18) like every other well, rather than being spelled
+// out twice here. It used to be hand-rolled markup carrying an extra `.shop-item__icon` class that
+// no rule in src/styles/ ever targeted — so the well's treatment already came from `.icon-well`,
+// and the shop was the one surface where an element or attribute added to iconWell() would have
+// been silently skipped in two places.
 export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   if (owned) {
     return `<div class="shop-item parchment is-owned">
-        <span class="shop-item__icon icon-well" aria-hidden="true" data-icon="${escapeHtml(item.id)}"></span>
+        ${iconWell(item.id)}
         <span class="shop-item__name">${escapeHtml(item.name)}</span>
         <span class="shop-item__owned">✓ Owned</span></div>`;
   }
@@ -206,7 +214,7 @@ export function shopItem(item, { owned = false, gold, snark = '' } = {}) {
   }
   const missingAttr = shortfallAttr(item.cost, gold);
   return `<button data-action="buy-${escapeHtml(item.id)}" class="shop-item parchment${missingAttr ? ' is-unaffordable' : ''}"${missingAttr}>
-      <span class="shop-item__icon icon-well" aria-hidden="true" data-icon="${escapeHtml(item.id)}"></span>
+      ${iconWell(item.id)}
       <span class="shop-item__name">${escapeHtml(item.name)}</span>
       <span class="btn__price">${formatGold(item.cost)}</span>
       ${snarkAside(snark, missingAttr, shortfallAmount(item.cost, gold))}</button>`;

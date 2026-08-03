@@ -12,6 +12,7 @@ import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
 import { formatGold } from '../src/ui/format.js';
 import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS } from '../src/ui/effects.js';
+import { dtLabel } from './support/ledger.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
 const SEED = Math.floor(SEED_ROLL * 1e9); // …and the run seed main.js derives from it
@@ -624,16 +625,8 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
     expect(q('.screen--result'), 'the fight did not end').not.toBeNull();
   }
 
-  // A ledger row's label, tolerant of the optional leading `.icon-well` Task 5 gives the
-  // purse/tax/sponsor rows: reading `firstChild` (the old approach) broke the moment a row
-  // gained a leading element node. Read by content instead — a clone-and-remove rather than a
-  // string subtraction, so it stays correct even if a label ever happened to contain its own
-  // aside's text, or the row carried more than one.
-  const dtLabel = (dt) => {
-    const clone = dt.cloneNode(true);
-    clone.querySelector('.snark')?.remove();
-    return clone.textContent.trim();
-  };
+  // `dtLabel` comes from tests/support/ledger.js — the same reader tests/render.test.js uses on
+  // the rendered card, so this file cannot hold the announcement to a differently-read label.
   // The rows as the card states them, so the announcement can be held to the card's own words.
   const cardLines = () =>
     [...app().querySelectorAll('.ledger__row')].map(

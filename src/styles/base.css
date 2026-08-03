@@ -28,7 +28,11 @@ body {
    of the input path, and the body's padding: var(--frame-w) below — not z-order — is what holds
    content clear of the border. --z-frame guards nothing interactive: --z-hud has one consumer in
    the whole sheet set (.commit-bar, ≤640px), so every other control is non-positioned in-flow
-   content and paints *below* the frame. */
+   content and paints *below* the frame. That is safe only while the frame is a plain `border`,
+   which paints strictly inside the border box — i.e. inside the ring the padding already vacated,
+   with nothing to cover. Phase 3's border-image can reach inward, and would paint over live
+   controls while pointer-events: none left them clickable. See §6.17's Phase 3 constraint before
+   swapping the border out. */
 .stage-backdrop {
   position: fixed;
   inset: 0;

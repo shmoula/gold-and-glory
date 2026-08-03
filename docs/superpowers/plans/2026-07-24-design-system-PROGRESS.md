@@ -318,7 +318,8 @@ Original text follows.
 7. `src/ui/render.js` still hand-formats a few `${...}g` strings instead of using `formatGold`
    (spec §2 says nothing formats money by hand).
 8. `.sponsor-card` has no dog-eared folded-triangle pseudo-element (spec §6.10).
-9. `.shop-item` has no icon well (spec §6.12).
+9. `.shop-item` has no icon well (spec §6.12). _(Closed, and generalized well past this line — see
+   the item 9 entry under "Open decisions" below.)_
 10. `.poster__portrait` is a fixed `height: 104px`, not spec §6.5's fixed 4:3 well.
 11. The §6.2 CSS block is **no longer byte-exact** to the spec fence: Task 5 merged the duplicated
     price-colour and shortfall-`::after` rules into selector lists shared with `.shop-item`. The
@@ -559,7 +560,17 @@ the conflict, then a recommendation.
 **Visual features the spec asks for and the code does not have**
 
 - **8** `.sponsor-card`'s dog-eared folded-triangle pseudo-element (§6.10). **9** `.shop-item`'s icon
-  well (§6.12). **10** `.poster__portrait` is a fixed 104px, not §6.5's 4:3 well — this is why the
+  well (§6.12) — **no longer a one-off.** Visual-upgrade Phase 1 generalized the treatment into
+  §6.18's `.icon-well`, and the shop card is now one of **five** welled surfaces carrying **15**
+  wells in a single flat `data-icon` namespace: the HUD's three stats, the three training rows, the
+  three hub sinks, the ledger's three source money rows, and one per `config.gear` id. All 15 are
+  empty by design — §10's zero-asset rule — and all 15 are waiting on the same thing: Phase 2's
+  glyph pack and the CSS mask that paints it. So this line is closed as _structure_ and open as
+  _art_, once, for every surface rather than for the shop alone. §6.18 carries the registry and the
+  warning that the gear arm of the namespace is not closed. (Phase 1 follow-up also deleted
+  `.shop-item__icon`: it was a class no CSS rule ever matched, sitting on markup the shop
+  hand-rolled instead of calling `iconWell()`.) **10** `.poster__portrait` is a fixed 104px, not
+  §6.5's 4:3 well — this is why the
   portraits look letterboxed at desktop width. **17** §6.4's freeze extras: the zone flash and
   `.meter__stamp` shipped in visual-upgrade Phase 1 (Task 7), leaving the **250ms hold** (no timer
   in `main.js`) and the chicken squash, omitted entirely for want of an asset and deferred to

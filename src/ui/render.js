@@ -80,8 +80,8 @@ export function renderHud(state, config, { urgent } = {}) {
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
-      ${bar('Health', hp.value, hp.max, { well: 'health', urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION })}
-      ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { well: 'durability', fillClass: ' bar__fill--dur' })}
+      ${bar('Health', hp.value, hp.max, { icon: 'health', urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION })}
+      ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { icon: 'durability', fillClass: ' bar__fill--dur' })}
       <span class="hud__stat">${iconWell('injuries', { small: true })}<span class="hud__label">Injuries</span>
         <span role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}"><span class="hud__count" aria-hidden="true">${state.injuries}</span><span class="pips" aria-hidden="true">${pips}</span></span></span>
     </header>`;

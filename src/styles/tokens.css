@@ -137,7 +137,10 @@
 
   /* Z-scale (paper layering) — ascending, so the stack reads in paint order */
   --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
-  --z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
+  --z-frame: 5; /* stone frame (§6.17). NOT "below the interactive layers": --z-hud has exactly
+    one consumer in the whole sheet set (.commit-bar, ≤640px), so every other control is
+    non-positioned in-flow content and paints *below* this. What keeps content clear of the frame
+    is the body's padding: var(--frame-w), not this number — see §6.17's Phase 3 constraint */
   --z-hud: 10;
   --z-plaque: 11; /* title plaque (§6.16) — .hud is plain non-positioned flow, so the plaque
     only needs a stacking context of its own to paint over it; the negative top margin

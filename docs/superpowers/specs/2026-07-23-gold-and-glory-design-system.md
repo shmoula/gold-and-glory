@@ -150,7 +150,10 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
 
   /* Z-scale (paper layering) — ascending, so the stack reads in paint order */
   --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
-  --z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
+  --z-frame: 5; /* stone frame (§6.17). NOT "below the interactive layers": --z-hud has exactly
+    one consumer in the whole sheet set (.commit-bar, ≤640px), so every other control is
+    non-positioned in-flow content and paints *below* this. What keeps content clear of the frame
+    is the body's padding: var(--frame-w), not this number — see §6.17's Phase 3 constraint */
   --z-hud: 10;
   --z-plaque: 11; /* title plaque (§6.16) — .hud is plain non-positioned flow, so the plaque
     only needs a stacking context of its own to paint over it; the negative top margin
@@ -174,8 +177,9 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
 }
 ```
 
-Additions (visual-upgrade design §3.3): `--z-backdrop: -1`, `--z-frame: 5`,
-`--z-plaque: 11`, `--frame-w: 14px` (8px at ≤640px).
+Additions: `--z-backdrop: -1`, `--z-frame: 5` and `--frame-w: 14px` (8px at ≤640px) from
+visual-upgrade design §3.3 (stage layers); `--z-plaque: 11` from §3.2 (the title plaque) — a
+different component, hence the separate citation. §6.16 and §6.17 are the catalog entries.
 
 **No dark mode.** The game commits to one lit arena; there is no theme switch. (Deliberate, not an omission.)
 
@@ -341,7 +345,7 @@ poster--tilt-2, poster--tilt-3, tape, parchment, snark, ledger, ledger__banner, 
 ledger__row--net, ledger__row--balance, amount, amount--pos, amount--neg, delta-chip,
 delta-chip--pos, delta-chip--neg, ticker, log, log__entry, log__turn, sponsor-card,
 sponsor-card__eyebrow, sponsor-card__name, train-row, train-row__meter, train-row__label,
-shop-item, shop-item__icon, shop-item__name, shop-item__owned, banner-stamp,
+shop-item, shop-item__name, shop-item__owned, banner-stamp,
 banner-stamp--victory, banner-stamp--defeat, banner-stamp--death, ending-card,
 ending-card--locked, cause-of-death, modal, modal__scrim, wordmark, sr-only, is-hidden,
 is-captured, is-shaking, screen, screen--hub, screen--fight, screen--result,
@@ -354,6 +358,13 @@ btn--arrow, fight__press, is-flashing`
 
 `modal` and `modal__scrim` (§6.15) are specified, not yet rendered — no screen mounts a modal
 today, but the spec still calls for one (death-match clause confirm).
+
+**Amendment (visual-upgrade Phase 1 follow-up):** `shop-item__icon` is struck from the index. It
+was kept "for §6.12's layout selectors" that were never written — zero rules in `src/styles/`
+matched it, so the shop well's whole treatment already came from `.icon-well` — while `shopItem()`
+hand-rolled a second copy of the well's markup behind it. §6.12's icon column is now an
+`.icon-well` (§6.18) and nothing else: `shopItem()` calls `iconWell(item.id)` like every other
+welled surface, so no one surface can quietly diverge from the rest.
 
 ### 6.1 HUD beam (persistent, all screens)
 
@@ -610,12 +621,18 @@ Semantics:
 
 **Amendment (visual-upgrade design §3.1):** `.btn--arrow`, a modifier stacked on
 `.btn--commit` for the fight screen's PRESS THE ATTACK: the commit banner's display face at
-`--text-commit`, plus a triangular right end. The end is an absolutely-positioned `::after`
-seated in an equal `margin-right`, painted with `--grad-commit` and pointed by `clip-path`; its
+`--text-commit`, `letter-spacing: 0.04em`, plus a triangular right end. The end is an
+absolutely-positioned `::after` seated in an equal `margin-right`, painted with `--grad-commit`
+and pointed by `clip-path`; its
 `inset-block` is negative `--border-w`, so the triangle is exactly as tall as the button's
 border box **at any height** — the button grows when its label wraps and the arrow grows with
 it. Selector is `.btn--commit.btn--arrow`, both rules, so the sheet enforces the modifier's
 own rule: an arrow is always a commit banner, never a blue end on some other plank.
+
+The `letter-spacing` is a deliberate override of `.btn--commit`'s `0.05em`, not a stray value:
+this is the one commit banner whose label runs up against a hard diagonal rather than ending in
+the plank's own padding, and the extra 0.01em of trailing space read as a gap between the last
+letter and the point. One step tighter, on the arrow only.
 
 Two things this technique is deliberately careful about. **`left: 100%` resolves against the
 padding box**, so the offset is `calc(100% + var(--border-w))` — without the step out, the
@@ -811,7 +828,7 @@ Parchment M2, `--tilt-2`. This card is co-primary with the result banner — it 
       <dd class="amount amount--pos">+600 G</dd>
     </div>
     <div class="ledger__row">
-      <dt>Tax (15%) <span class="snark">(Ouch!)</span></dt>
+      <dt>Arena tax <span class="snark">(Ouch!)</span></dt>
       <dd class="amount amount--neg">−90 G</dd>
     </div>
     <div class="ledger__row">
@@ -902,6 +919,20 @@ on the welled rows. Four rules follow from that:
   item's leading/trailing whitespace is trimmed — which silently ate that space and rendered
   "Arena tax(Ouch)". Scoped to `.ledger__row dt`, the only context where the trimming happens.
 
+**The tax row is labelled `Arena tax`, with no rate.** The HTML above spelled it `Tax (15%)`; the
+shipped copy drops the parenthetical deliberately, and the fence has been corrected to match. Three
+reasons, in order of weight:
+
+- `arenaTax()` is `Math.round(purse * rate)`, so the printed amount is **rounded** — a rate beside
+  it would claim a precision the row does not carry. A 601 G purse at the shipped 20% shows −120 G,
+  and 20% of 601 is 120.2. Law 1: numbers never lie.
+- The rate is **not one number**. `config.arena` carries `taxRate` and `bribedTaxRate`, and §6.2's
+  Bribe button swaps between them mid-run; a rate baked into the label would have to be kept in
+  step with the state that chose it, by hand, on the one card that exists to be trusted.
+- `15%` was never the shipped rate anyway (`config.arena.taxRate` is `0.2`) — a rate in this
+  document is a second source for a balance value Law 6 puts in `config.js` alone. The Bribe
+  button states the rates, from config; the ledger row states what was taken.
+
 ### 6.7 DeltaChip & Ticker (money always moves)
 
 - **`.ticker`** — the purse number. On change, count toward the new value over ≤ 600ms
@@ -951,7 +982,29 @@ recurring comedy vehicle is instantly recognizable. Anatomy: "SPONSOR:" eyebrow 
 the row's meter fill transitions (150ms) and a delta chip fires.
 
 **Amendment (visual-upgrade design):** the icon column widens to 34px, carrying a
-default-size `.icon-well` per §6.18 rather than a bare 24px icon.
+default-size `.icon-well` per §6.18 rather than a bare 24px icon. Shipped columns are
+`34px 90px 1fr auto` (well · label · meter · button) with a `--space-3` gap.
+
+**And the well takes its room out of the meter, so ≤640px needs its own columns.** With the fixed
+90px label, the new 34px well and two 12px gaps, the `1fr` meter measured **~15px at 375px** — down
+from ~61px before the well, and no longer readable as a meter at all. So inside screens.css's own
+≤640px breakpoint:
+
+```css
+@media (max-width: 640px) {
+  .train-row {
+    grid-template-columns: 34px auto 1fr auto;
+    gap: var(--space-2);
+  }
+}
+```
+
+The label column sizes to its own content instead of holding a fixed 90px, and the gap drops one
+step. The meter gets its width back with no markup change and no named-area change — the row is a
+plain four-column grid, not part of §7's area maps. (This is a different problem from the one
+recorded against the training row in the older progress notes, where the `auto` Train button takes
+max-content; that one is still open and is why the meter is `decorative: true` with the real number
+in the label beside it.)
 
 ### 6.12 Shop item card — the state triad
 
@@ -1020,19 +1073,74 @@ stone body (M1) → `.stage-backdrop` (`--z-backdrop`) → `.stage-frame` (`--z-
 `index.html` — they are not re-rendered. Empty backdrop = the body's stone shows through
 (§10 zero-asset rule). Phase 1 frame is a plain `--stone-2` border of width `--frame-w`
 (14px, 8px ≤640px); Phase 3 replaces it with cartoon-masonry `border-image`. The body gains
-`padding: var(--frame-w)` so content never sits under the border; interactive layers
-(`--z-hud` and up) stay above the frame. Regular content clears the frame via the body's
-padding offset, not z-order: it is non-positioned (`z-index: auto`), so only `--z-hud` and
-above are explicitly stacked above the frame's `--z-frame: 5`.
+`padding: var(--frame-w)` so content never sits under the border.
+
+**Content clears the frame by offset, not by z-order — and nothing interactive is stacked above
+it.** Regular content is non-positioned (`z-index: auto`), and `--z-hud` has exactly one consumer
+in the whole sheet set: `.commit-bar`, inside screens.css's ≤640px block. So every button, meter
+and card on every screen paints _below_ `.stage-frame` at `--z-frame: 5`. (An earlier draft of this
+section claimed "interactive layers (`--z-hud` and up) stay above the frame". They do not, because
+almost nothing consumes `--z-hud`.)
+
+**Constraint on Phase 3 (stated here so it is not rediscovered).** That ordering is harmless today
+for one reason only: a plain `border` paints strictly inside the border box, so the frame's ink
+occupies exactly the ring the body's `padding: var(--frame-w)` has already vacated — it has nothing
+to cover. A cartoon-masonry `border-image` is not so constrained: `border-image-outset` pushes the
+slice _outward_ (off-screen here, harmless), but any inward overhang — an oversized slice, a
+`border-image-width` above the border width, a stone that bulges past its ring — **will paint over
+the controls beneath it**, and being `pointer-events: none` it will do so while leaving them
+clickable: a button visibly buried under a rock that still takes the click. So Phase 3 must do one
+of three things, deliberately:
+
+1. keep the masonry strictly inside its ring and widen `--frame-w` to buy the room, or
+2. give the frame a negative `z-index` band of its own below the content, or
+3. stack the content above it — which means finding real consumers for `--z-hud`, i.e. positioning
+   every interactive layer, not just the ≤640px commit bar.
+
+Whichever is chosen, the body-padding offset stops being the whole mechanism the moment the frame's
+paint can reach inward, and this section is where that has to be re-stated.
 
 ### 6.18 Icon well (`.icon-well`)
 
-The generic empty-slot treatment, generalized from §6.12's `.shop-item__icon` (which now also
-carries the class): recessed paper radial, ink border, wobble radius. 34px default,
-24px as `.icon-well--sm` — the two cramped contexts: the HUD beam's stats (§6.1) and the
+The generic empty-slot treatment, generalized from §6.12's shop slot (which is now an instance of
+it and nothing more — see §6.0's amendment): recessed paper radial, ink border, wobble radius. 34px
+default, 24px as `.icon-well--sm` — the two cramped contexts: the HUD beam's stats (§6.1) and the
 ledger's source money rows (§6.6). Always `aria-hidden="true"` with a `data-icon="<name>"` hook —
 Phase 2 paints the named glyph via CSS mask; until then the recessed well reads as an
 intentional slot. Never carries meaning: the adjacent label/numeral does.
+
+Emitted by one function, `iconWell(name, { small })` in `src/ui/components.js`. Nothing hand-rolls
+the markup — that is what keeps an element or attribute added here from reaching four surfaces and
+missing a fifth.
+
+**Amendment (visual-upgrade Phase 1 follow-up) — the `data-icon` registry.** Phase 1 ships 15 names
+across five surfaces, and they share **one flat namespace**: `data-icon` is the only key, there is
+no per-surface prefix, so Phase 2's mask selectors (`[data-icon='health']`) hit every well with
+that name wherever it sits. The shipped set:
+
+| Surface                           | Names                              | Size    |
+| --------------------------------- | ---------------------------------- | ------- |
+| HUD beam stats (§6.1)             | `health`, `durability`, `injuries` | `--sm`  |
+| Training rows (§6.11)             | `power`, `guard`, `speed`          | default |
+| Hub sinks, `btn({ icon })` (§6.2) | `repair`, `heal`, `bribe`          | default |
+| Ledger source rows (§6.6)         | `purse`, `tax`, `sponsor`          | `--sm`  |
+| Gear cards (§6.12)                | `shield`, `blade`, `charm`         | default |
+
+Two things follow, and Phase 2 has to plan for both.
+
+- **The namespace is not closed.** The first four rows are literals in `render.js`; the gear row is
+  `item.id` straight out of `config.gear`, so adding a fifth piece of gear mints a sixteenth
+  `data-icon` name with no code change and no spec edit. A Phase 2 glyph table keyed by name must
+  therefore either be driven from `config.gear` or fail loudly on an unmapped id — a silent miss
+  renders as an empty well, which is indistinguishable from Phase 1's intended state.
+- **Names overlap across surfaces, deliberately.** `health` is the HUD's, and a Phase 2 poster or
+  ledger well naming `health` would get the same glyph — which is right. But note the collision
+  risk the flat namespace carries: a gear id or a future sink that happens to be spelled like an
+  existing name silently inherits that glyph rather than getting its own. The registry above is the
+  list to check a new name against.
+
+`data-icon` names the glyph and only the glyph: size travels on `.icon-well--sm`, and no well
+encodes a state at all. The 15 names above are every value it takes today.
 
 ---
 
@@ -1062,7 +1170,10 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
 
 /* FIGHT — posters flank, meter center-stage, log left / actions right */
-/* areas AND the slot legend below them superseded — see the fight-grid amendment below */
+/* SUPERSEDED — three things, not two: this rule's `grid-template-areas`, its
+   `grid-template-rows`, and the slot legend under the closing brace. The amendment further down
+   carries all three. Do not copy-paste this block: its three row tracks under a four-row area
+   map is exactly the mismatch tests/grid-areas.test.js fails on. */
 .screen--fight {
   grid-template-columns: 260px 1fr 300px;
   grid-template-rows: auto 1fr auto;
@@ -1143,15 +1254,37 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
 
 **Amendment (visual-upgrade design §3.1, decision 2):** the fight grid becomes
 
+```css
+.screen--fight {
+  grid-template-columns: 260px 1fr 300px;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas:
     'hud  hud     hud'
     'you  stage   foe'
     'you  actions foe'
-    'log  log     press'
+    'log  log     press';
+}
+```
+
+**Four row tracks, not three** — the superseded block's `auto 1fr auto` is one short of this area
+map, and a screen that names more rows than it sizes is a `tests/grid-areas.test.js` failure. The
+`1fr` is the third row (`you actions foe`), so the posters' second half absorbs the slack and the
+`log`/`press` row stays content-sized at the bottom.
 
 DOM order: you, stage, foe, actions, log, press — interactive flow stays meter → actions →
-log → press. `.fight__press` holds the PRESS THE ATTACK arrow bottom-right; at ≤900px areas
-stack `'you stage' / 'foe stage' / 'actions actions' / 'log log' / 'press press'`; at ≤640px
-the standard area reset returns everything to source-order flow.
+log → press. `.fight__press` holds the PRESS THE ATTACK arrow bottom-right; at ≤900px the areas
+stack, with `grid-template-rows: none`:
+
+    'hud     hud'
+    'you     stage'
+    'foe     stage'
+    'actions actions'
+    'log     log'
+    'press   press'
+
+(The `'hud hud'` row is not optional at either breakpoint: the beam renders as a sibling above the
+`.screen` section, and the row is reserved for it — every other screen's area map carries the same
+first row.) At ≤640px the standard area reset returns everything to source-order flow.
 
 Slot legend, replacing the one under the superseded block above — stage: taunt line, `.meter`
 and labels · actions: the 2×2 action grid, nothing else · press: the §6.2 commit arrow, seated

@@ -38,8 +38,9 @@ One `.icon` element rendering via CSS `mask-image` + `background-color: currentC
 monochrome game-icons SVGs become paintable glyphs: parchment-tone on wood surfaces, ink on
 parchment, blood token where flagged — recoloring never touches an SVG file. Icons are
 decorative (`aria-hidden="true"`) everywhere; labels, numerals, and pips carry meaning.
-Missing asset ⇒ the well's recessed treatment shows (existing `.shop-item__icon` precedent) —
-the §10 zero-asset rule needs no new machinery.
+Missing asset ⇒ the well's recessed treatment shows (the shop card's slot was the precedent; Phase 1
+generalized it into `.icon-well`, design-system §6.18, and the `.shop-item__icon` class this line
+originally named no longer exists) — the §10 zero-asset rule needs no new machinery.
 
 ### 2.3 House style recipe (hand-authored SVG)
 

@@ -32,6 +32,7 @@ import { startFight, effectiveStats, resolveFightOutcome } from '../src/game.js'
 import { makeRng } from '../src/rng.js';
 import { resolveTiming, timingWindowWidth } from '../src/combat.js';
 import { FOCUSABLE } from './support/screens.js';
+import { dtLabel } from './support/ledger.js';
 
 // Match classes as a set, never as a literal class string: adding or reordering a class is a
 // harmless refactor and must not turn a passing suite red.
@@ -331,10 +332,10 @@ describe('iconWell', () => {
 });
 
 describe('bar', () => {
-  // Every current call site (renderHud) passes `well`, so this path is otherwise unexercised:
+  // Every current call site (renderHud) passes `icon`, so this path is otherwise unexercised:
   // a regression that made bar() always emit a well would leave one showing wherever a caller
   // deliberately omits it, and nothing would catch it.
-  it('emits no icon well when opts.well is not supplied', () => {
+  it('emits no icon well when opts.icon is not supplied', () => {
     const html = bar('Health', 3, 10);
     expect(dom(html).querySelectorAll('.icon-well')).toHaveLength(0);
   });
@@ -924,24 +925,30 @@ describe('shopItem', () => {
     expect(() => shopItem(CONFIG.gear.blade, { owned: true })).not.toThrow();
   });
 
-  // §6.18: the shop slot is the icon well generalized, keeping its own class for §6.12's layout
-  // selectors while getting the well's treatment and Phase 2's data-icon mask hook. Both branches
-  // render the icon column, so a regression in either would otherwise ship silently.
-  it('gives the owned branch an icon well keyed by the item id (§6.18)', () => {
+  // §6.18: the shop slot IS the icon well, keyed by the item id. Both branches render the icon
+  // column, so a regression in either would otherwise ship silently.
+  //
+  // Held to iconWell()'s own output rather than to a class list, deliberately. The card used to
+  // hand-roll the well's markup — same classes, same attributes, spelled a second time — so
+  // anything Phase 2 adds inside iconWell() (an inner glyph span, a `data-glyph` state attribute)
+  // would have appeared on four surfaces and not on the shop, with a class-list assertion still
+  // green. Comparing against the function makes "the shop calls iconWell" the thing under test.
+  it('gives the owned branch the §6.18 well, keyed by the item id', () => {
     const { charm } = CONFIG.gear;
     const card = shopItem(charm, { owned: true, gold: 0 });
+    expect(card).toContain(iconWell(charm.id));
+    // The well is still reachable by the hook Phase 2's CSS mask selects on, in a parsed DOM.
     const well = dom(card).querySelector(`[data-icon="${charm.id}"]`);
     expect(well, 'no well on the owned card').not.toBeNull();
-    expect([...well.classList]).toEqual(expect.arrayContaining(['shop-item__icon', 'icon-well']));
     expect(well.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('gives the buyable branch an icon well keyed by the item id (§6.18)', () => {
+  it('gives the buyable branch the §6.18 well, keyed by the item id', () => {
     const { blade } = CONFIG.gear;
     const card = shopItem(blade, { gold: blade.cost });
+    expect(card).toContain(iconWell(blade.id));
     const well = dom(card).querySelector(`[data-icon="${blade.id}"]`);
     expect(well, 'no well on the buyable card').not.toBeNull();
-    expect([...well.classList]).toEqual(expect.arrayContaining(['shop-item__icon', 'icon-well']));
     expect(well.getAttribute('aria-hidden')).toBe('true');
   });
 });
@@ -972,16 +979,10 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
     lastResult,
   });
   const resultOf = (lastResult, over = {}) => renderResult(stateOf(lastResult, over), CONFIG);
-  // A ledger row's label text: the snark aside stripped off, and — since Task 5 — tolerant of an
-  // optional leading `.icon-well` sharing the `<dt>`. Reading `firstChild` (the old approach)
-  // broke the moment a row gained a leading element node, so this reads by content, not
-  // position — a clone-and-remove rather than a string subtraction, so it stays correct even if
-  // a label ever happened to contain its own aside's text, or the row carried more than one.
-  const dtLabel = (dt) => {
-    const clone = dt.cloneNode(true);
-    clone.querySelector('.snark')?.remove();
-    return clone.textContent.trim();
-  };
+  // `dtLabel` (a ledger row's label, aside stripped, well-tolerant) comes from
+  // tests/support/ledger.js — tests/main.test.js reads the same rows to hold the live-region
+  // announcement to the card's own words, and two copies of the reader would let one file's idea
+  // of a row label drift from the other's.
   // Rows as { label, amount } with the snark aside stripped off the term.
   const ledgerRows = (html) =>
     [...dom(html).querySelectorAll('.ledger__row')].map((row) => ({
