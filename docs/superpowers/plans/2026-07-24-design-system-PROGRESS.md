@@ -344,9 +344,14 @@ Original text follows.
     added to satisfy §8. A re-reviewer noted **`role="button"` would read better** ("button", free
     activation semantics) and recommends it; changing the mandated role is a spec decision.
 17. Spec §6.4's freeze also specifies a 250ms hold, chicken squash, zone flash and `.meter__stamp`;
-    the plan shipped only the `is-captured` class and a colour change, so the freeze feedback is
-    thinner than §6.4's "never skip it". The chicken is omitted entirely (no asset); §6.4 names the
-    ink cursor as the functional fallback.
+    the plan shipped only the `is-captured` class and a colour change, so the freeze feedback was
+    thinner than §6.4's "never skip it". **Two of the four have since shipped** (visual-upgrade
+    Phase 1, Task 7): the struck-zone flash (`.meter__zone.is-flashing`) and the verdict stamp
+    (`.meter__stamp`), both raised by `main.js` at the capture. Still outstanding: the chicken
+    squash, omitted entirely for want of an asset and deferred to Phase 3 (§6.4 names the ink
+    cursor as the functional fallback), and the **250ms hold**, which is still not implemented —
+    there is no timer in `main.js` at all, so the verdict shows at the freeze and the action
+    resolves on the player's next click rather than after a held beat.
 18. `.meter__labels`, `.meter__taunt` and `is-captured` are not in spec §6.0's **closed class
     index** — though §6.4's own HTML fence uses `meter__labels`, so the index is internally
     inconsistent. Also §6.4 wants MISS/GRAZE/HIT/CRIT ticks aligned to zone edges; the plan's six
@@ -555,9 +560,10 @@ the conflict, then a recommendation.
 
 - **8** `.sponsor-card`'s dog-eared folded-triangle pseudo-element (§6.10). **9** `.shop-item`'s icon
   well (§6.12). **10** `.poster__portrait` is a fixed 104px, not §6.5's 4:3 well — this is why the
-  portraits look letterboxed at desktop width. **17** §6.4's freeze extras: the 250ms hold, chicken
-  squash, zone flash and `.meter__stamp`; the chicken is omitted entirely for want of an asset.
-  **27** §6.13's giant Roman sandal behind the death stamp, likewise.
+  portraits look letterboxed at desktop width. **17** §6.4's freeze extras: the zone flash and
+  `.meter__stamp` shipped in visual-upgrade Phase 1 (Task 7), leaving the **250ms hold** (no timer
+  in `main.js`) and the chicken squash, omitted entirely for want of an asset and deferred to
+  Phase 3. **27** §6.13's giant Roman sandal behind the death stamp, likewise.
   _Recommendation:_ do **10** (it is a visible layout flaw, and cheap), then decide whether the
   asset-dependent ones are worth commissioning art for or should be cut from the spec.
 

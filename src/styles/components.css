@@ -571,6 +571,21 @@
   color: var(--bone);
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
 }
+/* §6.4 amendment: the first-fight taunt is spent the moment the player captures, so it goes as
+   the verdict lands. Not a dodge of a collision but the same tutorial decay §6.4 already asks
+   for, one beat earlier — and it does resolve one: the taunt line sits directly above the track,
+   which is where `.meter__stamp` pops (`bottom: calc(100% + 6px)`), so a centred capture printed
+   the verdict straight through the hint's glyphs: at 1280px the hint spans x 546.6–693.4, and
+   across the whole 0.42–0.58 capture band HIT! (35.8px wide) and CRIT! (47.6px) land *entirely*
+   inside that span, 21.5px deep — the outcomes a player most wants to read. It is not a flicker
+   either: the stamp stands until the next mount(), i.e. until the player picks an action.
+   `visibility`, not `display: none`, so the line keeps its box and the meter below it does not
+   jump upward the instant the stamp appears. `:has()` is this sheet's first use of the selector —
+   Baseline 2023 (Safari 15.4, Chrome/Edge 105, Firefox 121); where it does not parse, the rule is
+   dropped whole and the taunt merely stays put, which is exactly the shipped behaviour today. */
+.fight__stage:has(.meter.is-captured) .meter__taunt {
+  visibility: hidden;
+}
 
 /* ---- 6.9 Combat log ---- */
 /* `color` is not in the plan's block: legacy.css's zero-specificity `:where(.log)` still paints
@@ -665,6 +680,18 @@
 .ledger__row dt .icon-well {
   align-self: center;
   margin-right: var(--space-2);
+}
+/* …and the same flex context is why the aside needs a margin of its own. `ledgerRow` writes a
+   literal space before the `.snark` span, which is all the separation the old block `dt` needed;
+   flexing the `dt` turns the bare label into an *anonymous flex item*, and a flex item's leading
+   and trailing whitespace is trimmed — so "Arena tax(Ouch)" rendered with a gap of minus 0.30px
+   (glyph to glyph at 1280px). `--space-1` restores it to 3.70px, against 3.84px for the
+   collapsible space it replaces, and unlike that space it cannot be trimmed away again by a
+   future layout change. The literal space stays in the template: harmless here, and it still does
+   the work in a non-flex context. Scoped to `.ledger__row dt` for that reason — the two do stack
+   where the `dt` is not a flex container (7.84px), and every `.ledger__row dt` is one. */
+.ledger__row dt .snark {
+  margin-left: var(--space-1);
 }
 .ledger__row--net {
   border-top: var(--border-w) solid var(--border-ink);

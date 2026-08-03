@@ -776,6 +776,14 @@ Chicken asset: `chicken.svg` (or transparent PNG), 40×48, feet-down, facing tra
 First-fight-only helper line "Time your hit! (Or don't!)" above the meter; it never appears again
 after one completed fight (tutorial decay).
 
+**Amendment (visual-upgrade Phase 1, Task 8):** tutorial decay starts one beat earlier — the
+taunt goes **hidden on capture**, not merely on the next fight. The hint tells the player to time
+their hit, and it is spent the moment they do. It also has to go: the taunt occupies the line
+directly above the track, which is exactly where step 3's `.meter__stamp` pops, so a capture
+anywhere near centre printed the verdict through the hint's glyphs. Hidden with `visibility`, so
+the line keeps its box and nothing below it shifts when the stamp arrives. CSS-only, state-scoped
+(`.fight__stage:has(.meter.is-captured)`) — no new class, and the markup is unchanged.
+
 ### 6.5 Wanted poster (combatant card)
 
 Parchment M2 + tape M4, `--tilt-1` (player) / `--tilt-2` (opponent) — neighbors never share tilt.

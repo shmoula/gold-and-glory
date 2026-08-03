@@ -1040,4 +1040,78 @@ describe('icon wells opt out of their container’s baseline, not the other way 
   it('.ledger__row dt .icon-well opts itself out the same way', () => {
     expect(ruleBody('.ledger__row dt .icon-well')).toMatch(/align-self:\s*center/);
   });
+
+  // Task 8 acceptance fix, and the same flex context is the cause. `ledgerRow` writes a literal
+  // space before the `.snark` aside; flexing the `dt` made the bare label an anonymous flex item,
+  // whose leading and trailing whitespace is trimmed, so "Arena tax (Ouch)" rendered as
+  // "Arena tax(Ouch)" — a glyph-to-glyph gap of minus 0.30px, against 3.84px before Task 5, and
+  // 3.70px with this margin. (Spelled out, not pasted: src/ may carry no second minus sign, and
+  // tests/format.test.js walks for it.)
+  //
+  // Asserted on the rule, not on the markup, because no markup assertion CAN see it: whitespace
+  // collapsing does not touch `textContent`, so every existing check on that string passes in both
+  // states and jsdom lays nothing out. The margin is what makes the separation independent of a
+  // collapsible space, so the margin is the thing to pin.
+  it('gives the ledger aside a margin, so its gap does not ride on trimmable whitespace', () => {
+    expect(ruleBody('.ledger__row dt .snark')).toMatch(/margin-left:\s*var\(--space-1\)/);
+  });
+});
+
+// Task 8 acceptance fix: §6.4's first-fight taunt sits on the line directly above the track, which
+// is exactly where Task 7's `.meter__stamp` pops (`bottom: calc(100% + 6px)`) — so a capture near
+// centre printed the verdict through the hint's glyphs — at 1280px HIT! (35.8px) and CRIT! (47.6px)
+// land entirely inside the hint's x 546.6–693.4 span across the whole 0.42–0.58 capture band, 21.5px
+// deep — and it stood there until the player picked an action. The taunt is
+// hidden on capture instead, which is §6.4's own tutorial decay one beat earlier.
+//
+// Selector-vs-markup, not text-only: the selector is *derived* from the sheet and then run against
+// the rendered first-bout fight, so a rule that hides some other element, or one scoped to a
+// wrapper the markup does not have, fails here rather than passing on a substring match.
+describe('the freeze verdict does not print over the taunt (§6.4 amendment)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Harvested on *any* way of hiding the taunt, not just the one this fix uses — filtering on
+  // `visibility` alone would let a later `display: none` rule in unexamined, which is the exact
+  // regression the first test below exists to forbid.
+  const hiders = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(
+      ([, prelude, body]) =>
+        /\.meter__taunt\b/.test(prelude) && /visibility:\s*hidden|display:\s*none/.test(body)
+    )
+    .flatMap(([, prelude, body]) => prelude.split(',').map((sel) => [sel.trim(), body]));
+
+  it('hides the taunt with visibility, so the line keeps its box and nothing below it jumps', () => {
+    expect(hiders.length, 'no rule hides .meter__taunt').toBeGreaterThan(0);
+    for (const [sel, body] of hiders) {
+      // Verified in-browser: the meter's top and the log's top are byte-identical before and after
+      // the capture (181.20 / 514.23 at 1280px). `display: none` would pull both up by a line.
+      expect(body, `${sel} must not collapse the line`).not.toMatch(/display:\s*none/);
+      expect(body, sel).toMatch(/visibility:\s*hidden/);
+    }
+  });
+
+  it('matches the rendered taunt once the meter is captured, and only then', () => {
+    const host = MOUNTED['fight (first bout)'];
+    const taunt = host.querySelector('.meter__taunt');
+    expect(taunt, 'the first-bout matrix renders no taunt').not.toBeNull();
+    const meter = host.querySelector('.meter');
+    expect(meter, 'the first-bout matrix renders no meter').not.toBeNull();
+
+    // Untouched state first: a rule that matched here would hide the hint before it was read.
+    expect(
+      hiders.filter(([sel]) => taunt.matches(sel)).map(([sel]) => sel),
+      'the taunt is hidden before the player has captured'
+    ).toEqual([]);
+
+    // MOUNTED is one shared mount for the whole file, so the state is put back either way.
+    meter.classList.add('is-captured');
+    try {
+      expect(
+        hiders.some(([sel]) => taunt.matches(sel)),
+        'no rule reaches the taunt while the meter is captured'
+      ).toBe(true);
+    } finally {
+      meter.classList.remove('is-captured');
+    }
+    expect(taunt.matches(hiders[0][0])).toBe(false);
+  });
 });
