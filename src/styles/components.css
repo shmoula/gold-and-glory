@@ -527,20 +527,30 @@
   pointer-events: none; /* the whole track is the click target; the stamp must not eat a press */
   white-space: nowrap;
 }
-/* §6.4 step 3's two-frame opacity blink on the struck zone. `--ease-drop` is `steps(2, end)`, so
-   the two sampled frames are the 0% and 50% stops — dim, then lit — and with no fill the band is
-   left at its own full opacity afterwards. Written as two stops rather than a 0/50/100 dip
-   precisely because a stepped animation samples stops, it does not sweep through them.
-   Ends visible, so the reduced-motion 1ms blanket is the right treatment here (unlike
-   `.delta-chip`, see base.css). */
+/* §6.4 step 3's opacity blink on the struck zone: lit, dim, lit, in three even beats of 80ms.
+   The cuts are structural — each opacity is stated twice, at the start and end of its own beat —
+   so the hard edges come from the duplicated stops and NOT from the easing. Verified to render
+   identically under `var(--ease-drop)` and under `linear`, which is the point: a beat that leaned
+   on `steps()` to square off its edges would soften into a ramp the moment §5 retuned the token.
+   (A stepped easing does not skip stops, as an earlier revision of this rule claimed — CSS binds
+   the timing function to each keyframe *interval*, so every stop is reachable either way.)
+   No fill, so the band is left at its own full opacity: ends visible, which is what makes the
+   reduced-motion 1ms blanket the right treatment here rather than the `animation: none` carve-out
+   `.delta-chip` needs (see base.css). */
 .meter__zone.is-flashing {
   animation: zone-flash var(--dur-stamp) var(--ease-drop);
 }
 @keyframes zone-flash {
-  0% {
+  0%,
+  33.32% {
+    opacity: 1;
+  }
+  33.33%,
+  66.65% {
     opacity: 0.25;
   }
-  50% {
+  66.66%,
+  100% {
     opacity: 1;
   }
 }

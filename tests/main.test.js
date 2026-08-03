@@ -306,6 +306,23 @@ describe('freeze feedback (spec §6.4 steps 2–3)', () => {
     ]);
   });
 
+  // The stamp is centred display type opening at 1.5×, so at the track's extremes it overhangs
+  // past the page gutter and a glyph is clipped (measured at 375px: `MISS!` at position 0 opens
+  // 1.2px off-screen left, `GRAZE!` at position 1 runs 8.1px past the right edge). It is nudged
+  // inward for that reason alone — and the cursor is deliberately NOT, because it is the readout
+  // of what the game judged. These two track each other everywhere except here, so pin the seam:
+  // a clamp that leaked onto the cursor would make the freeze lie about the last 6% of the track.
+  it.each([
+    [0.01, 0.06],
+    [0.99, 0.94],
+  ])('nudges a stamp captured at %s inward without moving the cursor', (captured, drawn) => {
+    enterFight();
+    pinWidth();
+    captureAt(captured);
+    expect(stampLeft()).toBeCloseTo(drawn, 4);
+    expect(cursorX()).toBeCloseTo(captured * WIDTH, 6);
+  });
+
   it('stamps MISS! with no zone flash when captured far from the sweet spot', () => {
     enterFight();
     captureAt(farFrom(renderedCenter()));
