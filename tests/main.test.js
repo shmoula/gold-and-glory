@@ -258,6 +258,72 @@ describe('capture and freeze', () => {
   });
 });
 
+// Spec §6.4 steps 2–3. The freeze is how players calibrate their timing, so the verdict has to
+// be readable AT the freeze — before any action key resolves the turn. Both signals are pure
+// DOM work over the position that was just captured, so they live in main.js beside it.
+describe('freeze feedback (spec §6.4 steps 2–3)', () => {
+  const stampLeft = () => Number(/([\d.]+)%/.exec(q('.meter__stamp').style.left)[1]) / 100;
+  // Band edges read back out of the rendered geometry, for the same reason renderedCenter does
+  // it: the test never replays the run's rng or the stat maths to know where a tier begins.
+  const zoneStart = (name) =>
+    Number(
+      q(`.meter__zone--${name}`)
+        .getAttribute('style')
+        .match(/left:([\d.]+)%/)[1]
+    ) / 100;
+  // A point strictly inside `outer`'s left arm and strictly outside the tighter band nested in
+  // it — i.e. a capture that resolves as exactly `outer`.
+  const insideOnly = (outer, inner) => (zoneStart(outer) + zoneStart(inner)) / 2;
+
+  it('pops the verdict stamp at the frozen cursor and flashes the struck zone', () => {
+    enterFight();
+    const center = renderedCenter();
+    captureAt(center); // dead centre → crit
+    const stamp = q('.meter__stamp');
+    expect(stamp).not.toBeNull();
+    expect(stamp.textContent).toBe('CRIT!');
+    // The log line and the announcer carry the verdict for AT; the stamp is the visual channel.
+    expect(stamp.getAttribute('aria-hidden')).toBe('true');
+    // "At the frozen cursor": the stamp is placed from the same captured position the cursor is
+    // parked on, so it can never point somewhere the game did not judge.
+    expect(stampLeft()).toBeCloseTo(center, 3);
+    expect(q('.meter__zone--crit').classList.contains('is-flashing')).toBe(true);
+    expect(q('.meter__zone--hit').classList.contains('is-flashing')).toBe(false);
+  });
+
+  // The three landing tiers each own a band, so each has a zone to flash. Only `graze` and `hit`
+  // are asserted here; `crit` is the case above.
+  it.each([
+    ['graze', 'hit'],
+    ['hit', 'crit'],
+  ])('stamps %s! and flashes its own band', (tier, inner) => {
+    enterFight();
+    renderedCenter(); // guard: refuse to read edges off a band clamped by the track
+    captureAt(insideOnly(tier, inner));
+    expect(q('.meter__stamp').textContent).toBe(`${tier.toUpperCase()}!`);
+    expect([...app().querySelectorAll('.is-flashing')].map((z) => z.className)).toEqual([
+      `meter__zone meter__zone--${tier} is-flashing`,
+    ]);
+  });
+
+  it('stamps MISS! with no zone flash when captured far from the sweet spot', () => {
+    enterFight();
+    captureAt(farFrom(renderedCenter()));
+    expect(q('.meter__stamp').textContent).toBe('MISS!');
+    expect(q('.is-flashing')).toBeNull(); // a miss struck no zone
+  });
+
+  // No cleanup code backs this: every action re-renders the fight, and mount() rebuilds the
+  // meter without a stamp. If that ever stops being true the stamp outlives its verdict.
+  it('clears the stamp with the next render', () => {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1'); // resolve the action → re-render
+    expect(q('.meter__stamp')).toBeNull();
+    expect(q('.is-flashing')).toBeNull();
+  });
+});
+
 // Everything above runs with zero painted frames. These two need real frames, so they swap in
 // a rAF stub that actually queues callbacks and hands them back on demand.
 function driveFrames() {

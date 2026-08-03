@@ -245,6 +245,23 @@ function captureMeter() {
   const cursor = bar.querySelector('.meter-cursor');
   if (cursor) paintCursor(bar, cursor, sweep.captured);
   bar.classList.add('is-captured');
+  // Spec §6.4 steps 2–3, the behavioral half: the freeze is how players calibrate their timing,
+  // so the verdict shows AT the freeze, not after the action resolves. currentTiming() reads the
+  // same captured position the resolver will read, so the stamp can never disagree with the log
+  // line that follows. A miss lands outside every band and therefore flashes nothing — the
+  // absence IS the reading. aria-hidden: announceTurn speaks the verdict; the stamp is the
+  // visual channel. The chicken drop (§6.4's asset half) joins in Phase 3.
+  // No cleanup: every action re-renders the fight through mount(), which rebuilds the meter
+  // without a stamp and without the flash class.
+  const verdict = currentTiming();
+  const zone = bar.querySelector(`.meter__zone--${verdict}`);
+  if (zone) zone.classList.add('is-flashing');
+  const stamp = document.createElement('span');
+  stamp.className = 'meter__stamp';
+  stamp.setAttribute('aria-hidden', 'true');
+  stamp.textContent = `${verdict.toUpperCase()}!`;
+  stamp.style.left = `${(sweep.captured * 100).toFixed(2)}%`;
+  bar.appendChild(stamp);
 }
 
 // The run's seeded generator drives the sweet spot, so a replayed seed replays the same fight.

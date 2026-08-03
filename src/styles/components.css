@@ -503,6 +503,47 @@
   background: var(--blood);
   width: 4px;
 }
+/* §6.4 step 3: the verdict pops at the frozen cursor, in display type, reusing §6.13's two-frame
+   `stamp-in`. main.js sets `left` to the captured position; the offsets are stated on the
+   `translate` *property* rather than in `transform` on purpose — `stamp-in` writes `transform`
+   outright, so folding the offsets in there would have the stamp jump to the cursor's lower
+   right for the length of the animation. The individual property composes under `transform`
+   instead, so the scale plays around a stamp that never leaves its spot.
+   Ink outline, not a ground: the stamp overhangs the track onto the stone page for ~240ms
+   (Law 4's waived meter-label case — `--bone` reads 2.99:1 there), and it is decorative besides.
+   `stamp-in` carries no fill, so the stamp settles at its own transform; under the
+   reduced-motion 1ms blanket that resolves to "appears instantly", in place. */
+.meter__stamp {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  translate: -50% 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--bone);
+  text-shadow:
+    -1px 1px 0 var(--ink),
+    1px 1px 0 var(--ink);
+  animation: stamp-in var(--dur-stamp) var(--ease-drop);
+  pointer-events: none; /* the whole track is the click target; the stamp must not eat a press */
+  white-space: nowrap;
+}
+/* §6.4 step 3's two-frame opacity blink on the struck zone. `--ease-drop` is `steps(2, end)`, so
+   the two sampled frames are the 0% and 50% stops — dim, then lit — and with no fill the band is
+   left at its own full opacity afterwards. Written as two stops rather than a 0/50/100 dip
+   precisely because a stepped animation samples stops, it does not sweep through them.
+   Ends visible, so the reduced-motion 1ms blanket is the right treatment here (unlike
+   `.delta-chip`, see base.css). */
+.meter__zone.is-flashing {
+  animation: zone-flash var(--dur-stamp) var(--ease-drop);
+}
+@keyframes zone-flash {
+  0% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 .meter__labels {
   display: flex;
   justify-content: space-between;
