@@ -141,12 +141,13 @@
 /* ---- 6.2 Buttons ---- */
 .btn {
   display: inline-flex;
-  /* `center`, not `baseline`: Task 5 gives some buttons a leading `.icon-well` (34px, fixed
-     height, no text), and an empty box has no real baseline — a flex line synthesizes one from
-     its bottom margin edge, which shoved the well up against the label's baseline rather than
-     centering it in the button the way `.hud__stat` (the well's other inline-flex context)
-     already centers its own. */
-  align-items: center;
+  /* Baseline, not center: spec §6.2's own block specifies it, and it is what keeps the label and
+     the price slot (two different font sizes) sitting on the same text baseline in every
+     icon-less priced button (the three Train buttons, Return to Ludus). The container stays on
+     baseline; the well below opts itself out with `align-self`, since an empty box has no real
+     baseline to align by — centering the *container* to accommodate it would misalign every
+     button that has no well at all. */
+  align-items: baseline;
   gap: var(--space-3);
   font: 700 var(--text-md)/1.2 var(--font-body);
   color: var(--color-text-inverse);
@@ -172,6 +173,13 @@
   color: var(--color-money-on-dark);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-lg);
+}
+/* The sink icon well opts itself out of `.btn`'s baseline alignment: it has no text of its own
+   to set a baseline, so left on `baseline` it inherits a synthesized one from its bottom margin
+   edge and rides high against the label. `align-self: center` seats it in the button's own
+   height instead, without touching how the label and price slot align with each other. */
+.btn .icon-well {
+  align-self: center;
 }
 /* Law 5 forbids a literal hex in a component rule, but spec §6.2's own block spelled this one
    `#cdb98e` and Task 4 kept the block byte-exact to the fence. Same colour, now a token
@@ -306,6 +314,17 @@
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-2) 0;
+}
+/* At ≤640px (screens.css's own mobile-stacked breakpoint) the fixed 90px label column plus the
+   new 34px well and two 12px gaps leave the `1fr` meter column too little room to read as a
+   meter at all (measured ~15px wide at 375px, down from ~61px before the well). Let the label
+   column size to its own content instead of holding a fixed 90px, and shrink the gap a step —
+   the meter gets its width back with no markup or named grid-area change. */
+@media (max-width: 640px) {
+  .train-row {
+    grid-template-columns: 34px auto 1fr auto;
+    gap: var(--space-2);
+  }
 }
 .train-row__label {
   font-weight: 700;
@@ -541,12 +560,20 @@
   border-bottom: 1.5px dashed rgba(47, 35, 24, 0.25);
 }
 /* §6.18: the purse/tax/sponsor rows carry a leading small icon well inside `dt` alongside the
-   label text — lay the two out as their own inline-flex row so the well sits beside the label
-   rather than stacking above it (the `dt` is otherwise a plain block). */
+   label text — lay the two out as their own flex row so the well sits beside the label rather
+   than stacking above it (the `dt` is otherwise a plain block). Stays on `baseline`, matching
+   `.ledger__row` itself: the well has no baseline of its own, so it opts out with `align-self`
+   below rather than the row exporting a synthesized baseline that would desync the label from
+   its own `dd` amount, and from every well-less row's label/amount alignment on the same card.
+   Spacing is a margin on the well, not `gap`, so it does not also open up between the label text
+   and the trailing `.snark` aside that shares this same flex row on the tax/sponsor lines. */
 .ledger__row dt {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  align-items: baseline;
+}
+.ledger__row dt .icon-well {
+  align-self: center;
+  margin-right: var(--space-2);
 }
 .ledger__row--net {
   border-top: var(--border-w) solid var(--border-ink);

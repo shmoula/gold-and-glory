@@ -542,13 +542,14 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
   }
 
   // A ledger row's label, tolerant of the optional leading `.icon-well` Task 5 gives the
-  // purse/tax/sponsor rows: the well is empty and aria-hidden, so it contributes nothing to
-  // `textContent`, but it does become `dt`'s first *child node* — reading `firstChild` (the old
-  // approach) broke the moment a row gained a leading element. Read by content instead: strip
-  // the snark aside's own text out of the `dt`'s full text, whatever else shares the node.
+  // purse/tax/sponsor rows: reading `firstChild` (the old approach) broke the moment a row
+  // gained a leading element node. Read by content instead — a clone-and-remove rather than a
+  // string subtraction, so it stays correct even if a label ever happened to contain its own
+  // aside's text, or the row carried more than one.
   const dtLabel = (dt) => {
-    const aside = dt.querySelector('.snark');
-    return (aside ? dt.textContent.replace(aside.textContent, '') : dt.textContent).trim();
+    const clone = dt.cloneNode(true);
+    clone.querySelector('.snark')?.remove();
+    return clone.textContent.trim();
   };
   // The rows as the card states them, so the announcement can be held to the card's own words.
   const cardLines = () =>

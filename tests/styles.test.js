@@ -996,3 +996,37 @@ describe('the shortfall is spelled once (design 2026-08-01 §5, item 35)', () =>
     purse.remove();
   });
 });
+
+// Task 5 review fix: `.btn`'s `align-items` briefly flipped to `center` to seat the sinks' icon
+// well, which silently pulled the label and the price slot (two different font sizes) off their
+// shared text baseline in every icon-less priced button (Train x3, Return to Ludus) — exactly
+// the kind of regression this file exists to pin, since nothing here checked the property before.
+// jsdom cannot resolve a real cascade (see the §Law 4 note above), so this reads the declared
+// rule bodies straight off the sheets, the same way the rest of this file does. Anchored so the
+// bare selector cannot accidentally match a longer one sharing its prefix (`.btn__price`,
+// `.btn--commit`, `.btn:hover`, `.ledger__row--net`...).
+describe('icon wells opt out of their container’s baseline, not the other way round (§6.2/§6.18)', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const ruleBody = (selector) => {
+    const re = new RegExp(`(?<![.\\w-])${reEscape(selector)}\\s*\\{([^}]*)\\}`);
+    const match = bare.match(re);
+    expect(match, `no bare "${selector}" rule`).not.toBeNull();
+    return match[1];
+  };
+
+  it('.btn stays on baseline, so the label and the price slot keep sharing one text baseline', () => {
+    expect(ruleBody('.btn')).toMatch(/align-items:\s*baseline/);
+  });
+
+  it('.btn .icon-well opts itself out with align-self, rather than the button re-centering', () => {
+    expect(ruleBody('.btn .icon-well')).toMatch(/align-self:\s*center/);
+  });
+
+  it('.ledger__row dt stays on baseline too, so a welled row lines up with every well-less row', () => {
+    expect(ruleBody('.ledger__row dt')).toMatch(/align-items:\s*baseline/);
+  });
+
+  it('.ledger__row dt .icon-well opts itself out the same way', () => {
+    expect(ruleBody('.ledger__row dt .icon-well')).toMatch(/align-self:\s*center/);
+  });
+});

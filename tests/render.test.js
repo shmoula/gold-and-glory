@@ -953,12 +953,14 @@ describe('renderResult (spec §6.6 / §6.13 / §7)', () => {
   });
   const resultOf = (lastResult, over = {}) => renderResult(stateOf(lastResult, over), CONFIG);
   // A ledger row's label text: the snark aside stripped off, and — since Task 5 — tolerant of an
-  // optional leading `.icon-well` sharing the `<dt>`. The well is empty and aria-hidden, so it
-  // contributes nothing to `textContent`; reading `firstChild` instead (the old approach) broke
-  // the moment a row gained a leading element node, so this reads by content, not position.
+  // optional leading `.icon-well` sharing the `<dt>`. Reading `firstChild` (the old approach)
+  // broke the moment a row gained a leading element node, so this reads by content, not
+  // position — a clone-and-remove rather than a string subtraction, so it stays correct even if
+  // a label ever happened to contain its own aside's text, or the row carried more than one.
   const dtLabel = (dt) => {
-    const aside = dt.querySelector('.snark');
-    return (aside ? dt.textContent.replace(aside.textContent, '') : dt.textContent).trim();
+    const clone = dt.cloneNode(true);
+    clone.querySelector('.snark')?.remove();
+    return clone.textContent.trim();
   };
   // Rows as { label, amount } with the snark aside stripped off the term.
   const ledgerRows = (html) =>
