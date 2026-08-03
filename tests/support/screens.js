@@ -153,6 +153,16 @@ export const SCREEN_STATES = {
 export const PHASES_COVERED = new Set(Object.values(SCREEN_STATES).map((s) => s.phase));
 export const ALL_PHASES = Object.values(PHASE);
 
+// Anything the browser puts in the tab ring. `[tabindex]` is what brings the meter (and the
+// scrollable combat log) in. Lives here for the same reason the matrix does: tests/a11y.test.js
+// audits the whole ring and tests/render.test.js asserts the fight screen's tab *order*, and two
+// spellings of "focusable" would let one file's idea of the ring drift from the other's — the
+// order test could then pass over a set of stops the audit does not police. Membership only:
+// a `[tabindex="-1"]` element matches this and is *not* a tab stop, so callers that care about
+// the ring itself filter on `tabIndex >= 0` and `!disabled`.
+export const FOCUSABLE =
+  'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
+
 // name -> a detached element with the screen mounted inside it.
 export function mountAll(doc = document) {
   return Object.fromEntries(

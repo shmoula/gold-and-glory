@@ -207,34 +207,42 @@
   outline-color: var(--bone-bright);
 }
 
-/* §6.2 amendment: the fight screen's PRESS THE ATTACK. A commit button with a display face
-   and a triangular right end. The triangle is ::after, NOT clip-path on the button: the §8
-   focus ring must stay on the rectangular box, and clipping would cut it off. The face is
-   restated rather than inherited because `.btn--arrow` is a modifier — it must read the same
-   whether or not the cascade puts `.btn--commit`'s shorthand before it. */
-.btn--arrow {
+/* §6.2 amendment: the fight screen's PRESS THE ATTACK — a commit banner with a triangular
+   right end. Both rules are `.btn--commit.btn--arrow`, never `.btn--arrow` alone: the modifier
+   only ever decorates a commit banner (that is what keeps it inside Law 3, and what lets it
+   inherit the display face rather than restate it), so the sheet states the invariant instead
+   of trusting call sites. tests/a11y.test.js checks the markup half.
+   `--arrow-w` is declared here rather than spelled twice: the margin the triangle sits in and
+   the triangle's own width are one number, and a comment asking two literals to stay equal is
+   not a mechanism. Margin, not padding — the end sits *outside* the button, so the slot that
+   content-sizes to it (`.fight__press`) hugs the margin box and the arrow stays in its cell. */
+.btn--commit.btn--arrow {
+  --arrow-w: 22px;
   position: relative;
-  font-family: var(--font-display);
-  font-size: var(--text-commit);
+  margin-right: var(--arrow-w);
+  /* Tighter than `.btn--commit`'s 0.05em: the arrow is the one commit banner whose label runs
+     up against a hard diagonal instead of ending in the plank's own padding, and the extra
+     0.01em of trailing space read as a gap between the last letter and the point. */
   letter-spacing: 0.04em;
-  /* Room the ::after occupies beside the border box. Margin, not padding: the triangle sits
-     *outside* the button, so the slot that content-sizes to this button (`.fight__press`)
-     hugs the margin box and the triangle stays inside the grid cell. Must equal the
-     `border-left` width below, or the two disagree about how wide the arrow is. */
-  margin-right: 22px;
 }
-.btn--arrow::after {
+.btn--commit.btn--arrow::after {
   content: '';
   position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  /* A border triangle: transparent top/bottom halves and a solid left edge point it right.
-     Flat `--commit` rather than `--grad-commit` — a border cannot take a gradient, and
-     `--commit` is the midpoint of the banner's hi→lo ramp, so the end reads as part of it. */
-  border-top: 24px solid transparent;
-  border-bottom: 24px solid transparent;
-  border-left: 22px solid var(--commit);
+  /* `left: 100%` is 100% of the *padding* box, so on its own the triangle starts one border
+     inside the button and paints over its right ink edge. Step out to the border box. */
+  left: calc(100% + var(--border-w));
+  /* Ties the end's height to the button's border box at whatever height it actually has —
+     a wrapped two-line label grows the banner and the arrow with it. The border-triangle this
+     replaced hard-coded two 24px half-heights, which matched a 44px button and nothing else. */
+  inset-block: calc(-1 * var(--border-w));
+  width: var(--arrow-w);
+  /* The same ramp as the banner, so the seam is invisible; a border-triangle could not take a
+     gradient. The clip is on the pseudo-element, NOT on `.btn--arrow`: an outline paints
+     outside its own element's border box, so clipping the button would cut §8's focus ring,
+     while clipping a child cannot reach it. (§6.2 amendment: no ink outline on the diagonal
+     yet — a clipped box cannot carry one. Deferred to Phase 2/3.) */
+  background: var(--grad-commit);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .btn--danger {
@@ -562,8 +570,10 @@
 .log__entry .snark {
   font-size: var(--text-xs);
 }
-/* `.fight__grid` and `.fight__actions` are screen layout, not §6 catalog entries — they live
-   with the rest of the `.fight__*` placement in screens.css. Same for `.result__*` below. */
+/* `.fight__grid`, `.fight__actions` and `.fight__press` are screen layout, not §6 catalog
+   entries — they live with the rest of the `.fight__*` placement in screens.css. (What *is* a
+   catalog entry is the button `.fight__press` holds: `.btn--commit.btn--arrow`, §6.2 above.)
+   Same for `.result__*` below. */
 
 /* ---- 6.6 The ledger ----
    The row/net/balance rules are spec §6.6's block verbatim. Three of its lines are omitted

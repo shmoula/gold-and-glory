@@ -31,6 +31,7 @@ import { formatGold } from '../src/ui/format.js';
 import { startFight, effectiveStats, resolveFightOutcome } from '../src/game.js';
 import { makeRng } from '../src/rng.js';
 import { resolveTiming, timingWindowWidth } from '../src/combat.js';
+import { FOCUSABLE } from './support/screens.js';
 
 // Match classes as a set, never as a literal class string: adding or reordering a class is a
 // harmless refactor and must not turn a passing suite red.
@@ -1869,22 +1870,34 @@ describe('renderFight', () => {
     ]);
   });
 
-  // The tab order that composition buys, stated as itself: everything focusable on the screen
-  // below the HUD, in document order. The log is `tabindex="0"`, so it is a stop too.
+  // The tab order that composition buys, stated as itself: every tab stop on the screen below
+  // the HUD, in document order. The log is `tabindex="0"`, so it is a stop too. `FOCUSABLE` is
+  // the same selector tests/a11y.test.js audits the ring with — a narrower spelling here could
+  // pass over stops that file polices. It is membership only, so the filter is what turns it
+  // into the *tab* ring: `disabled` buttons and `tabindex="-1"` are focusable-ish but not stops.
   it('gives the fight screen the tab order meter → the four actions → log → press', () => {
     const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
-    const stops = [...section.querySelectorAll('button, [tabindex="0"]')].map(
-      (el) => el.getAttribute('data-action') ?? [...el.classList][0]
-    );
+    const stops = [...section.querySelectorAll(FOCUSABLE)]
+      .filter((el) => !el.disabled && el.tabIndex >= 0)
+      // Keyed off the hooks the app itself uses, never off class *order*: `[...classList][0]`
+      // would rename these stops the day someone writes `class="parchment log"`.
+      .map((el) => {
+        if (el.matches('[data-meter]')) return 'meter';
+        if (el.matches('.log')) return 'log';
+        return el.getAttribute('data-action');
+      });
     expect(stops).toEqual(['meter', 'strike', 'heavy', 'block', 'feint', 'log', 'press']);
   });
 
   it('renders Press the Attack as an arrow commit button in its own area, only when pressable', () => {
     const press = dom(fightHtml({ canPress: true })).querySelector('.fight__press button');
     expect(press.getAttribute('data-action')).toBe('press');
-    expect([...press.classList]).toEqual(
-      expect.arrayContaining(['btn', 'btn--commit', 'btn--arrow'])
-    );
+    // Exact, not `arrayContaining`: at this call site the set is fully known, so equality is
+    // free and catches a stray `is-urgent` or a doubled modifier. (The `btn` unit test keeps
+    // `arrayContaining`, where other options legitimately add classes.) `.btn--arrow` never
+    // travels without `.btn--commit` — components.css scopes both arrow rules to the pair, and
+    // tests/a11y.test.js holds the markup half of that invariant across every screen.
+    expect([...press.classList].sort()).toEqual(['btn', 'btn--arrow', 'btn--commit']);
 
     // The slot is unconditional — the grid area exists whether or not the offer does, so the
     // layout does not reflow the moment a press becomes available. Only the button is

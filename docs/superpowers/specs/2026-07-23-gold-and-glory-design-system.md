@@ -605,10 +605,31 @@ Semantics:
   (see §6.4), Enter activates focused control.
 
 **Amendment (visual-upgrade design §3.1):** `.btn--arrow`, a modifier stacked on
-`.btn--commit` for the fight screen's PRESS THE ATTACK: display face at `--text-commit`, an
-ink-outlined triangular right end drawn with a `::after` border-triangle (the focus ring stays
-on the rectangular button box — no `clip-path`, which would clip the §8 ring). Buttons may also
-carry a leading `.icon-well` (sinks) emitted by `btn({ icon })`.
+`.btn--commit` for the fight screen's PRESS THE ATTACK: the commit banner's display face at
+`--text-commit`, plus a triangular right end. The end is an absolutely-positioned `::after`
+seated in an equal `margin-right`, painted with `--grad-commit` and pointed by `clip-path`; its
+`inset-block` is negative `--border-w`, so the triangle is exactly as tall as the button's
+border box **at any height** — the button grows when its label wraps and the arrow grows with
+it. Selector is `.btn--commit.btn--arrow`, both rules, so the sheet enforces the modifier's
+own rule: an arrow is always a commit banner, never a blue end on some other plank.
+
+Two things this technique is deliberately careful about. **`left: 100%` resolves against the
+padding box**, so the offset is `calc(100% + var(--border-w))` — without the step out, the
+triangle starts inside the button and paints over its right ink border. And **the `clip-path`
+is on the pseudo-element, never on `.btn--arrow` itself**: an outline is painted outside the
+border box of the element it belongs to, so clipping the _button_ would cut off §8's focus
+ring, while clipping a child pseudo-element cannot reach it. (An earlier draft of this
+amendment prescribed a `::after` border-triangle to avoid `clip-path` altogether; that
+conflated the two, and a border-triangle's half-heights are two literals that silently stop
+matching the moment the button is not 44px tall.)
+
+**Deferred to Phase 2/3: the arrow has no ink outline.** Every other cartoon edge in this
+system carries one, and this end does not — a clipped box cannot take a border along the
+diagonal, and Phase 1 ships zero new art. It wants either an SVG/`border-image` end or a
+second, larger clipped pseudo-element in `--border-ink` behind the first; both are asset- or
+paint-layer work, not structure.
+
+Buttons may also carry a leading `.icon-well` (sinks) emitted by `btn({ icon })`.
 
 ### 6.3 Stat bars & training meters
 
@@ -999,7 +1020,7 @@ Breakpoints: `≤ 900px` (compact), `≤ 640px` (stacked mobile).
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
 
 /* FIGHT — posters flank, meter center-stage, log left / actions right */
-/* areas superseded — see the fight-grid amendment below */
+/* areas AND the slot legend below them superseded — see the fight-grid amendment below */
 .screen--fight {
   grid-template-columns: 260px 1fr 300px;
   grid-template-rows: auto 1fr auto;
@@ -1089,6 +1110,13 @@ DOM order: you, stage, foe, actions, log, press — interactive flow stays meter
 log → press. `.fight__press` holds the PRESS THE ATTACK arrow bottom-right; at ≤900px areas
 stack `'you stage' / 'foe stage' / 'actions actions' / 'log log' / 'press press'`; at ≤640px
 the standard area reset returns everything to source-order flow.
+
+Slot legend, replacing the one under the superseded block above — stage: taunt line, `.meter`
+and labels · actions: the 2×2 action grid, nothing else · press: the §6.2 commit arrow, seated
+`justify-self: end; align-self: end` in its own area. That alignment is deliberately **not**
+undone by the ≤640px reset (which neutralises `justify-self` for `.commit-bar` only), so the
+stacked arrow stays right-aligned in flow rather than going full-bleed: it is a commit arrow,
+not a commit bar.
 
 **Two resets that a stacked grid cannot do without.** Dropping `grid-template-areas` does _not_
 return named children to auto-placement: per CSS Grid §8.3 an unmatched `<custom-ident>` in

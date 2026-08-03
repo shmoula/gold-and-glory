@@ -494,8 +494,13 @@ export function renderFight(state, config) {
   // Child order is the §7-amendment reading order — you, stage, foe, actions, log, press — and
   // therefore the tab order: meter → the four actions → log (it is `tabindex="0"`) → press. The
   // grid areas in screens.css move these blocks around the screen at each breakpoint; they never
-  // reorder them. `.fight__press` is emitted whether or not the offer stands, so the slot (and
-  // its grid area) is a fixture of the layout rather than something that appears mid-fight.
+  // reorder them. `.fight__press` is emitted whether or not the offer stands, so the grid always
+  // has the child its `press` area is written for — but the empty div reserves no *space* (it is
+  // 0×0). Nothing jumps when the offer appears because of where the area sits, not because the
+  // slot holds the room: on desktop `log log press` is sized by the much taller `.fight__log`
+  // beside it, and at ≤900px the press band is the last row, with nothing below it to push down.
+  // Shorten the log past the button's height and the desktop row *will* grow when a press is
+  // offered.
   return `
     ${renderHud(state, config)}
     ${titlePlaque('Fight')}

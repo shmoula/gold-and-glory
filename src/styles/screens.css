@@ -106,8 +106,12 @@
 /* §7 amendment (decision 2): the commit arrow closes the screen's reading order, seated in the
    corner of its own area rather than stretched across it — `justify-self`/`align-self` are what
    make a bottom-right button out of a full-width cell. Content-sizing the slot is also what
-   keeps `.btn--arrow`'s triangle inside the grid: the triangle lives in the button's
-   `margin-right`, so the cell has to hug the button's margin box, not the track. */
+   keeps `.btn--commit.btn--arrow`'s triangle inside the grid: the triangle lives in the button's
+   `margin-right`, so the cell has to hug the button's margin box, not the track.
+   `justify-self` deliberately survives the ≤640px reset below — that block neutralises
+   `justify-self` for `.commit-bar` only, and this is a commit *arrow*, not a commit bar. The
+   stacked arrow stays right-aligned in flow (§7 amendment's slot legend), which is the intent,
+   not an oversight: verified at 375px, content-sized and no overflow. */
 .fight__press {
   grid-area: press;
   justify-self: end;

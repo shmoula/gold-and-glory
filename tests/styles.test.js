@@ -765,15 +765,20 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
     const blue = rules
       .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
       .map((r) => r.sel);
-    // `.btn--arrow::after` is the fourth, and it is not a widening of Law 3: §6.2's amendment
-    // stacks the modifier on `.btn--commit` only, so the triangle it draws is a piece of a
-    // commit banner rather than a new blue surface. Flat `--commit` because a border cannot
-    // take `--grad-commit`.
+    // `.btn--commit.btn--arrow::after` is the fourth, and it is not a widening of Law 3: the
+    // selector is compound on purpose, so the triangle can only ever be drawn on a commit
+    // banner — it is a piece of one, not a new blue surface. It paints the banner's own
+    // `--grad-commit`, so the seam between plank and point is invisible.
     expect(blue.sort()).toEqual(
-      [':focus-visible', '.btn--commit', '.btn--arrow::after', '.btn:focus-visible'].sort()
+      [
+        ':focus-visible',
+        '.btn--commit',
+        '.btn--commit.btn--arrow::after',
+        '.btn:focus-visible',
+      ].sort()
     );
     // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
-    // rather than reaching for more blue. Named here so "three selectors" is not read as a gap.
+    // rather than reaching for more blue. Named here so "four selectors" is not read as a gap.
     expect(css).toMatch(
       /\.btn--commit:focus-visible\s*\{\s*outline-color:\s*var\(--bone-bright\);\s*\}/
     );
