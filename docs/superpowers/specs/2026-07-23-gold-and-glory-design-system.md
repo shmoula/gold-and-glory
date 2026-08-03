@@ -55,11 +55,11 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --stone-2: #93836d;
 
   /* Ink & bone */
-  --ink: #2f2318; /* borders, text on paper */
-  --ink-soft: #6b5638; /* muted/snark text on paper — 5.67:1 on paper-2 */
-  --bone: #f2e7cd; /* text on wood/dark — 10.06:1 on wood-4 */
-  --bone-bright: #fdf6e4; /* text on commit blue — 4.76:1 on commit */
-  --bone-dim: #cdb98e; /* snark aside on a wood button — 4.76:1 on wood-3, 6.43:1 on wood-4 */
+  --ink: #2f2318; /* borders, text on paper. 12.42:1 vs --paper-2 */
+  --ink-soft: #6b5638; /* muted/snark text on paper — 5.67:1 vs --paper-2 */
+  --bone: #f2e7cd; /* text on wood/dark — 10.06:1 vs --wood-4 */
+  --bone-bright: #fdf6e4; /* text on commit blue — 4.76:1 vs --commit */
+  --bone-dim: #cdb98e; /* snark aside on a wood button — 4.76:1 vs --wood-3, 6.43:1 vs --wood-4 */
   --track: #241a11; /* bar/meter track wells */
 
   /* Illustration fills — never text, never a ground for text (Law 4) */
@@ -67,24 +67,24 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
 
   /* Gold — money only (Law 2) */
   --gold-hi: #f4cf7a;
-  --gold: #d9a441; /* on dark wood: 5.50:1. NEVER as text on paper (1.83:1) */
+  --gold: #d9a441; /* 5.50:1 vs --wood-4 on dark wood. NEVER as text on paper: 1.83:1 vs --paper-2 */
   --gold-deep: #b07f24; /* fills/borders only */
   --gold-mid: #b98a3a; /* the meter's GRAZE band — the ramp step between --gold-deep and
                             --gold (§6.4). Fills only, never text. */
-  --gold-ink: #7d5714; /* money TEXT on paper — 5.26:1 */
+  --gold-ink: #7d5714; /* money TEXT on paper — 5.26:1 vs --paper-2 */
 
   /* Blood — damage, costs, danger */
   --blood-hi: #c85541;
-  --blood: #b5402f; /* large/bold text on paper: 4.57:1; button fill */
-  --blood-ink: #9c3226; /* small text on paper — 5.89:1 */
+  --blood: #b5402f; /* large/bold text on paper: 4.57:1 vs --paper-2; button fill */
+  --blood-ink: #9c3226; /* small text on paper — 5.89:1 vs --paper-2 */
 
   /* Moss — income, healing */
-  --moss-ink: #3f6b35; /* text on paper — 5.07:1 */
+  --moss-ink: #3f6b35; /* text on paper — 5.07:1 vs --paper-2 */
 
   /* Commit blue — irreversible choices, focus */
   --commit-hi: #4d7fc0;
   --commit: #3e6fae;
-  --commit-lo: #2d5487; /* bone-bright on this: 7.14:1 */
+  --commit-lo: #2d5487; /* 7.14:1 vs --bone-bright */
 
   /* Spacing — 4px base scale */
   --space-1: 4px;
@@ -101,7 +101,9 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --text-sm: 14px; /* HUD labels, log */
   --text-md: 16px; /* body, buttons */
   --text-lg: 19px; /* prices, emphasized rows */
-  --text-commit: 21px; /* the commit button's display face (§6.2) — its own step of the scale */
+  --text-commit: 21px; /* the commit button's display face (§6.2) — a step of its own, between
+                         --text-lg and --text-xl. Spec §6.2's block spelled it as a literal;
+                         Law 5 allows a component only tokens, so the scale states it here. */
   --text-xl: 24px; /* section headings (display) */
   --text-2xl: 32px; /* poster names (display) */
   --text-3xl: 44px; /* screen banners: VICTORY! (display) */
@@ -122,6 +124,7 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
 
   /* Borders & shadows — hard offsets, zero blur = paper-cutout look */
   --border-w: 2.5px;
+  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
   --shadow-paper: 4px 6px 0 rgba(31, 22, 12, 0.35);
   --shadow-plank: 0 3.5px 0 rgba(31, 22, 12, 0.5);
   --shadow-plank-pressed: 0 1px 0 rgba(31, 22, 12, 0.5);
@@ -145,14 +148,15 @@ Copy-paste verbatim. Tier 1 = primitives, Tier 2 = semantic, Tier 3 lives in com
   --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
   --ease-drop: steps(2, end);
 
-  /* Z-scale (paper layering) */
-  --z-hud: 10;
-  --z-chip: 20;
-  --z-modal: 30;
+  /* Z-scale (paper layering) — ascending, so the stack reads in paint order */
   --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
   --z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
-  --z-plaque: 11; /* title plaque — one step above the beam it overlaps (§6.16) */
-  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
+  --z-hud: 10;
+  --z-plaque: 11; /* title plaque (§6.16) — .hud is plain non-positioned flow, so the plaque
+    only needs a stacking context of its own to paint over it; the negative top margin
+    (components.css) is what makes the two actually overlap, not this number against --z-hud */
+  --z-chip: 20;
+  --z-modal: 30;
 
   /* ============ TIER 2 — SEMANTIC ============ */
   --color-text: var(--ink);
@@ -875,6 +879,29 @@ The result CTA is `.btn--commit` with the resulting balance in its price slot:
 A small `.wordmark` ("GOLD & GLORY") sits in the card's bottom corner — every screenshot
 carries the brand.
 
+**Amendment (visual-upgrade Phase 1, Task 5):** the money rows gain §6.18 icon wells, which
+changes the `dt`'s structure — the HTML above now reads
+`<dt><span class="icon-well icon-well--sm" aria-hidden="true" data-icon="purse"></span>Purse</dt>`
+on the welled rows. Four rules follow from that:
+
+- **`.ledger__row dt` is a flex container** (`display: flex; align-items: baseline`), so the well
+  sits _beside_ the label instead of stacking above it — a `dt` is otherwise a plain block.
+- **Only the three _source_ money rows carry a well** — Purse (`data-icon="purse"`), Arena tax
+  (`tax`), Sponsor (`sponsor`). The sums and tallies (Net gold, Injuries gained, Weapon wear, New
+  balance) stay bare, deliberately: they are totals, not sources, so the well marks where money
+  comes from rather than decorating every line.
+- **The well takes `align-self: center`**, plus its own `margin-right: var(--space-2)` for
+  spacing. It has to opt out of the row's baseline alignment because an empty box has no real
+  baseline: left on `baseline` (or with the `dt` re-centering its children), the flex `dt`
+  exported a _synthesized_ one, which desynced each welled row's label from its own `dd` amount
+  and from every well-less row on the same card — measured ~6.5px out of line, now clustered
+  within ~1.15px. `margin-right` rather than `gap`, so the spacing does not also open up between
+  the label and the trailing `.snark`.
+- **The `.snark` aside is separated by `margin-left: var(--space-1)`**, not by the template's
+  literal space. Flexing the `dt` turns the bare label into an anonymous flex item, and a flex
+  item's leading/trailing whitespace is trimmed — which silently ate that space and rendered
+  "Arena tax(Ouch)". Scoped to `.ledger__row dt`, the only context where the trimming happens.
+
 ### 6.7 DeltaChip & Ticker (money always moves)
 
 - **`.ticker`** — the purse number. On change, count toward the new value over ≤ 600ms
@@ -974,10 +1001,16 @@ order fixed: cancel left, commit right, on every modal.
 
 Per-screen parchment plaque carrying the screen's `h1`, overlapping the HUD beam's bottom edge
 (visual-upgrade design §3.2). M2 parchment + tape, `width: max-content`, centered, negative top
-margin, `z-index: var(--z-plaque)` (one step above the beam), tilt `--tilt-3`. Text comes from
+margin, `position: relative` + `z-index: var(--z-plaque)`, tilt `--tilt-3`. Text comes from
 existing screen state; CSS uppercases it (`text-transform`), the string stays sentence-case in
 JS. One component, four screens: Hub (Current wins: N) / Fight / Result / Game over. The `h1`
 is the screen's only `h1`.
+
+The overlap itself is the negative margin's doing, and the plaque paints _over_ the beam because
+it is positioned at all: positioned, z-indexed content paints above non-positioned in-flow
+content, and `.hud` is exactly that — no `position`, no `z-index` of its own. `--z-plaque`'s
+value is not being weighed against `--z-hud`; nothing but `.commit-bar` (≤640px) consumes that
+token.
 
 ### 6.17 Stage layers (`.stage-backdrop`, `.stage-frame`)
 
@@ -996,7 +1029,8 @@ above are explicitly stacked above the frame's `--z-frame: 5`.
 
 The generic empty-slot treatment, generalized from §6.12's `.shop-item__icon` (which now also
 carries the class): recessed paper radial, ink border, wobble radius. 34px default,
-24px as `.icon-well--sm` (HUD). Always `aria-hidden="true"` with a `data-icon="<name>"` hook —
+24px as `.icon-well--sm` — the two cramped contexts: the HUD beam's stats (§6.1) and the
+ledger's source money rows (§6.6). Always `aria-hidden="true"` with a `data-icon="<name>"` hook —
 Phase 2 paints the named glyph via CSS mask; until then the recessed well reads as an
 intentional slot. Never carries meaning: the adjacent label/numeral does.
 

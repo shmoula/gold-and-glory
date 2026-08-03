@@ -642,10 +642,12 @@
    Same for `.result__*` below. */
 
 /* ---- 6.6 The ledger ----
-   The row/net/balance rules are spec §6.6's block verbatim. Three of its lines are omitted
-   deliberately: `.amount`, `.amount--pos` and `.amount--neg` are already declared, identically,
-   in base.css (they are shared with the hub and the log, not owned by the ledger), and
-   `.ledger__banner` has no markup — the screen-level `.banner-stamp` (§6.13) carries the title
+   The row/net/balance rules are spec §6.6's block verbatim; the three `.ledger__row dt` rules
+   below it are not in that block — they belong to §6.6's Task 5 amendment (the icon well the
+   source money rows carry, per §6.18) and are commented where they sit. Three of §6.6's own
+   lines are omitted deliberately: `.amount`, `.amount--pos` and `.amount--neg` are already
+   declared, identically, in base.css (they are shared with the hub and the log, not owned by
+   the ledger), and `.ledger__banner` has no markup — the screen-level `.banner-stamp` (§6.13) carries the title
    once, in the recap column, rather than printing "VICTORY!" twice on one screen.
    §6.6 asks for "Parchment M2, --tilt-2" but its CSS block never states it, so the card's own
    treatment is written here the way .poster and .sponsor-card state theirs. */

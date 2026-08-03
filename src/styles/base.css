@@ -25,7 +25,10 @@ body {
 /* Stage layers (§6.17): fixed decorative wells around every screen. The backdrop is empty in
    Phase 1 — the body's stone (M1) IS its zero-asset fallback (§10). The frame is a placeholder
    stone border until Phase 3's cartoon masonry border-image; pointer-events: none keeps it out
-   of the input path, and --z-frame sits below --z-hud so nothing interactive is ever covered. */
+   of the input path, and the body's padding: var(--frame-w) below — not z-order — is what holds
+   content clear of the border. --z-frame guards nothing interactive: --z-hud has one consumer in
+   the whole sheet set (.commit-bar, ≤640px), so every other control is non-positioned in-flow
+   content and paints *below* the frame. */
 .stage-backdrop {
   position: fixed;
   inset: 0;
