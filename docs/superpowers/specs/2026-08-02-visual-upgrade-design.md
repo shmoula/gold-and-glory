@@ -123,7 +123,7 @@ changes — the glyphs are decoration on top of already-complete labels.
   death blow (stand-in until Phase 3 redraws it Roman).
 - Endings gallery: gold pile fills the Retired Rich illustration well (reads complete alone;
   Phase 3 composites the character on top).
-- Banana peel: Game Over scene dressing (the reference's "tripped on the *same* banana peel"
+- Banana peel: Game Over scene dressing (the reference's "tripped on the _same_ banana peel"
   vignette) — unconditional, so no game-state detection is needed.
 
 ## 5. Phase 3 — Hand-authored art
