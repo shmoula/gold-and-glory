@@ -15,7 +15,12 @@
   align-items: center;
   gap: var(--space-5);
   flex-wrap: wrap;
-  background: var(--grad-wood);
+  /* §6.1 Phase 2 amendment: plank texture over the gradient; the gradient stays as the
+     no-asset fallback and as the tone bed the texture multiplies into. */
+  background:
+    url('../assets/textures/wood-planks.jpg') center / 288px auto repeat,
+    var(--grad-wood);
+  background-blend-mode: multiply, normal;
   border: var(--border-w) solid var(--border-ink);
   border-radius: 10px 14px 9px 15px;
   padding: var(--space-2) var(--space-4);
@@ -414,6 +419,103 @@
   height: 24px;
   border-radius: 6px 8px 7px 9px;
 }
+/* §6.18's glyph layer (Phase 2): ::after IS the .icon treatment — currentColor through the
+   icon's alpha mask, so recoloring never touches an SVG file (visual-upgrade §2.2). `content`
+   is set ONLY in the per-name rules below: an unregistered name draws no pseudo-element and
+   the recessed well above stays the §10 fallback — no solid-square failure mode. */
+.icon-well {
+  position: relative;
+  color: var(--ink);
+}
+.icon-well::after {
+  position: absolute;
+  inset: 3px;
+  background-color: currentColor;
+  -webkit-mask: center / contain no-repeat;
+  mask: center / contain no-repeat;
+}
+/* §2.2's blood flag: the two wounds-and-vitals glyphs read red, everything else inks. */
+.icon-well[data-icon='health'],
+.icon-well[data-icon='injuries'] {
+  color: var(--blood);
+}
+/* The registry, name → pinned primary (manifest §1). One rule per name; the assets test
+   cross-checks this list against rendered markup and committed files. */
+.icon-well[data-icon='health']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/hearts.svg');
+  mask-image: url('../assets/icons/hearts.svg');
+}
+.icon-well[data-icon='durability']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/anvil.svg');
+  mask-image: url('../assets/icons/anvil.svg');
+}
+.icon-well[data-icon='injuries']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/drop.svg');
+  mask-image: url('../assets/icons/drop.svg');
+}
+.icon-well[data-icon='repair']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/anvil-impact.svg');
+  mask-image: url('../assets/icons/anvil-impact.svg');
+}
+.icon-well[data-icon='heal']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/sticking-plaster.svg');
+  mask-image: url('../assets/icons/sticking-plaster.svg');
+}
+.icon-well[data-icon='bribe']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/swap-bag.svg');
+  mask-image: url('../assets/icons/swap-bag.svg');
+}
+.icon-well[data-icon='shield']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/shield.svg');
+  mask-image: url('../assets/icons/shield.svg');
+}
+.icon-well[data-icon='blade']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/broadsword.svg');
+  mask-image: url('../assets/icons/broadsword.svg');
+}
+.icon-well[data-icon='charm']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/clover.svg');
+  mask-image: url('../assets/icons/clover.svg');
+}
+.icon-well[data-icon='power']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/biceps.svg');
+  mask-image: url('../assets/icons/biceps.svg');
+}
+.icon-well[data-icon='guard']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/bordered-shield.svg');
+  mask-image: url('../assets/icons/bordered-shield.svg');
+}
+.icon-well[data-icon='speed']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/boots.svg');
+  mask-image: url('../assets/icons/boots.svg');
+}
+.icon-well[data-icon='purse']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/coins-pile.svg');
+  mask-image: url('../assets/icons/coins-pile.svg');
+}
+.icon-well[data-icon='tax']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/scales.svg');
+  mask-image: url('../assets/icons/scales.svg');
+}
+.icon-well[data-icon='sponsor']::after {
+  content: '';
+  -webkit-mask-image: url('../assets/icons/shaking-hands.svg');
+  mask-image: url('../assets/icons/shaking-hands.svg');
+}
 /* Unaffordable price + shortfall snark: shared with `.btn` up in §6.2. */
 .shop-item.is-owned {
   opacity: 0.75;
@@ -481,15 +583,20 @@
   position: absolute;
   top: 0;
   bottom: 0;
+  /* §6.4 Phase 2 amendment: crayon-scribble hatch — texture as the redundant channel over the
+     gold ramp (decision 1). Inline data-URI: generated texture, no asset file, static. The
+     zone modifiers below MUST stay background-color longhands, or this layer is reset. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Cpath d='M-3 12 Q3 4 9 8 T21 2 M0 20 Q7 12 13 15 T24 10' stroke='%232f2318' stroke-opacity='.15' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-size: 18px 18px;
 }
 .meter__zone--graze {
-  background: var(--gold-mid);
+  background-color: var(--gold-mid);
 }
 .meter__zone--hit {
-  background: var(--gold);
+  background-color: var(--gold);
 }
 .meter__zone--crit {
-  background: var(--gold-hi);
+  background-color: var(--gold-hi);
   border-inline: 2px solid var(--border-ink); /* notches: not color-only */
   box-shadow: 0 0 12px rgba(244, 207, 122, 0.8);
 } /* the one permitted glow */
@@ -796,6 +903,27 @@
 .ending-card .snark {
   display: block;
   margin-top: var(--space-2);
+}
+/* §4.4: the Retired Rich card's illustration well shows the gold pile — locked or not, the
+   gallery teases its endings (the reference's right card). The pile layers over the well's
+   own recession gradient (restated here because `background-image` is one property: the
+   longhand replaces the shorthand's gradient, so both layers are declared together — keep
+   the gradient stops in sync with `.poster__portrait`'s own rule). The silhouette hides only
+   where art exists; every other card keeps the §10 fallback untouched. */
+.ending-card[data-ending='retired'] .poster__portrait {
+  background-image:
+    url('../assets/props/gold-pile.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    78% auto,
+    100% 100%;
+  background-position:
+    center 68%,
+    center;
+  background-repeat: no-repeat;
+}
+.ending-card[data-ending='retired'] .poster__portrait .poster__silhouette {
+  display: none;
 }
 /* §6.14's screenshot payload, and the one line on this screen with no card under it — so it
    carries its own parchment, exactly as §6.13's stamp does: Law 4 forbids text sitting

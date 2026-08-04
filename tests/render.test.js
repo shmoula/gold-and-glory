@@ -1537,6 +1537,21 @@ describe('renderGameOver (spec §6.14)', () => {
 
   // §6.14: "Fight Again is the lone .btn--commit". §9: prices live in the price slot, and this
   // button has no price at all — a label carrying money would fail both.
+  it('dresses the death screen with aria-hidden props (§4.4)', () => {
+    const html = gameOver('dead');
+    expect(html).toMatch(/<div class="gameover__props" aria-hidden="true">/);
+    for (const prop of ['sock-left', 'sock-right', 'confetti', 'sandal', 'banana', 'cactus']) {
+      expect(html).toContain(`prop--${prop}`);
+    }
+  });
+
+  it('keys every ending card for its illustration (§4.4)', () => {
+    const html = gameOver('dead');
+    for (const key of Object.keys(CONFIG.endings)) {
+      expect(html).toContain(`data-ending="${key}"`);
+    }
+  });
+
   it("offers Fight Again as the screen's lone commit button", () => {
     const screen = dom(gameOver('dead')).querySelector('.screen--gameover');
     const commits = [...screen.querySelectorAll('.btn--commit')];
@@ -1547,8 +1562,11 @@ describe('renderGameOver (spec §6.14)', () => {
     expect(commits[0].closest('.commit-bar')).not.toBeNull();
   });
 
-  // §7 gives the screen five placed children in reading order. Asserted as regions plus their
-  // contents: adding a class is a harmless refactor, putting the CTA in the cause slot is not.
+  // §7 gives the screen five grid-PLACED children in reading order. Asserted as regions plus
+  // their contents: adding a class is a harmless refactor, putting the CTA in the cause slot is
+  // not. The sixth entry, `gameover__props`, is the §4.4 dressing layer — deliberately
+  // unplaced (position: absolute, no grid-area), which is exactly what lets
+  // tests/grid-areas.test.js's per-child area walk skip it rather than fail it.
   it('lays the screen out as spec §7 endL / stamp / endR / cause / cta', () => {
     const section = dom(gameOver('dead')).querySelector('section.screen');
     expect([...section.classList]).toContain('screen--gameover');
@@ -1558,6 +1576,7 @@ describe('renderGameOver (spec §6.14)', () => {
       'gameover__right',
       'gameover__cause',
       'gameover__cta',
+      'gameover__props',
     ]);
   });
 
