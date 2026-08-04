@@ -33,7 +33,7 @@ deliberately distinct so no icon means two things on screen).
 
 | Slot            | Primary                    | Alternate                                            |
 | --------------- | -------------------------- | ---------------------------------------------------- |
-| HUD purse       | Shiny purse (Lorc)         | Coins (Delapouite)                                   |
+| HUD purse       | Shiny purse (Lorc) (superseded by the landed `.coin` — not committed) | Coins (Delapouite)                                   |
 | HUD health      | Hearts (Skoll)             | Health normal (sbed)                                 |
 | HUD durability  | Anvil (Lorc)               | Anvil impact (Lorc — reserved for repair)            |
 | HUD injuries    | Drop (Lorc)                | Blood (Skoll)                                        |

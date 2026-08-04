@@ -24,8 +24,9 @@ require (plaque text comes from existing screen state); no new screens; no sound
 
 ### 2.1 Asset pipeline
 
-- Committed files: `src/assets/icons/` (16 stock game-icons SVGs, stored as-downloaded,
-  pristine), `src/assets/art/` (hand-authored SVGs), `src/assets/textures/` (wood PNG).
+- Committed files: `src/assets/icons/` (15 stock game-icons SVGs, stored as-downloaded,
+  pristine), `src/assets/props/` (pristine openclipart stock props), `src/assets/art/`
+  (hand-authored SVGs), `src/assets/textures/` (wood PNG).
 - All assets imported through Vite — hashed URLs, loud build failures on missing files.
 - `CREDITS.md` at repo root carries every CC-BY attribution line; it is written/updated in the
   same commit that adds the files it credits. Provenance URLs live in the sourcing manifest.
@@ -41,6 +42,8 @@ decorative (`aria-hidden="true"`) everywhere; labels, numerals, and pips carry m
 Missing asset ⇒ the well's recessed treatment shows (the shop card's slot was the precedent; Phase 1
 generalized it into `.icon-well`, design-system §6.18, and the `.shop-item__icon` class this line
 originally named no longer exists) — the §10 zero-asset rule needs no new machinery.
+(Implemented as the well's `::after` pseudo-element — see design-system §6.18's Phase 2
+amendment; 'element' below reads as 'rendered box'.)
 
 ### 2.3 House style recipe (hand-authored SVG)
 
@@ -100,8 +103,10 @@ choreography; only the chicken drop waits for Phase 3.
 
 ### 4.1 Files + credits land together
 
-The 16 primary icons, openclipart props (confetti, gold pile, banana peel, cactus, sock and
-sandal bases), and the wood texture are committed with `CREDITS.md` in the same commit.
+The 15 primary icons (the HUD purse's Shiny purse pick is superseded — Phase 1's landed §6.1
+keeps the existing `.coin` for that slot, and no well exists there), openclipart props
+(confetti, gold pile, banana peel, cactus, sock and sandal bases), and the wood texture are
+committed with `CREDITS.md` in the same commit.
 Alternates stay in the manifest only.
 
 ### 4.2 Icons fill the wells

@@ -354,7 +354,8 @@ hub__commit, hub__next-label, fight__you, fight__stage, fight__foe, fight__log,
 fight__actions, result__recap, result__ledger, result__cta, result__cross, result__flavor,
 gameover__left, gameover__stamp, gameover__right, gameover__cause, gameover__cta,
 title-plaque, stage-backdrop, stage-frame, icon-well, icon-well--sm, hud__count,
-btn--arrow, fight__press, is-flashing`
+btn--arrow, fight__press, is-flashing, gameover__props, prop, prop--sock-left, prop--sock-right,
+prop--confetti, prop--sandal, prop--banana, prop--cactus`
 
 `modal` and `modal__scrim` (§6.15) are specified, not yet rendered — no screen mounts a modal
 today, but the spec still calls for one (death-match clause confirm).
@@ -510,6 +511,12 @@ its existing `.coin`). The injuries cell shows icon + numeral + pips together: a
 numeral (body 700, `--bone`) sits between label and pips. The `role="img"` +
 "N injuries" `aria-label` moves to a wrapper spanning numeral + pips; both children are
 `aria-hidden` so the count is announced exactly once.
+
+**Amendment (Phase 2, visual-upgrade §4.3):** the beam's wood gradient gains a hand-painted
+plank texture layer (`src/assets/textures/`, PamNawi's "Handpainted Wood", CC BY 3.0,
+resized/compressed in-repo). The gradient stays declared beneath it as the no-asset fallback.
+If bone-on-texture contrast dips below §3's floor anywhere, a darkening overlay gradient goes
+over the texture — the texture is swappable, the floor is not.
 
 ### 6.2 Buttons
 
@@ -805,6 +812,10 @@ anywhere near centre printed the verdict through the hint's glyphs. Hidden with 
 the line keeps its box and nothing below it shifts when the stamp arrives. CSS-only, state-scoped
 (`.fight__stage:has(.meter.is-captured)`) — no new class, and the markup is unchanged.
 
+**Amendment (Phase 2, decision 1):** the gold-ramp zones carry a crayon-scribble hatch as a
+small inline data-URI SVG `background-image` over their band colors — texture, not color, is
+the extra channel (§3 stays the authority on the ramp). Static; nothing to reduce for motion.
+
 ### 6.5 Wanted poster (combatant card)
 
 Parchment M2 + tape M4, `--tilt-1` (player) / `--tilt-2` (opponent) — neighbors never share tilt.
@@ -1043,6 +1054,13 @@ not buttons. Below the trio: `.cause-of-death` — body 700 lead-in ("Cause of D
 the absurd line at `--text-lg`, the screenshot payload, with `.wordmark` in frame.
 `Fight Again` is the lone `.btn--commit`.
 
+**Amendment (Phase 2, visual-upgrade §4.4):** ending cards carry `data-ending="<key>"`; the
+Retired Rich card's `.poster__portrait` shows the gold-pile prop (silhouette hidden by the
+same rule — locked cards keep the art: the reference's gallery teases its endings). The screen
+gains one `aria-hidden` dressing layer, `.gameover__props` (`pointer-events: none`), holding
+`.prop` elements: two distressed socks hung from the top edge, a confetti scatter, the sandal
+base, the banana peel, the cactus. All decorative, all CSS-positioned, all invisible to AT.
+
 ### 6.15 Modal (generic, e.g. death-match clause confirm)
 
 `.modal__scrim`: `rgba(31,22,12,0.6)` full-screen, `z-index: var(--z-modal)`.
@@ -1159,6 +1177,17 @@ Two things follow, and Phase 2 has to plan for both.
 
 `data-icon` names the glyph and only the glyph: size travels on `.icon-well--sm`, and no well
 encodes a state at all. The 15 names above are every value it takes today.
+
+**Amendment (Phase 2) — the glyph layer.** The well's `::after` is the `.icon` treatment the
+visual-upgrade design §2.2 names: `background-color: currentColor` masked by the icon SVG
+(`mask-image` + `-webkit-mask-image`, `center / contain no-repeat`, `inset: 3px`). Per-name
+rules in components.css are the only place `content` is set, so an unregistered name draws no
+pseudo-element and the recessed well is the fallback — there is no solid-square failure mode,
+and recoloring never touches an SVG file. Wells default to `color: var(--ink)` (ink on the
+recessed paper); `health` and `injuries` carry the blood flag (`color: var(--blood)`). The
+glyph sources are the manifest's 15 pinned game-icons.net primaries, committed pristine under
+`src/assets/icons/` with their source names; the mask rules are the single name→file mapping
+(tests/assets.test.js cross-checks rendered names ↔ rules ↔ files).
 
 ---
 
