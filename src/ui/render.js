@@ -367,7 +367,7 @@ const PURSE_LABEL = 'Final purse:';
 function endingCard(key, config, achieved) {
   const ending = config.endings[key];
   const locked = key !== achieved;
-  return `<article class="ending-card parchment tape${locked ? ' ending-card--locked' : ''}"${
+  return `<article class="ending-card parchment tape${locked ? ' ending-card--locked' : ''}" data-ending="${escapeHtml(key)}"${
     locked ? ' aria-disabled="true"' : ''
   }>
         <h3 class="poster__name">${escapeHtml(ending.title)}${locked ? '?' : ''}</h3>
@@ -420,6 +420,14 @@ export function renderGameOver(state, config) {
           <span class="wordmark">GOLD &amp; GLORY</span></p>
       </div>
       <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
+      <div class="gameover__props" aria-hidden="true">
+        <i class="prop prop--sock-left"></i>
+        <i class="prop prop--sock-right"></i>
+        <i class="prop prop--confetti"></i>
+        <i class="prop prop--sandal"></i>
+        <i class="prop prop--banana"></i>
+        <i class="prop prop--cactus"></i>
+      </div>
     </section>`;
 }
 

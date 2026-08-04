@@ -362,6 +362,14 @@ describe('screen grid areas', () => {
       for (const child of section.children) {
         for (const width of WIDTHS) {
           if (areasOf[variant][width].size === 0) continue; // stacked here, not placed
+          // CSS Grid §9.4: an absolutely-positioned grid item is removed from grid placement
+          // entirely, and with no `grid-area` its containing block defaults to the grid
+          // container's own padding box rather than one named area. The §4.4 dressing layer
+          // (`.gameover__props`) relies on exactly that: it deliberately carries no `grid-area`
+          // so it spans the whole screen instead of being confined to one cell — naming it would
+          // relocate its containing block to a single area and break the layout it is written
+          // for, so it has nothing for this walk to check.
+          if (winner(child, 'position', width) === 'absolute') continue;
           const area = namedArea(winner(child, 'grid-area', width));
           checked += 1;
           if (!area || !areasOf[variant][width].has(area)) {

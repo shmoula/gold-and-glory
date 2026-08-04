@@ -904,6 +904,27 @@
   display: block;
   margin-top: var(--space-2);
 }
+/* §4.4: the Retired Rich card's illustration well shows the gold pile — locked or not, the
+   gallery teases its endings (the reference's right card). The pile layers over the well's
+   own recession gradient (restated here because `background-image` is one property: the
+   longhand replaces the shorthand's gradient, so both layers are declared together — keep
+   the gradient stops in sync with `.poster__portrait`'s own rule). The silhouette hides only
+   where art exists; every other card keeps the §10 fallback untouched. */
+.ending-card[data-ending='retired'] .poster__portrait {
+  background-image:
+    url('../assets/props/gold-pile.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    78% auto,
+    100% 100%;
+  background-position:
+    center 68%,
+    center;
+  background-repeat: no-repeat;
+}
+.ending-card[data-ending='retired'] .poster__portrait .poster__silhouette {
+  display: none;
+}
 /* §6.14's screenshot payload, and the one line on this screen with no card under it — so it
    carries its own parchment, exactly as §6.13's stamp does: Law 4 forbids text sitting
    straight on the stone page (bone-on-stone is 2.99:1). */
