@@ -15,7 +15,12 @@
   align-items: center;
   gap: var(--space-5);
   flex-wrap: wrap;
-  background: var(--grad-wood);
+  /* §6.1 Phase 2 amendment: plank texture over the gradient; the gradient stays as the
+     no-asset fallback and as the tone bed the texture multiplies into. */
+  background:
+    url('../assets/textures/wood-planks.jpg') center / 288px auto repeat,
+    var(--grad-wood);
+  background-blend-mode: multiply, normal;
   border: var(--border-w) solid var(--border-ink);
   border-radius: 10px 14px 9px 15px;
   padding: var(--space-2) var(--space-4);
@@ -578,15 +583,20 @@
   position: absolute;
   top: 0;
   bottom: 0;
+  /* §6.4 Phase 2 amendment: crayon-scribble hatch — texture as the redundant channel over the
+     gold ramp (decision 1). Inline data-URI: generated texture, no asset file, static. The
+     zone modifiers below MUST stay background-color longhands, or this layer is reset. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Cpath d='M-3 12 Q3 4 9 8 T21 2 M0 20 Q7 12 13 15 T24 10' stroke='%232f2318' stroke-opacity='.15' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-size: 18px 18px;
 }
 .meter__zone--graze {
-  background: var(--gold-mid);
+  background-color: var(--gold-mid);
 }
 .meter__zone--hit {
-  background: var(--gold);
+  background-color: var(--gold);
 }
 .meter__zone--crit {
-  background: var(--gold-hi);
+  background-color: var(--gold-hi);
   border-inline: 2px solid var(--border-ink); /* notches: not color-only */
   box-shadow: 0 0 12px rgba(244, 207, 122, 0.8);
 } /* the one permitted glow */

@@ -22,3 +22,8 @@ anyway — provenance beats amnesia. Source pages, alternates, and pinning ratio
 - "Coins pile" icon by Delapouite, from game-icons.net, CC BY 3.0
 - "Scales" icon by Lorc, from game-icons.net, CC BY 3.0
 - "Shaking hands" icon by Delapouite, from game-icons.net, CC BY 3.0
+
+## Textures
+
+- "Handpainted Wood" by PamNawi, from opengameart.org (opengameart.org/content/handpainted-wood),
+  CC BY 3.0 — resized and recompressed in-repo (src/assets/textures/).
