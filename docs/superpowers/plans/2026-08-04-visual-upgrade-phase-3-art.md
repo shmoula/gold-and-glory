@@ -17,6 +17,23 @@
 - Ship-at-any-cut: tasks 2–7 are ordered by leverage (spec §5) and each is one self-contained commit into an already-working well. Stopping after any task leaves a shippable game.
 - Run `npm test && npm run lint` before every commit. Mirror the phase convention: branch `feat/visual-upgrade-phase-3-art`.
 
+**Style sources (read in this order before authoring ANYTHING):**
+
+1. Design-system doc §1–§5 + §9 — tokens, type, color rules, materials, motion, voice. The only
+   allowed hexes are §1's tokens; the per-piece palettes in this plan are drawn from them.
+2. Visual-upgrade spec §2.3 — the hand-authored recipe (tokens-only, ONE ink stroke width locked
+   by Task 2's chicken, flat fills + ≤1 shade, one crayon-hatch group, fixed geometry).
+3. The four reference images (Fight / Result / Game Over / Hub) at
+   `docs/superpowers/specs/references/` — mood and composition targets: the worried plumed
+   player, horned-helm brute, crowd band over the arena wall, multicolored child's-drawing
+   masonry frame, hanging socks + confetti + both-tripped vignette, figure-on-gold-pile,
+   ill-fitting belt. **Decision 1 rules the relationship: laws win over references** — adapt,
+   never trace; where an image conflicts with §1–§5, the system wins.
+4. Each task's authoring step — per-piece composition, token hexes, byte cap, legibility check.
+
+If `docs/superpowers/specs/references/` does not exist yet, STOP and get the four images
+committed first — Task 8's reference pass and every art task's squint test depend on them.
+
 **Budget rebalance (why some stock leaves in this phase):**
 
 Committed payload is 272,116 bytes; the ceiling is 307,200 (300KB). Three Phase 2 stand-ins are both the heaviest files and the very slots Phase 3 redraws:
