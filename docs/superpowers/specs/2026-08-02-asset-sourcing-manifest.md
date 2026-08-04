@@ -31,24 +31,24 @@ Primary pick first; alternate second. No file is reused across two slots (anvil 
 shiny-purse vs. swap-bag, shop shield vs. guard shield, tax scales vs. bribe pouch are all
 deliberately distinct so no icon means two things on screen).
 
-| Slot            | Primary                    | Alternate                                            |
-| --------------- | -------------------------- | ---------------------------------------------------- |
+| Slot            | Primary                                                               | Alternate                                            |
+| --------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
 | HUD purse       | Shiny purse (Lorc) (superseded by the landed `.coin` — not committed) | Coins (Delapouite)                                   |
-| HUD health      | Hearts (Skoll)             | Health normal (sbed)                                 |
-| HUD durability  | Anvil (Lorc)               | Anvil impact (Lorc — reserved for repair)            |
-| HUD injuries    | Drop (Lorc)                | Blood (Skoll)                                        |
-| Sink: repair    | Anvil impact (Lorc)        | Claw hammer (Lorc)                                   |
-| Sink: heal      | Sticking plaster (Lorc)    | Hand bandage (Delapouite)                            |
-| Sink: bribe     | Swap bag (Lorc)            | Receive money (Delapouite)                           |
-| Shop: shield    | Shield (sbed)              | Round shield (Willdabeast)                           |
-| Shop: blade     | Broadsword (Lorc)          | Sword array (Lorc)                                   |
-| Shop: charm     | Clover (Lorc)              | Sock lineart (openclipart, PD — the "(A sock?)" gag) |
-| Train: power    | Biceps (Delapouite)        | Muscle up (Lorc)                                     |
-| Train: guard    | Bordered shield (Lorc)     | Spiked shield (Delapouite)                           |
-| Train: speed    | Boots (Lorc)               | Sprint (Lorc)                                        |
-| Ledger: purse   | Coins pile (Delapouite)    | Gold stack (Delapouite)                              |
-| Ledger: tax     | Scales (Lorc)              | — (sole canonical scales icon)                       |
-| Ledger: sponsor | Shaking hands (Delapouite) | Crossed swords (Lorc)                                |
+| HUD health      | Hearts (Skoll)                                                        | Health normal (sbed)                                 |
+| HUD durability  | Anvil (Lorc)                                                          | Anvil impact (Lorc — reserved for repair)            |
+| HUD injuries    | Drop (Lorc)                                                           | Blood (Skoll)                                        |
+| Sink: repair    | Anvil impact (Lorc)                                                   | Claw hammer (Lorc)                                   |
+| Sink: heal      | Sticking plaster (Lorc)                                               | Hand bandage (Delapouite)                            |
+| Sink: bribe     | Swap bag (Lorc)                                                       | Receive money (Delapouite)                           |
+| Shop: shield    | Shield (sbed)                                                         | Round shield (Willdabeast)                           |
+| Shop: blade     | Broadsword (Lorc)                                                     | Sword array (Lorc)                                   |
+| Shop: charm     | Clover (Lorc)                                                         | Sock lineart (openclipart, PD — the "(A sock?)" gag) |
+| Train: power    | Biceps (Delapouite)                                                   | Muscle up (Lorc)                                     |
+| Train: guard    | Bordered shield (Lorc)                                                | Spiked shield (Delapouite)                           |
+| Train: speed    | Boots (Lorc)                                                          | Sprint (Lorc)                                        |
+| Ledger: purse   | Coins pile (Delapouite)                                               | Gold stack (Delapouite)                              |
+| Ledger: tax     | Scales (Lorc)                                                         | — (sole canonical scales icon)                       |
+| Ledger: sponsor | Shaking hands (Delapouite)                                            | Crossed swords (Lorc)                                |
 
 Icon pages live at `https://game-icons.net/1x1/{author}/{icon-name}.html`.
 

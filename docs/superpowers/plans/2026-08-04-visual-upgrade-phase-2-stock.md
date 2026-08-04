@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Land every *pinned stock asset* — 15 UI icon glyphs, wood texture, meter hatch, openclipart props — into the wells and surfaces Phase 1 built, with `CREDITS.md` obligations satisfied in the same commits, per `docs/superpowers/specs/2026-08-02-visual-upgrade-design.md` §4.
+**Goal:** Land every _pinned stock asset_ — 15 UI icon glyphs, wood texture, meter hatch, openclipart props — into the wells and surfaces Phase 1 built, with `CREDITS.md` obligations satisfied in the same commits, per `docs/superpowers/specs/2026-08-02-visual-upgrade-design.md` §4.
 
 **Architecture:** Assets are committed files under `src/assets/{icons,props,art,textures}/`, referenced only from CSS `url()` (Vite hashes them and fails the build loudly if one goes missing). Icon glyphs paint via CSS `mask-image` + `currentColor` on the well's `::after` — an unregistered `data-icon` name draws no pseudo-element at all, so the Phase 1 recessed well remains the §10 zero-asset fallback with no failure mode. No renderer emits an asset path; the only JS/markup diffs in this whole phase are the game-over props container and a `data-ending` attribute.
 
@@ -11,6 +11,7 @@
 **Baseline at start:** 445 tests / 15 files passing, lint clean, Phase 1 merged on `main` (`cd6564d`).
 
 **Rules that bind every task:**
+
 - Doc-first: Task 1 amends the design-system doc and spec before any code/asset lands (§10).
 - License hygiene: a file and its `CREDITS.md` line land in the SAME commit (§2.1/§4.1).
 - Stock files are never edited in place; in-house derivatives are new files in `src/assets/art/` crediting the base (§2.1).
@@ -18,6 +19,7 @@
 - Run `npm test && npm run lint` before every commit. Work lands on `main` (Phase 1's branch is merged; follow the repo's current convention if a branch is preferred — mirror Phase 1: `feat/visual-upgrade-phase-2-stock`).
 
 **Phase 1 facts this plan builds on (verified against landed code, not the stale Phase 1 plan):**
+
 - `iconWell(name, { small })` in `src/ui/components.js:68` is the ONLY emitter of wells; every well carries `data-icon="<name>"`, `aria-hidden="true"`.
 - The 15 landed `data-icon` names: `health durability injuries repair heal bribe shield blade charm power guard speed purse tax sponsor` (registry documented in design-system §6.18). The HUD purse deliberately keeps `.coin` — it has NO well.
 - `.icon-well` CSS lives at `src/styles/components.css:398` (34px, recessed paper radial), `.icon-well--sm` at `:412` (24px); `.btn .icon-well` (`:181`) and `.ledger__row dt .icon-well` (`:685`) handle layout contexts.
@@ -26,25 +28,26 @@
 
 **File structure (what changes where):**
 
-| File | Responsibility in this plan |
-| --- | --- |
-| design-system doc + visual-upgrade spec + manifest | doc-first amendments (Task 1) |
-| `src/assets/icons/*.svg` (15, pristine) | Task 2 |
-| `CREDITS.md` (NEW, repo root) | Tasks 2, 4, 5 (grows with each landing) |
-| `tests/assets.test.js` (NEW) | asset presence, mask-safety, glyph-rule consistency, weight budget (Tasks 2–3) |
-| `src/styles/components.css` | glyph base + 15 mask rules (Task 3); meter hatch (Task 4); retired-card art (Task 6) |
-| `src/assets/textures/wood-planks.{png,jpg}` | Task 4 |
-| `src/styles/tokens.css` / `.hud` rule in `components.css` | texture layering (Task 4) |
-| `src/assets/props/*.svg` (pristine) + `src/assets/art/*.svg` (derivatives) | Task 5 |
-| `src/ui/render.js` (`renderGameOver`, `endingCard`) | props container + `data-ending` (Task 6) |
-| `src/styles/screens.css` | game-over prop positioning (Task 6) |
-| `tests/render.test.js` | props/endings assertions (Task 6) |
+| File                                                                       | Responsibility in this plan                                                          |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| design-system doc + visual-upgrade spec + manifest                         | doc-first amendments (Task 1)                                                        |
+| `src/assets/icons/*.svg` (15, pristine)                                    | Task 2                                                                               |
+| `CREDITS.md` (NEW, repo root)                                              | Tasks 2, 4, 5 (grows with each landing)                                              |
+| `tests/assets.test.js` (NEW)                                               | asset presence, mask-safety, glyph-rule consistency, weight budget (Tasks 2–3)       |
+| `src/styles/components.css`                                                | glyph base + 15 mask rules (Task 3); meter hatch (Task 4); retired-card art (Task 6) |
+| `src/assets/textures/wood-planks.{png,jpg}`                                | Task 4                                                                               |
+| `src/styles/tokens.css` / `.hud` rule in `components.css`                  | texture layering (Task 4)                                                            |
+| `src/assets/props/*.svg` (pristine) + `src/assets/art/*.svg` (derivatives) | Task 5                                                                               |
+| `src/ui/render.js` (`renderGameOver`, `endingCard`)                        | props container + `data-ending` (Task 6)                                             |
+| `src/styles/screens.css`                                                   | game-over prop positioning (Task 6)                                                  |
+| `tests/render.test.js`                                                     | props/endings assertions (Task 6)                                                    |
 
 ---
 
 ### Task 1: Doc-first amendments
 
 **Files:**
+
 - Modify: `docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md`
 - Modify: `docs/superpowers/specs/2026-08-02-visual-upgrade-design.md`
 - Modify: `docs/superpowers/specs/2026-08-02-asset-sourcing-manifest.md`
@@ -106,6 +109,7 @@ In §6.0's closed class index, append: `gameover__props, prop, prop--sock-left, 
 - [ ] **Step 5: visual-upgrade spec corrections (three small ones)**
 
 In `2026-08-02-visual-upgrade-design.md`:
+
 1. §2.1's committed-files line: add `src/assets/props/` — "(pristine openclipart stock props)" — between icons and art. (The spec listed three directories; unmodified stock props are neither icons nor hand-authored art.)
 2. §2.2: append "(Implemented as the well's `::after` pseudo-element — see design-system §6.18's Phase 2 amendment; 'element' below reads as 'rendered box'.)"
 3. §4.1: change "The 16 primary icons" to "The 15 primary icons (the HUD purse's Shiny purse pick is superseded — Phase 1's landed §6.1 keeps the existing `.coin` for that slot, and no well exists there)".
@@ -126,6 +130,7 @@ git commit -m "docs(design-system): phase 2 amendments — glyph layer, textures
 ### Task 2: Acquire the 15 icon SVGs + CREDITS.md
 
 **Files:**
+
 - Create: `src/assets/icons/` (15 files, pristine as downloaded)
 - Create: `CREDITS.md`
 - Create: `tests/assets.test.js`
@@ -320,6 +325,7 @@ git commit -m "feat(assets): 15 pinned game-icons primaries with CC BY credits"
 ### Task 3: Icons fill the wells (CSS mask wiring)
 
 **Files:**
+
 - Modify: `src/styles/components.css` (extend the `.icon-well` block at ~line 398)
 - Modify: `tests/assets.test.js` (add the consistency suite)
 
@@ -330,8 +336,12 @@ Append to `tests/assets.test.js`:
 ```js
 describe('glyph rules ↔ rendered names ↔ files (§4.2, one mapping, no drift)', () => {
   const css = readFileSync('src/styles/components.css', 'utf8');
-  const ruleNames = [...css.matchAll(/\.icon-well\[data-icon='([^']+)'\]::after/g)].map((m) => m[1]);
-  const maskedFiles = [...css.matchAll(/mask-image:\s*url\('\.\.\/assets\/icons\/([^']+)'\)/g)].map((m) => m[1]);
+  const ruleNames = [...css.matchAll(/\.icon-well\[data-icon='([^']+)'\]::after/g)].map(
+    (m) => m[1]
+  );
+  const maskedFiles = [...css.matchAll(/mask-image:\s*url\('\.\.\/assets\/icons\/([^']+)'\)/g)].map(
+    (m) => m[1]
+  );
 
   it('paints every data-icon name the renderers emit', () => {
     // Collect every name from every screen the game can mount — mirror grid-areas.test.js's
@@ -488,6 +498,7 @@ git commit -m "feat(ui): icon glyphs fill every well via CSS mask + currentColor
 ### Task 4: Texture pass (wood beam + meter hatch, once)
 
 **Files:**
+
 - Create: `src/assets/textures/wood-planks.png` (or `.jpg` — see Step 2)
 - Modify: `src/styles/components.css` (`.hud` rule ~line 13; `.meter__zone` rules ~lines 480–494)
 - Modify: `CREDITS.md`
@@ -530,12 +541,12 @@ and use the `.jpg` filename in Step 3. Expected final size: 40–120KB. Run `npx
 In `src/styles/components.css`, in the `.hud` rule (~line 13), replace the existing `background: var(--grad-wood);` declaration with:
 
 ```css
-  /* §6.1 Phase 2 amendment: plank texture over the gradient; the gradient stays as the
+/* §6.1 Phase 2 amendment: plank texture over the gradient; the gradient stays as the
      no-asset fallback and as the tone bed the texture multiplies into. */
-  background:
-    url('../assets/textures/wood-planks.png') center / 288px auto repeat,
-    var(--grad-wood);
-  background-blend-mode: multiply, normal;
+background:
+  url('../assets/textures/wood-planks.png') center / 288px auto repeat,
+  var(--grad-wood);
+background-blend-mode: multiply, normal;
 ```
 
 (`--grad-wood` is a `linear-gradient()` token — tokens.css:121 — and works as a background layer; do NOT inline the wood stops, the token is their single owner.)
@@ -550,11 +561,11 @@ The three zone modifiers (`components.css:485–494`) currently use the `backgro
 2. In the base `.meter__zone` rule (~line 480), add:
 
 ```css
-  /* §6.4 Phase 2 amendment: crayon-scribble hatch — texture as the redundant channel over the
+/* §6.4 Phase 2 amendment: crayon-scribble hatch — texture as the redundant channel over the
      gold ramp (decision 1). Inline data-URI: generated texture, no asset file, static. The
      zone modifiers below MUST stay background-color longhands, or this layer is reset. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Cpath d='M-3 12 Q3 4 9 8 T21 2 M0 20 Q7 12 13 15 T24 10' stroke='%232f2318' stroke-opacity='.15' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
-  background-size: 18px 18px;
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Cpath d='M-3 12 Q3 4 9 8 T21 2 M0 20 Q7 12 13 15 T24 10' stroke='%232f2318' stroke-opacity='.15' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+background-size: 18px 18px;
 ```
 
 (The wobbly Q/T strokes read as crayon rather than engineering hatching; tune `stroke-opacity` .12–.20 in Step 5. If `tests/styles.test.js` pins the zones' `background` spelling, update the pinned spelling to the longhand.)
@@ -562,6 +573,7 @@ The three zone modifiers (`components.css:485–494`) currently use the `backgro
 - [ ] **Step 5: Contrast re-verification (§4.3 — the floor is not swappable)**
 
 `npm run dev`, then check with devtools eyedropper on a screenshot:
+
 - Beam: `Gold:` label, bar labels, `.hud__count`, `.bar__num` over the darkest and lightest texture spots — the §3 table pins bone-on-wood at 10.06:1 against `--wood-4`; the texture must not lift the background enough to matter. If any text spot reads muddy, darken the texture layer: add `linear-gradient(rgba(31, 22, 12, 0.25), rgba(31, 22, 12, 0.25)),` as the FIRST background layer (over the texture) and re-check.
 - Meter: zone bands still read as three distinct steps with the hatch on top; `.meter__labels` and the stamp are outside the bands and unaffected.
 - Reduced-motion: nothing here animates — no check needed (statics).
@@ -592,6 +604,7 @@ git commit -m "feat(ui): wood texture on the HUD beam and crayon hatch on the me
 ### Task 5: Acquire props + author the two in-house derivatives
 
 **Files:**
+
 - Create: `src/assets/props/gold-pile.svg`, `banana-peel.svg`, `cactus.svg`, `sandal-base.svg` (pristine)
 - Create: `src/assets/art/sock-distressed.svg`, `src/assets/art/confetti.svg` (in-house derivatives)
 - Modify: `CREDITS.md`
@@ -615,6 +628,7 @@ Expected: six SVGs (`<svg` or `<?xml` heads). Guard: any file over **40KB** gets
 - [ ] **Step 2: Author `src/assets/art/sock-distressed.svg`**
 
 Start from `$SCRATCH/long-sock-base.svg` (Oltarus's outline-only silhouette — made for filling). Save as a NEW file with these edits, using the house recipe (§2.3):
+
 - Root: keep the base's viewBox; add nothing outside it.
 - Body fill: `#e6d6ae` (`--paper-3`); outline stroke `#2f2318` (`--border-ink`) at the base's own stroke width (or 2.5 if the base has none).
 - Heel + toe: one rough hole each — a cluster of 2–3 overlapping ellipses filled `#46301b` (`--wood-4`, reads as void) with a 1px `#2f2318` rim.
@@ -626,6 +640,7 @@ Check: `open src/assets/art/sock-distressed.svg` (or the dev server later) — m
 - [ ] **Step 3: Author `src/assets/art/confetti.svg`**
 
 Start from `$SCRATCH/confetti-base.svg` (10binary's scattered pieces). Save as a NEW file:
+
 - Recolor every piece's fill, cycling this palette: `#3e6fae` (`--commit`), `#d9a441` (`--gold`), `#b5402f` (`--blood`), `#3f6b35` (`--moss-ink`), `#f6ecd1` (`--paper-1`).
 - Delete any background rect/canvas fill so the scatter sits on transparency.
 - Keep it under 15KB (delete pieces if the base is dense — a dozen visible pieces suffice at 300px wide).
@@ -660,6 +675,7 @@ git commit -m "feat(assets): openclipart props and in-house sock/confetti deriva
 ### Task 6: Props take their places (game-over dressing + endings art)
 
 **Files:**
+
 - Modify: `src/ui/render.js` (`renderGameOver` section markup; `endingCard()` ~line 368)
 - Modify: `src/styles/screens.css` (game-over block)
 - Modify: `src/styles/components.css` (ending-card art rule, near the `.ending-card` rules)
@@ -706,14 +722,14 @@ In `src/ui/render.js`:
 2. `renderGameOver()` — add the dressing layer as the LAST child of `<section class="screen screen--gameover">` (after the cta div, so it follows all content in source order; it is `aria-hidden` and non-interactive, so reading/tab order are untouched):
 
 ```js
-      <div class="gameover__props" aria-hidden="true">
-        <i class="prop prop--sock-left"></i>
-        <i class="prop prop--sock-right"></i>
-        <i class="prop prop--confetti"></i>
-        <i class="prop prop--sandal"></i>
-        <i class="prop prop--banana"></i>
-        <i class="prop prop--cactus"></i>
-      </div>
+<div class="gameover__props" aria-hidden="true">
+  <i class="prop prop--sock-left"></i>
+  <i class="prop prop--sock-right"></i>
+  <i class="prop prop--confetti"></i>
+  <i class="prop prop--sandal"></i>
+  <i class="prop prop--banana"></i>
+  <i class="prop prop--cactus"></i>
+</div>
 ```
 
 - [ ] **Step 4: Position the props (screens.css) and fill the retired well (components.css)**
@@ -833,6 +849,7 @@ Expected: PASS. `tests/a11y.test.js` sees no new interactive/announced content (
 - [ ] **Step 6: Visual verification**
 
 `npm run dev`, die (or `retire`) to reach game over, at 1280px and 375px:
+
 - Socks hang from the top edge without covering the plaque or stamp; confetti scatters behind/around the center stamp without swallowing the "YOU DIED" text; sandal/banana/cactus sit in the lower third without touching the cause-of-death line or the CTA.
 - Retired Rich card shows the gold pile (locked "?" state included); the other two cards keep their silhouettes.
 - Nothing intercepts clicks: the Fight Again button works with props overlapping nearby.
