@@ -5,11 +5,13 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { mountAll } from './support/screens.js';
 
 const ICON_DIR = 'src/assets/icons';
 const CREDITS = 'CREDITS.md';
 
 const iconFiles = () => readdirSync(ICON_DIR).filter((f) => f.endsWith('.svg'));
+const allScreensHtml = () => Object.values(mountAll()).map((host) => host.innerHTML);
 
 describe('icon assets (§4.1/§4.2)', () => {
   it('commits all 15 pinned primaries, no more, no less', () => {
@@ -69,6 +71,35 @@ describe('icon assets (§4.1/§4.2)', () => {
       expect(credits, `credit line for ${f}`).toContain(`"${titles[f]}" icon by`);
       expect(credits).toContain('game-icons.net, CC BY 3.0');
     }
+  });
+});
+
+describe('glyph rules ↔ rendered names ↔ files (§4.2, one mapping, no drift)', () => {
+  const css = readFileSync('src/styles/components.css', 'utf8');
+  const ruleNames = [...css.matchAll(/\.icon-well\[data-icon='([^']+)'\]::after/g)].map(
+    (m) => m[1]
+  );
+  const maskedFiles = [...css.matchAll(/mask-image:\s*url\('\.\.\/assets\/icons\/([^']+)'\)/g)].map(
+    (m) => m[1]
+  );
+
+  it('paints every data-icon name the renderers emit', () => {
+    // Collect every name from every screen the game can mount — mirror grid-areas.test.js's
+    // use of mountAll (tests/support/screens.js) to render the full screen set.
+    const rendered = new Set();
+    for (const html of allScreensHtml()) {
+      for (const m of html.matchAll(/data-icon="([^"]+)"/g)) rendered.add(m[1]);
+    }
+    expect(rendered.size).toBe(15);
+    for (const name of rendered) {
+      expect(ruleNames, `mask rule for data-icon="${name}"`).toContain(name);
+    }
+  });
+
+  it('every mask rule points at a committed file', () => {
+    const committed = iconFiles();
+    for (const f of maskedFiles) expect(committed, `mask url ${f}`).toContain(f);
+    expect(new Set(maskedFiles).size).toBe(15); // no icon means two things (manifest §1)
   });
 });
 
