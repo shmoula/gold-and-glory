@@ -230,6 +230,20 @@ function startMeter() {
   sweep.raf = requestAnimationFrame(step);
 }
 
+// Where the verdict stamp is *drawn*, which is not always where the strike *landed*. The stamp
+// is a run of display type centred on the captured position, and `stamp-in` opens it at 1.5×:
+// measured at 375px (24px gutter each side — 8px --frame-w plus 16px .screen), an unclamped
+// `MISS!` captured at track position 0 opens 1.2px off the left edge and `GRAZE!` at position 1
+// runs 8.1px past the right, clipping a glyph for the opening beats. Transforms create no
+// scrollable overflow, so nothing else would ever report this.
+//
+// The clamp is presentational and belongs to the stamp ALONE. Never apply it to `.meter-cursor`:
+// the frozen cursor is the player's only readout of the position the game actually judged, and a
+// cursor that lied about the last 6% of the track would break the calibration the freeze exists
+// for. A centre capture is untouched — the sweet spot band lives at 0.35–0.75.
+const STAMP_EDGE = 0.06;
+const stampPosition = (p) => Math.min(Math.max(p, STAMP_EDGE), 1 - STAMP_EDGE);
+
 function captureMeter() {
   // The freeze: once the sweep stops, later time must not leak into the captured position.
   if (!sweep.running) return;
@@ -245,6 +259,23 @@ function captureMeter() {
   const cursor = bar.querySelector('.meter-cursor');
   if (cursor) paintCursor(bar, cursor, sweep.captured);
   bar.classList.add('is-captured');
+  // Spec §6.4 steps 2–3, the behavioral half: the freeze is how players calibrate their timing,
+  // so the verdict shows AT the freeze, not after the action resolves. currentTiming() reads the
+  // same captured position the resolver will read, so the stamp can never disagree with the log
+  // line that follows. A miss lands outside every band and therefore flashes nothing — the
+  // absence IS the reading. aria-hidden: announceTurn speaks the verdict; the stamp is the
+  // visual channel. The chicken drop (§6.4's asset half) joins in Phase 3.
+  // No cleanup: every action re-renders the fight through mount(), which rebuilds the meter
+  // without a stamp and without the flash class.
+  const verdict = currentTiming();
+  const zone = bar.querySelector(`.meter__zone--${verdict}`);
+  if (zone) zone.classList.add('is-flashing');
+  const stamp = document.createElement('span');
+  stamp.className = 'meter__stamp';
+  stamp.setAttribute('aria-hidden', 'true');
+  stamp.textContent = `${verdict.toUpperCase()}!`;
+  stamp.style.left = `${(stampPosition(sweep.captured) * 100).toFixed(2)}%`;
+  bar.appendChild(stamp);
 }
 
 // The run's seeded generator drives the sweet spot, so a replayed seed replays the same fight.

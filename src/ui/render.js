@@ -16,6 +16,8 @@ import {
   shopItem,
   logEntry,
   bannerStamp,
+  titlePlaque,
+  iconWell,
 } from './components.js';
 import { meterZones } from './timing.js';
 
@@ -34,6 +36,8 @@ export {
   logEntry,
   logEntryText,
   bannerStamp,
+  titlePlaque,
+  iconWell,
 } from './components.js';
 export { meterDistance, meterPosition, meterPeriod, meterZones, sweetCenter } from './timing.js';
 
@@ -76,10 +80,10 @@ export function renderHud(state, config, { urgent } = {}) {
   return `
     <header class="hud">
       <span class="hud__purse"><i class="coin"></i>Gold: <span class="ticker" data-value="${state.gold}">${formatGold(state.gold)}</span></span>
-      ${bar('Health', hp.value, hp.max, { urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION })}
-      ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { fillClass: ' bar__fill--dur' })}
-      <span class="hud__stat"><span class="hud__label">Injuries</span>
-        <span class="pips" role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}">${pips}</span></span>
+      ${bar('Health', hp.value, hp.max, { icon: 'health', urgent: urgent ?? hp.value / hp.max < URGENT_FRACTION })}
+      ${bar('Durability', state.weaponDurability, config.weapon.maxDurability, { icon: 'durability', fillClass: ' bar__fill--dur' })}
+      <span class="hud__stat">${iconWell('injuries', { small: true })}<span class="hud__label">Injuries</span>
+        <span role="img" aria-label="${state.injuries} ${state.injuries === 1 ? 'injury' : 'injuries'}"><span class="hud__count" aria-hidden="true">${state.injuries}</span><span class="pips" aria-hidden="true">${pips}</span></span></span>
     </header>`;
 }
 
@@ -96,6 +100,7 @@ export function renderHub(state, config) {
     .map((stat) => {
       const cost = trainingCost(state.trainingLevels[stat], config);
       return `<div class="train-row">
+      ${iconWell(stat)}
       <span class="train-row__label">${stat[0].toUpperCase() + stat.slice(1)} ${eff[stat]}</span>
       ${meter(`${stat} training`, eff[stat], TRAIN_METER_CAP, {
         fillClass: ' bar__fill--dur',
@@ -129,16 +134,17 @@ export function renderHub(state, config) {
 
   return `
     ${renderHud(state, config)}
+    ${titlePlaque(`Current wins: ${state.wins}`)}
     <section class="screen screen--hub">
       <div class="hub__sinks">
         <h2>The Ludus</h2>
-        <p>Wins: ${state.wins}</p>
         ${btn('repair', 'Repair Weapon', {
           cost: repairCost(missing, config),
           gold: state.gold,
           snark: config.snark.repair,
           urgent: state.weaponDurability / config.weapon.maxDurability < REPAIR_URGENT_FRACTION,
           disabled: missing <= 0,
+          icon: 'repair',
         })}
         ${btn('heal', `Heal ${state.injuries} ${state.injuries === 1 ? 'Injury' : 'Injuries'}`, {
           cost: healCost(state.injuries, config),
@@ -146,14 +152,22 @@ export function renderHub(state, config) {
           snark: config.snark.heal,
           urgent: hurt,
           disabled: !hurt,
+          icon: 'heal',
         })}
         ${
+          // The bribe well names the action, not its remaining availability this fight: the
+          // spent state stays an inert plank ("Bribed ✓"), but the slot must not vanish with it.
           state.bribedThisFight
-            ? btn(null, 'Bribed ✓', { disabled: true })
+            ? btn(null, 'Bribed ✓', { disabled: true, icon: 'bribe' })
             : btn(
                 'bribe',
                 `Bribe Official — tax ${config.arena.taxRate * 100}% → ${config.arena.bribedTaxRate * 100}%`,
-                { cost: config.arena.bribeCost, gold: state.gold, snark: config.snark.bribe }
+                {
+                  cost: config.arena.bribeCost,
+                  gold: state.gold,
+                  snark: config.snark.bribe,
+                  icon: 'bribe',
+                }
               )
         }
       </div>
@@ -181,11 +195,23 @@ export function renderHub(state, config) {
 // those from zero as the row lands (§6.6's "money rows count from 0 to value over the beat"),
 // and the unit names the formatter, so the counter's last write is by construction the same
 // string the server already rendered. A line with no unit is not money and does not count.
-function ledgerRow({ label, text, value = null, unit = null, tone = '', cls = '', snark = '' }) {
+function ledgerRow({
+  label,
+  text,
+  value = null,
+  unit = null,
+  tone = '',
+  cls = '',
+  snark = '',
+  icon = '',
+}) {
   const data = unit && Number.isFinite(value) ? ` data-value="${value}" data-unit="${unit}"` : '';
   const aside = snark ? ` <span class="snark">(${escapeHtml(snark)})</span>` : '';
+  // §6.18: a small well naming the line's *source* (purse, tax, sponsor). Sums and tallies (net
+  // gold, injuries, wear, balance) pass no `icon` and stay well-less — they are not a source.
+  const well = icon ? iconWell(icon, { small: true }) : '';
   return `<div class="ledger__row is-hidden${cls}">
-            <dt>${escapeHtml(label)}${aside}</dt>
+            <dt>${well}${escapeHtml(label)}${aside}</dt>
             <dd class="amount${tone}"${data}>${text}</dd>
           </div>`;
 }
@@ -225,10 +251,10 @@ function ledgerLines(state, config) {
   // The tax label states no rate: the result carries the amount, not the rate that produced
   // it, and a rate re-derived from a rounded amount would be a number that lies (Law 1).
   return [
-    moneyRow('Purse', r.purse),
-    moneyRow('Arena tax', -r.tax, { snark: config.snark.tax }),
+    moneyRow('Purse', r.purse, { icon: 'purse' }),
+    moneyRow('Arena tax', -r.tax, { snark: config.snark.tax, icon: 'tax' }),
     r.sponsorIncome
-      ? moneyRow('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward })
+      ? moneyRow('Sponsor', r.sponsorIncome, { snark: config.snark.sponsorReward, icon: 'sponsor' })
       : null,
     moneyRow('Net gold', r.netGold, { cls: ' ledger__row--net' }),
     tallyRow('Injuries gained', r.injuriesGained, `${r.injuriesGained}`),
@@ -283,6 +309,7 @@ export function renderResult(state, config) {
 
   return `
     ${renderHud(state, config)}
+    ${titlePlaque('Result')}
     <section class="screen screen--result">
       <div class="result__recap">
         ${banner}
@@ -380,6 +407,7 @@ export function renderGameOver(state, config) {
   // poster plate: the run is over, and an alarm that points at nothing is noise.
   return `
     ${renderHud(state, config, { urgent: false })}
+    ${titlePlaque('Game over')}
     <section class="screen screen--gameover">
       <div class="gameover__left">${gallery(others.slice(0, half))}</div>
       <div class="gameover__stamp">
@@ -462,8 +490,20 @@ export function renderFight(state, config) {
   const logHtml = c.log.map(logEntry).join('');
   // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
   // at the shared urgency threshold — the fight screen states no number by hand.
+  //
+  // Child order is the §7-amendment reading order — you, stage, foe, actions, log, press — and
+  // therefore the tab order: meter → the four actions → log (it is `tabindex="0"`) → press. The
+  // grid areas in screens.css move these blocks around the screen at each breakpoint; they never
+  // reorder them. `.fight__press` is emitted whether or not the offer stands, so the grid always
+  // has the child its `press` area is written for — but the empty div reserves no *space* (it is
+  // 0×0). Nothing jumps when the offer appears because of where the area sits, not because the
+  // slot holds the room: on desktop `log log press` is sized by the much taller `.fight__log`
+  // beside it, and at ≤900px the press band is the last row, with nothing below it to push down.
+  // Shorten the log past the button's height and the desktop row *will* grow when a press is
+  // offered.
   return `
     ${renderHud(state, config)}
+    ${titlePlaque('Fight')}
     <section class="screen screen--fight">
       <div class="fight__you">${poster({
         name: 'You',
@@ -480,9 +520,7 @@ export function renderFight(state, config) {
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
       })}</div>
-      <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
       <div class="fight__actions">
-        ${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}
         <div class="fight__grid">
           ${btn('strike', 'Strike')}
           ${btn('heavy', 'Heavy')}
@@ -490,5 +528,7 @@ export function renderFight(state, config) {
           ${btn('feint', 'Feint')}
         </div>
       </div>
+      <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
+      <div class="fight__press">${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit', arrow: true }) : ''}</div>
     </section>`;
 }

@@ -6,6 +6,7 @@
 }
 body {
   margin: 0;
+  padding: var(--frame-w);
   background:
     radial-gradient(140% 120% at 50% 100%, rgba(31, 22, 12, 0.38), transparent 60%),
     var(--surface-page);
@@ -18,7 +19,36 @@ body {
    32px and `.screen`'s cap was unreachable (item 34, decided 2026-08-01). Anything mounted
    that is not a .screen (an error state) now spans the viewport — acceptable, and honest. */
 #app {
-  min-height: 100dvh;
+  min-height: calc(100dvh - 2 * var(--frame-w));
+}
+
+/* Stage layers (§6.17): fixed decorative wells around every screen. The backdrop is empty in
+   Phase 1 — the body's stone (M1) IS its zero-asset fallback (§10). The frame is a placeholder
+   stone border until Phase 3's cartoon masonry border-image; pointer-events: none keeps it out
+   of the input path, and the body's padding: var(--frame-w) below — not z-order — is what holds
+   content clear of the border. --z-frame guards nothing interactive: --z-hud has one consumer in
+   the whole sheet set (.commit-bar, ≤640px), so every other control is non-positioned in-flow
+   content and paints *below* the frame. That is safe only while the frame is a plain `border`,
+   which paints strictly inside the border box — i.e. inside the ring the padding already vacated,
+   with nothing to cover. Phase 3's border-image can reach inward, and would paint over live
+   controls while pointer-events: none left them clickable. See §6.17's Phase 3 constraint before
+   swapping the border out. */
+.stage-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-backdrop);
+}
+.stage-frame {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-frame);
+  pointer-events: none;
+  border: var(--frame-w) solid var(--stone-2);
+}
+@media (max-width: 640px) {
+  :root {
+    --frame-w: 8px;
+  }
 }
 h1,
 h2,

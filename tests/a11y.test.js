@@ -12,7 +12,13 @@
 // deliberately not restated here.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
-import { mountAll, SCREEN_STATES, PHASES_COVERED, ALL_PHASES } from './support/screens.js';
+import {
+  mountAll,
+  SCREEN_STATES,
+  PHASES_COVERED,
+  ALL_PHASES,
+  FOCUSABLE,
+} from './support/screens.js';
 
 const SCREENS = mountAll();
 const css = [
@@ -26,8 +32,8 @@ const css = [
   .replace(/\/\*[\s\S]*?\*\//g, '');
 const mainJs = readFileSync('src/main.js', 'utf8');
 
-// Anything the browser puts in the tab ring. `[tabindex]` is what brings the meter in.
-const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
+// `FOCUSABLE` (the tab-ring selector this file's §8 audit runs on) moved to ./support/screens.js
+// so tests/render.test.js's fight tab-*order* test walks the same ring this one audits.
 const all = (sel) =>
   Object.entries(SCREENS).flatMap(([name, host]) =>
     [...host.querySelectorAll(sel)].map((el) => ({ name, el }))
@@ -64,6 +70,27 @@ describe('the state matrix covers every screen', () => {
         0
       );
     }
+  });
+});
+
+// --- Spec §6.16 / WCAG 1.3.1: the title plaque carries the screen's only h1, and a document's
+// headings nest rather than jump back up — so no h2 may sit ahead of it in source order. ---
+describe('heading hierarchy: one h1 per screen, and it leads (spec §6.16)', () => {
+  it('gives every rendered state exactly one h1, before any h2', () => {
+    const offenders = [];
+    for (const [name, host] of Object.entries(SCREENS)) {
+      const h1s = [...host.querySelectorAll('h1')];
+      if (h1s.length !== 1) {
+        offenders.push(`${name}: ${h1s.length} h1(s), want 1`);
+        continue;
+      }
+      // Tree order, not two separate queries: the first heading of either kind must be the h1.
+      const firstHeading = host.querySelector('h1, h2');
+      if (firstHeading !== h1s[0]) {
+        offenders.push(`${name}: an h2 precedes the h1`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });
 
@@ -277,5 +304,22 @@ describe('Law 3 — commit blue only on the five named commitments', () => {
   it('renders all five of them somewhere in the matrix', () => {
     const seen = new Set(labels.map((l) => l.label));
     expect([...COMMITMENTS].filter((c) => !seen.has(c))).toEqual([]);
+  });
+
+  // The markup half of §6.2's arrow invariant. components.css scopes both arrow rules to
+  // `.btn--commit.btn--arrow`, so an arrow without the banner simply would not paint — but it
+  // would still ship as `class="btn btn--arrow"`, a silent no-op nobody notices. `btn()` takes
+  // `variant` and `arrow` as independent options, so only a check on the rendered markup closes
+  // it: every arrow is a commit banner, and therefore every arrow is already covered by the
+  // label allowlist above.
+  it('draws the arrow end on nothing but a commit banner (§6.2 amendment)', () => {
+    const arrows = all('.btn--arrow');
+    expect(
+      arrows.length,
+      'no .btn--arrow rendered anywhere - the invariant is vacuous'
+    ).toBeGreaterThan(0);
+    expect(
+      arrows.filter(({ el }) => !el.classList.contains('btn--commit')).map(({ name }) => name)
+    ).toEqual([]);
   });
 });

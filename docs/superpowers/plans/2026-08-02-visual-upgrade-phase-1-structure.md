@@ -1,14 +1,59 @@
 # Visual Upgrade Phase 1 — Structure Implementation Plan
 
+> **STATUS: LANDED.** All eight tasks are done, on branch `feat/visual-upgrade-phase-1-structure`,
+> commits `a95ed1c`..`ea9855c`. Baseline at close: **445 tests passing / 15 files**, `npm run lint`
+> clean. Every box below is ticked, but **read the two caveats before trusting the boxes** — the
+> plan's text is not, in two places, a description of what shipped.
+>
+> **Caveat 1 — no task implementer ran its own visual step.** Every "Visual sanity check" /
+> "Visual verification" / `npm run dev` step (Task 2 Step 8, Task 5 Step 5, Task 6 Step 7, Task 7
+> Step 6) was skipped in sequence. All visual verification was **batched to the end** and done in a
+> single real-browser pass at Task 8 Step 4 — which is the only visual step that ran where the plan
+> puts it. The checks happened; they did not happen per-task, so no task's green tick means "this
+> task was seen rendering before the next one started". Given this plan's own progress notes record
+> two layout defects a 376-test jsdom suite could not see, that ordering was a real risk taken, not
+> a formality skipped.
+>
+> **Caveat 2 — two of the plan's CSS blocks were defective and did not ship as written.**
+>
+> - **Task 6 Step 5's `.btn--arrow`** prescribed a `::after` **border-triangle** with two 24px
+>   half-heights. Those literals match a 44px button and nothing else, so the arrow desynced from
+>   the banner the moment a label wrapped. Replaced during review with a `clip-path` triangle whose
+>   `inset-block: calc(-1 * var(--border-w))` ties it to the button's border box at any height, a
+>   shared `--arrow-w`, and a `left: calc(100% + var(--border-w))` step-out (`4425805`). Its
+>   selector also became `.btn--commit.btn--arrow`, both rules, rather than bare `.btn--arrow`. The
+>   defect was doc-first: **Task 1 Step 4's §6.2 amendment text prescribed the same border-triangle**
+>   and was rewritten with it (`ea9855c`).
+> - **Task 7 Step 4's `zone-flash`** used `steps(2, jump-none)` over 0% / 50% / 100% stops, on the
+>   belief that a stepped easing squares the beat off. It does not — CSS binds the timing function
+>   to each keyframe _interval_, so the stop at 50% was reachable either way and the "blink" rode a
+>   ramp. Replaced with three even beats whose opacities are each stated twice, at the start and end
+>   of their own beat, so the cuts are structural and survive §5 retuning `--ease-drop` (`ba01d02`).
+>   The same block's stamp shipped with its literal `180ms` and `cubic-bezier(…)` replaced by
+>   `var(--dur-stamp)` / `var(--ease-drop)` (Law 5), its `both` fill dropped, and the edge clamp its
+>   own Step 6 only floated as a contingency actually implemented (`STAMP_EDGE` in `src/main.js`).
+>
+> **Caveat 3 — one instruction here was reversed afterwards.** Task 1 Step 2's §6.18 fence and Task
+> 5 Step 3 both say to _keep_ `.shop-item__icon` on the markup "for §6.12's layout selectors", and
+> Step 3's CSS note says to leave any rule targeting it. No such rule was ever written — the class
+> matched zero rules in `src/styles/`, so the shop well's whole treatment came from `.icon-well`
+> while `shopItem()` hand-rolled a second copy of the well's markup behind the dead class. The
+> Phase 1 follow-up deleted the class from the markup and from §6.0's index, and routed both
+> branches through `iconWell(item.id)`. Ignore those instructions.
+>
+> Where a step's prose and the shipped code disagree, **the code and the design-system doc are
+> right and this plan is stale.** Phase 2 is planned against the landed code, not against this file.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Land every structural/layout change of the visual upgrade with zero new art — stage layers, title plaques, icon wells, fight recomposition, freeze feedback — per `docs/superpowers/specs/2026-08-02-visual-upgrade-design.md` §3.
 
-**Architecture:** Vanilla JS + Vite. Renderers in `src/ui/*.js` emit HTML strings mounted into `#app`; styles split across `src/styles/{tokens,base,components,screens}.css`; vitest + jsdom test suite with rule-level CSS checks. Every new element ships as an *empty well with a structural fallback* — Phase 2/3 fill them without touching layout again.
+**Architecture:** Vanilla JS + Vite. Renderers in `src/ui/*.js` emit HTML strings mounted into `#app`; styles split across `src/styles/{tokens,base,components,screens}.css`; vitest + jsdom test suite with rule-level CSS checks. Every new element ships as an _empty well with a structural fallback_ — Phase 2/3 fill them without touching layout again.
 
 **Tech Stack:** Vite 5, vitest (jsdom), ESLint, no framework.
 
 **Rules that bind every task:**
+
 - The design-system doc is the law: Task 1 amends it FIRST (its own §10: "extend the document first, then the code").
 - DOM source order = reading order = tab order. Grid areas move pixels, never order.
 - New elements that are decorative carry `aria-hidden="true"`.
@@ -16,28 +61,29 @@
 
 **File structure (what changes where):**
 
-| File | Responsibility in this plan |
-| --- | --- |
-| `docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md` | §6 catalog additions + token additions (Task 1) |
-| `src/styles/tokens.css` | new `--z-*`, `--frame-w` tokens (Tasks 2, 3) |
-| `index.html` | stage layer divs before `#app` (Task 2) |
-| `src/styles/base.css` | stage layer CSS, body/frame padding (Task 2) |
-| `src/ui/components.js` | `titlePlaque()`, `iconWell()`, `bar()`/`btn()` well opts, arrow variant (Tasks 3–6) |
-| `src/ui/render.js` | plaques on 4 screens, HUD injuries group, hub/ledger wells, fight recomposition (Tasks 3–6) |
-| `src/styles/components.css` | `.title-plaque`, `.icon-well`, `.hud__count`, `.btn--arrow`, `.meter__stamp`, `.is-flashing`, train-row column (Tasks 3–7) |
-| `src/styles/screens.css` | fight grid (desktop + 900px), `.fight__press`, commit-bar frame offset (Tasks 2, 6) |
-| `src/main.js` | freeze feedback in `captureMeter()` (Task 7) |
-| `tests/stage.test.js` | NEW — stage layer assertions (Task 2) |
-| `tests/render.test.js`, `tests/styles.test.js`, `tests/main.test.js` | updated + new assertions (Tasks 3–7) |
+| File                                                                 | Responsibility in this plan                                                                                                |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md`  | §6 catalog additions + token additions (Task 1)                                                                            |
+| `src/styles/tokens.css`                                              | new `--z-*`, `--frame-w` tokens (Tasks 2, 3)                                                                               |
+| `index.html`                                                         | stage layer divs before `#app` (Task 2)                                                                                    |
+| `src/styles/base.css`                                                | stage layer CSS, body/frame padding (Task 2)                                                                               |
+| `src/ui/components.js`                                               | `titlePlaque()`, `iconWell()`, `bar()`/`btn()` well opts, arrow variant (Tasks 3–6)                                        |
+| `src/ui/render.js`                                                   | plaques on 4 screens, HUD injuries group, hub/ledger wells, fight recomposition (Tasks 3–6)                                |
+| `src/styles/components.css`                                          | `.title-plaque`, `.icon-well`, `.hud__count`, `.btn--arrow`, `.meter__stamp`, `.is-flashing`, train-row column (Tasks 3–7) |
+| `src/styles/screens.css`                                             | fight grid (desktop + 900px), `.fight__press`, commit-bar frame offset (Tasks 2, 6)                                        |
+| `src/main.js`                                                        | freeze feedback in `captureMeter()` (Task 7)                                                                               |
+| `tests/stage.test.js`                                                | NEW — stage layer assertions (Task 2)                                                                                      |
+| `tests/render.test.js`, `tests/styles.test.js`, `tests/main.test.js` | updated + new assertions (Tasks 3–7)                                                                                       |
 
 ---
 
 ### Task 1: Design-system doc amendments (doc-first)
 
 **Files:**
+
 - Modify: `docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md`
 
-- [ ] **Step 1: Add new classes to the §6.0 closed class index**
+- [x] **Step 1: Add new classes to the §6.0 closed class index**
 
 In the §6.0 backtick list (starts `hud, hud__purse, ...`), append to the final line (before the closing backtick), keeping alphabetical-ish grouping loose — the list is comma-separated prose, position is not semantic:
 
@@ -48,7 +94,7 @@ btn--arrow, fight__press, is-flashing
 
 (`meter__stamp` and `meter-chicken` are already in the index — §6.4 specified them; Task 7 implements the stamp.)
 
-- [ ] **Step 2: Append new catalog sections after §6.15**
+- [x] **Step 2: Append new catalog sections after §6.15**
 
 Add these sections verbatim after §6.15 (Modal):
 
@@ -82,7 +128,7 @@ Phase 2 paints the named glyph via CSS mask; until then the recessed well reads 
 intentional slot. Never carries meaning: the adjacent label/numeral does.
 ```
 
-- [ ] **Step 3: Amend §6.1 (HUD beam) — injuries cell**
+- [x] **Step 3: Amend §6.1 (HUD beam) — injuries cell**
 
 At the end of the §6.1 section text (after its CSS block), add:
 
@@ -95,7 +141,7 @@ numeral (body 700, `--bone`) sits between label and pips. The `role="img"` +
 `aria-hidden` so the count is announced exactly once.
 ```
 
-- [ ] **Step 4: Amend §6.2 (Buttons) — arrow variant**
+- [x] **Step 4: Amend §6.2 (Buttons) — arrow variant**
 
 At the end of §6.2, add:
 
@@ -107,7 +153,7 @@ on the rectangular button box — no `clip-path`, which would clip the §8 ring)
 carry a leading `.icon-well` (sinks) emitted by `btn({ icon })`.
 ```
 
-- [ ] **Step 5: Amend §7 (fight layout)**
+- [x] **Step 5: Amend §7 (fight layout)**
 
 After the existing `.screen--fight` block in §7's text, add:
 
@@ -125,7 +171,7 @@ stack `'you stage' / 'foe stage' / 'actions actions' / 'log log' / 'press press'
 the standard area reset returns everything to source-order flow.
 ```
 
-- [ ] **Step 6: Add tokens to §1's documented set**
+- [x] **Step 6: Add tokens to §1's documented set**
 
 In §1 (Design Tokens), where the z-scale is described (`--z-hud: 10` etc.), note the additions:
 
@@ -134,7 +180,7 @@ Additions (visual-upgrade design §3.3): `--z-backdrop: -1`, `--z-frame: 5`,
 `--z-plaque: 11`, `--frame-w: 14px` (8px at ≤640px).
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md
@@ -146,13 +192,14 @@ git commit -m "docs(design-system): catalog title plaque, stage layers, icon wel
 ### Task 2: Stage layers (backdrop well + frame placeholder)
 
 **Files:**
+
 - Modify: `src/styles/tokens.css` (z-scale block, ~line 138)
 - Modify: `index.html`
 - Modify: `src/styles/base.css`
 - Modify: `src/styles/screens.css` (≤640px `.commit-bar` block, ~line 280)
 - Create: `tests/stage.test.js`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/stage.test.js`:
 
@@ -187,40 +234,42 @@ describe('stage layers', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/stage.test.js`
 Expected: FAIL — both tests (markup and tokens not present yet).
 
-- [ ] **Step 3: Add tokens**
+- [x] **Step 3: Add tokens**
 
 In `src/styles/tokens.css`, extend the existing z-scale block (`--z-hud: 10; --z-chip: 20; --z-modal: 30;`):
 
 ```css
-  --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
-  --z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
-  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
+--z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
+--z-frame: 5; /* stone frame — above content chrome, below every interactive layer */
+--frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
 ```
 
-- [ ] **Step 4: Add the layers to index.html**
+- [x] **Step 4: Add the layers to index.html**
 
 In `index.html`, replace:
 
 ```html
-  <body>
-    <main id="app"></main>
+<body>
+  <main id="app"></main>
+</body>
 ```
 
 with:
 
 ```html
-  <body>
-    <div class="stage-backdrop" aria-hidden="true"></div>
-    <div class="stage-frame" aria-hidden="true"></div>
-    <main id="app"></main>
+<body>
+  <div class="stage-backdrop" aria-hidden="true"></div>
+  <div class="stage-frame" aria-hidden="true"></div>
+  <main id="app"></main>
+</body>
 ```
 
-- [ ] **Step 5: Style the layers in base.css**
+- [x] **Step 5: Style the layers in base.css**
 
 In `src/styles/base.css`, add `padding: var(--frame-w);` to the existing `body` rule, change the `#app` rule's `min-height` to `calc(100dvh - 2 * var(--frame-w))` (body padding would otherwise force a permanent scrollbar), and append after the `#app` rule:
 
@@ -248,26 +297,26 @@ In `src/styles/base.css`, add `padding: var(--frame-w);` to the existing `body` 
 }
 ```
 
-- [ ] **Step 6: Seat the sticky commit bar on the frame's inner edge**
+- [x] **Step 6: Seat the sticky commit bar on the frame's inner edge**
 
 In `src/styles/screens.css`, in the ≤640px `.commit-bar` rule, change `bottom: 0;` to:
 
 ```css
-    bottom: var(--frame-w);
+bottom: var(--frame-w);
 ```
 
 (Otherwise the sticky bar rests under the frame's bottom border.)
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run tests**
 
 Run: `npx vitest run tests/stage.test.js && npm test`
 Expected: stage tests PASS; full suite PASS (no existing test reads index.html markup).
 
-- [ ] **Step 8: Visual sanity check**
+- [x] **Step 8: Visual sanity check** — _ticked, but not run here: batched to Task 8 Step 4 (Caveat 1)._
 
 Run: `npm run dev` — verify: stone border around the viewport at desktop and ~375px width, no horizontal scrollbar, no permanent vertical scrollbar on the hub, HUD beam fully visible inside the frame.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add index.html src/styles/tokens.css src/styles/base.css src/styles/screens.css tests/stage.test.js
@@ -279,6 +328,7 @@ git commit -m "feat(ui): stage layers — backdrop well and placeholder stone fr
 ### Task 3: Title plaque on all four screens
 
 **Files:**
+
 - Modify: `src/ui/components.js` (after `bannerStamp`, ~line 260)
 - Modify: `src/ui/render.js` (`renderHub` ~line 130, `renderResult` ~line 274, `renderGameOver` ~line 352, `renderFight` ~line 457)
 - Modify: `src/styles/tokens.css` (z-scale block)
@@ -286,7 +336,7 @@ git commit -m "feat(ui): stage layers — backdrop well and placeholder stone fr
 - Modify: `tests/render.test.js` (hub "Wins: 2" assertion, ~line 1553)
 - Modify: `tests/styles.test.js` (contrast selector list entry `div.hub__sinks > p`, ~line 662)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/render.test.js`, add a new describe block (near the other cross-screen blocks):
 
@@ -318,12 +368,12 @@ describe('title plaques (§6.16)', () => {
 
 Use the file's existing helpers for building fight/result/gameover state (`render.test.js` already renders all four screens — reuse its fixtures; if it has no shared helpers, build states the way its existing fight/result/gameover describes do and inline `fightHtml()`/`resultHtml()`/`gameoverHtml()` as small local functions following those examples).
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `npx vitest run tests/render.test.js -t "title plaques"`
 Expected: FAIL — no `<h1>` in any screen yet.
 
-- [ ] **Step 3: Add the component**
+- [x] **Step 3: Add the component**
 
 In `src/ui/components.js`, after `bannerStamp()`:
 
@@ -335,22 +385,22 @@ export function titlePlaque(text) {
 }
 ```
 
-- [ ] **Step 4: Mount it on all four screens**
+- [x] **Step 4: Mount it on all four screens**
 
 In `src/ui/render.js`:
 
 1. Import `titlePlaque` alongside the other component imports.
-2. `renderHub`: after `${renderHud(state, config)}` add `${titlePlaque(`Current wins: ${state.wins}`)}`, and delete the line `<p>Wins: ${state.wins}</p>` from `.hub__sinks` (the plaque now states it; two spellings drift).
+2. `renderHub`: after `${renderHud(state, config)}` add `${titlePlaque(`Current wins: ${state.wins}`)}`, and delete the line `<p>Wins: ${state.wins}</p>`from`.hub__sinks` (the plaque now states it; two spellings drift).
 3. `renderFight`: after `${renderHud(state, config)}` add `${titlePlaque('Fight')}`.
 4. `renderResult`: after its `${renderHud(...)}` add `${titlePlaque('Result')}`.
 5. `renderGameOver`: after its `${renderHud(...)}` add `${titlePlaque('Game over')}`.
 
-- [ ] **Step 5: Style it**
+- [x] **Step 5: Style it**
 
 In `src/styles/tokens.css` z-scale block, add:
 
 ```css
-  --z-plaque: 11; /* title plaque — one step above the beam it overlaps (§6.16) */
+--z-plaque: 11; /* title plaque — one step above the beam it overlaps (§6.16) */
 ```
 
 In `src/styles/components.css`, append:
@@ -376,17 +426,17 @@ In `src/styles/components.css`, append:
 
 (`.parchment` supplies the paper material + border + shadow; `.tape` the tape strips — same recipe as `.sponsor-card`.)
 
-- [ ] **Step 6: Update the two stale assertions**
+- [x] **Step 6: Update the two stale assertions**
 
 - `tests/render.test.js` ~line 1553: the hub test asserting `expect(you).toContain('Wins: 2')` — the win count no longer lives in `.hub__sinks`. Point the assertion at the plaque: `expect(html).toContain('Current wins: 2')` (adjust the variable to whatever that test names the full hub render).
 - `tests/styles.test.js` ~line 662: remove the `'div.hub__sinks > p', // hub "Wins: N", --ink 4.15:1` entry from the contrast selector list (the element is gone). The plaque's ink-on-paper pair (12.42:1) is already covered by the list's parchment entries; if the test fails because every listed selector must exist, add `'.title-plaque h1'` in the paper-surface group instead.
 
-- [ ] **Step 7: Run the full suite**
+- [x] **Step 7: Run the full suite**
 
 Run: `npm test`
 Expected: PASS. If `tests/a11y.test.js` asserts anything about heading order, the new h1-before-h2 structure satisfies WCAG heading hierarchy — fix any assertion that hard-codes "first heading is h2" to expect the plaque h1.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/ui/components.js src/ui/render.js src/styles/tokens.css src/styles/components.css tests/render.test.js tests/styles.test.js
@@ -398,13 +448,14 @@ git commit -m "feat(ui): per-screen title plaques overlapping the HUD beam"
 ### Task 4: HUD icon wells + injuries numeral
 
 **Files:**
+
 - Modify: `src/ui/components.js` (`bar()` ~line 160)
 - Modify: `src/ui/render.js` (`renderHud` ~line 76)
 - Modify: `src/styles/components.css` (icon well near `.shop-item__icon` ~line 327; `.hud__count` near the HUD rules)
 - Modify: `src/ui/components.js` (`shopItem` — add shared class)
 - Test: `tests/render.test.js`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/render.test.js`, next to the existing HUD tests (~line 107):
 
@@ -430,12 +481,12 @@ it('shows the injuries numeral beside the pips, announced exactly once (decision
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `npx vitest run tests/render.test.js -t "icon well"`
 Expected: FAIL — wells not rendered.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/components.js`:
 
@@ -516,12 +567,12 @@ In `src/styles/components.css`:
 }
 ```
 
-- [ ] **Step 4: Run the suite**
+- [x] **Step 4: Run the suite**
 
 Run: `npm test`
 Expected: PASS — the pip-count tests (render.test.js ~107–133) and singular/plural aria tests (~173) are unaffected by construction; if any test asserted the old `class="pips" role="img"` adjacency, update it to the wrapper form shown above.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/ui/components.js src/ui/render.js src/styles/components.css tests/render.test.js
@@ -533,12 +584,13 @@ git commit -m "feat(ui): HUD icon wells and injuries icon+numeral+pips group"
 ### Task 5: Icon wells — sinks, training, ledger
 
 **Files:**
+
 - Modify: `src/ui/components.js` (`btn()` ~line 71)
 - Modify: `src/ui/render.js` (`renderHub` train/sink rows ~lines 95–158; `ledgerRow` ~line 184; `ledgerLines` ~line 221)
 - Modify: `src/styles/components.css` (`.train-row` ~line 289)
 - Test: `tests/render.test.js`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/render.test.js` (hub/ledger describe areas):
 
@@ -558,12 +610,12 @@ it('gives sinks, training rows and money ledger rows their icon wells (§6.18)',
 
 (For the `sponsor` well the result fixture must have `sponsorIncome > 0` — reuse/extend the fixture the existing sponsor-row ledger test uses.)
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `npx vitest run tests/render.test.js -t "icon wells"`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/components.js` `btn()`:
 
@@ -571,11 +623,11 @@ In `src/ui/components.js` `btn()`:
 2. Change the return to emit a leading well inside the button:
 
 ```js
-  const well = icon ? iconWell(icon) : '';
-  return (
-    `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${well}${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
-  );
+const well = icon ? iconWell(icon) : '';
+return (
+  `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
+  `${well}${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
+);
 ```
 
 In `src/ui/render.js`:
@@ -593,7 +645,16 @@ In `src/ui/render.js`:
 3. Ledger — `ledgerRow` accepts `icon` and emits it before the label:
 
 ```js
-function ledgerRow({ label, text, value = null, unit = null, tone = '', cls = '', snark = '', icon = '' }) {
+function ledgerRow({
+  label,
+  text,
+  value = null,
+  unit = null,
+  tone = '',
+  cls = '',
+  snark = '',
+  icon = '',
+}) {
   const data = unit && Number.isFinite(value) ? ` data-value="${value}" data-unit="${unit}"` : '';
   const aside = snark ? ` <span class="snark">(${escapeHtml(snark)})</span>` : '';
   const well = icon ? iconWell(icon, { small: true }) : '';
@@ -630,16 +691,16 @@ Also make ledger `dt`s lay out their well inline — next to the existing ledger
 
 (Check the existing `.ledger__row` rule first: if `dt` already has a display/gap treatment, fold the well into it instead of adding a second rule.)
 
-- [ ] **Step 4: Run the suite**
+- [x] **Step 4: Run the suite**
 
 Run: `npm test`
 Expected: PASS. Watch two spots: (a) `tests/a11y.test.js` ~line 251 asserts the Press label — unaffected here; (b) any ledger test matching `<dt>Label` exactly — the well now precedes the label text; update such matchers to allow the well span.
 
-- [ ] **Step 5: Visual sanity check**
+- [x] **Step 5: Visual sanity check** — _ticked, but not run here: batched to Task 8 Step 4 (Caveat 1)._
 
 `npm run dev` — hub: every sink button and training row shows a recessed empty well; result screen (win a fight): purse/tax/sponsor rows show small wells; nothing overflows at 375px.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/ui/components.js src/ui/render.js src/styles/components.css tests/render.test.js
@@ -651,13 +712,14 @@ git commit -m "feat(ui): icon wells for sinks, training rows and ledger money ro
 ### Task 6: Fight recomposition + commit arrow
 
 **Files:**
+
 - Modify: `src/ui/render.js` (`renderFight` ~line 457)
 - Modify: `src/ui/components.js` (`btn()` — arrow modifier)
 - Modify: `src/styles/screens.css` (`.screen--fight` ~line 67 and its 900px block ~line 218)
 - Modify: `src/styles/components.css` (append `.btn--arrow`)
 - Modify: `tests/render.test.js` (press-placement test ~lines 1569–1587)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/render.test.js`:
 
@@ -682,17 +744,17 @@ it('renders Press the Attack as an arrow commit button in its own area, only whe
 
 (`fightHtml({ canPress })` — build fight state the way the existing press test at ~1569 does; that test's old assertion that press lives inside `fight__actions` gets **replaced** by these two.)
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `npx vitest run tests/render.test.js -t "fight"`
 Expected: FAIL — no `fight__press`, press renders inside actions.
 
-- [ ] **Step 3: Recompose renderFight**
+- [x] **Step 3: Recompose renderFight**
 
 In `src/ui/render.js`, reorder the section children to: you, stage, foe, actions (2×2 grid only), log, press:
 
 ```js
-  return `
+return `
     ${renderHud(state, config)}
     ${titlePlaque('Fight')}
     <section class="screen screen--fight">
@@ -726,15 +788,15 @@ In `src/ui/render.js`, reorder the section children to: you, stage, foe, actions
 
 (Interactive flow: meter → strike/heavy/block/feint → log → press. The label string is untouched — `tests/a11y.test.js` ~251 keeps passing.)
 
-- [ ] **Step 4: Arrow modifier in btn()**
+- [x] **Step 4: Arrow modifier in btn()**
 
 In `src/ui/components.js` `btn()`, add `arrow = false` to the options and after the variant line:
 
 ```js
-  if (arrow) classes.push('btn--arrow');
+if (arrow) classes.push('btn--arrow');
 ```
 
-- [ ] **Step 5: Grids and arrow CSS**
+- [x] **Step 5: Grids and arrow CSS** — _the grids shipped as written; the `.btn--arrow` block below did NOT. See Caveat 2's first bullet: the border-triangle's two 24px half-heights were a defect, replaced in review (`4425805`) with a `clip-path` end tied to the button's border box. Read `src/styles/components.css` for the shipped rule, not this block._
 
 In `src/styles/screens.css`, replace the `.screen--fight` base rule's rows/areas:
 
@@ -763,11 +825,11 @@ Add with the other `.fight__*` area rules:
 Replace the 900px `.screen--fight` block's areas (comment updates with it — area order tracks the new DOM order: you, stage, foe, actions, log, press):
 
 ```css
-  .screen--fight {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'actions actions' 'log log' 'press press';
-  }
+.screen--fight {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: none;
+  grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'actions actions' 'log log' 'press press';
+}
 ```
 
 (≤640px needs nothing: the existing `.screen > *` reset returns all children — including `.fight__press` — to source-order flow.)
@@ -797,16 +859,16 @@ In `src/styles/components.css`, append after the `.btn--commit` rules:
 }
 ```
 
-- [ ] **Step 6: Run the suite**
+- [x] **Step 6: Run the suite**
 
 Run: `npm test`
 Expected: PASS. `tests/grid-areas.test.js` re-derives areas from the sheets at every breakpoint — it validates `press` automatically; if it fails it is pointing at a real area/DOM mismatch, fix the CSS, not the test. `tests/main.test.js` drives the press by `[data-action="press"]`, which still exists — its tests pass unchanged.
 
-- [ ] **Step 7: Visual verification**
+- [x] **Step 7: Visual verification** — _ticked, but not run here: batched to Task 8 Step 4 (Caveat 1)._
 
 `npm run dev`, start a fight: desktop — posters flank, meter above actions above log, arrow bottom-right (land a hit to see it); 900px — posters stack left beside the meter, bands below; 375px — single column, press in flow after the log. Keyboard: Tab order = meter → strike → heavy → block → feint → log → press.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/ui/render.js src/ui/components.js src/styles/screens.css src/styles/components.css tests/render.test.js
@@ -818,11 +880,12 @@ git commit -m "feat(ui): fight recomposition — center column flow and press ar
 ### Task 7: Freeze feedback — verdict stamp + zone flash (§6.4 behavioral half)
 
 **Files:**
+
 - Modify: `src/main.js` (`captureMeter()` ~line 233)
 - Modify: `src/styles/components.css` (meter block, after `.meter.is-captured .meter-cursor` ~line 422)
 - Test: `tests/main.test.js`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/main.test.js`, new describe after "capture and freeze":
 
@@ -854,35 +917,35 @@ describe('freeze feedback (§6.4 steps 2–3)', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `npx vitest run tests/main.test.js -t "freeze feedback"`
 Expected: FAIL — no `.meter__stamp` rendered.
 
-- [ ] **Step 3: Implement in captureMeter()**
+- [x] **Step 3: Implement in captureMeter()**
 
 In `src/main.js`, at the end of `captureMeter()` (after `bar.classList.add('is-captured')`):
 
 ```js
-  // §6.4 steps 2–3, the behavioral half: the freeze is how players calibrate their timing,
-  // so the verdict shows AT the freeze, not after the action resolves. currentTiming() reads
-  // the same captured position the resolver will read, so the stamp can never disagree with
-  // the log line that follows. aria-hidden: announceTurn speaks the verdict; the stamp is
-  // the visual channel. The chicken drop (asset half) joins in Phase 3.
-  const verdict = currentTiming();
-  const zone = bar.querySelector(`.meter__zone--${verdict}`);
-  if (zone) zone.classList.add('is-flashing');
-  const stamp = document.createElement('span');
-  stamp.className = 'meter__stamp';
-  stamp.setAttribute('aria-hidden', 'true');
-  stamp.textContent = `${verdict.toUpperCase()}!`;
-  stamp.style.left = `${(sweep.captured * 100).toFixed(2)}%`;
-  bar.appendChild(stamp);
+// §6.4 steps 2–3, the behavioral half: the freeze is how players calibrate their timing,
+// so the verdict shows AT the freeze, not after the action resolves. currentTiming() reads
+// the same captured position the resolver will read, so the stamp can never disagree with
+// the log line that follows. aria-hidden: announceTurn speaks the verdict; the stamp is
+// the visual channel. The chicken drop (asset half) joins in Phase 3.
+const verdict = currentTiming();
+const zone = bar.querySelector(`.meter__zone--${verdict}`);
+if (zone) zone.classList.add('is-flashing');
+const stamp = document.createElement('span');
+stamp.className = 'meter__stamp';
+stamp.setAttribute('aria-hidden', 'true');
+stamp.textContent = `${verdict.toUpperCase()}!`;
+stamp.style.left = `${(sweep.captured * 100).toFixed(2)}%`;
+bar.appendChild(stamp);
 ```
 
 (No cleanup code needed: every action re-renders the fight via `mount()`, which rebuilds the meter without the stamp — the third test proves it.)
 
-- [ ] **Step 4: Style stamp + flash**
+- [x] **Step 4: Style stamp + flash** — _this block did NOT ship as written. See Caveat 2's second bullet: `steps(2, jump-none)` over 0/50/100% does not square the blink off, and the stamp's literal `180ms` / `cubic-bezier(…)` are Law 5 violations. Both replaced in review (`ba01d02`); read `src/styles/components.css` for the shipped rules._
 
 In `src/styles/components.css`, after the `.meter.is-captured .meter-cursor` rule:
 
@@ -921,16 +984,16 @@ In `src/styles/components.css`, after the `.meter.is-captured .meter-cursor` rul
 
 (`stamp-in` already exists at components.css ~line 578 for `.banner-stamp` — reuse it; if its scale range looks wrong at meter size, tune the stamp's own `font-size`, not the shared keyframes. The `.meter` rule already establishes the positioning context for its absolute zones.)
 
-- [ ] **Step 5: Run the suite**
+- [x] **Step 5: Run the suite**
 
 Run: `npm test`
 Expected: PASS, including `tests/styles.test.js`'s reduced-motion generalization — both new animations end visible, so the 1ms blanket is legal for them (see base.css comment about forwards-animations that end hidden).
 
-- [ ] **Step 6: Visual verification**
+- [x] **Step 6: Visual verification** — _ticked, but not run here: batched to Task 8 Step 4 (Caveat 1). Its parenthetical contingency — clamping the stamp's left position — was implemented, not avoided._
 
 `npm run dev`, fight, click the meter: cursor freezes, struck zone blinks twice, verdict pops above the cursor in display type; with OS reduced-motion on, verdict appears without animation. Verify at 375px the stamp near track edges doesn't overflow the viewport (it may clip into the frame padding — acceptable; if it escapes the viewport, add `.meter { overflow: visible }` is NOT the fix, clamp the left position in captureMeter with `Math.min(Math.max(sweep.captured, 0.06), 0.94)` for the stamp only).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/main.js src/styles/components.css tests/main.test.js
@@ -943,28 +1006,28 @@ git commit -m "feat(ui): freeze verdict stamp and struck-zone flash (spec 6.4 st
 
 **Files:** none new — verification only, fixes where found.
 
-- [ ] **Step 1: Full suite + lint**
+- [x] **Step 1: Full suite + lint**
 
 Run: `npm test && npm run lint`
 Expected: both clean.
 
-- [ ] **Step 2: Zero-asset check (trivially true, state it)**
+- [x] **Step 2: Zero-asset check (trivially true, state it)**
 
 Phase 1 added no assets — confirm `src/assets/` contains only the pre-existing `fonts/` directory: `ls src/assets/`. Every new element (wells, backdrop, frame) renders complete while empty by construction.
 
-- [ ] **Step 3: Contrast spot-check**
+- [x] **Step 3: Contrast spot-check**
 
 The phase introduced no new color pairs except `.hud__count` (`--bone` on wood ≥ 10.06:1 per tokens.css) and plaque text (`--ink` on paper, 12.42:1). Confirm `tests/styles.test.js` passes — it owns the contrast table.
 
-- [ ] **Step 4: Breakpoint + reduced-motion pass with screenshots**
+- [x] **Step 4: Breakpoint + reduced-motion pass with screenshots** — _the one visual step that ran where the plan puts it, and in practice the whole phase's visual verification (Caveat 1)._
 
 With the dev server running, capture and inspect: hub + fight + result + gameover at 1280px and 375px, fight at 768px (the 900px grid), one fight capture with reduced-motion emulated. Verify against the reference images: plaque overlaps beam, frame reads as a border, fight column order matches, arrow bottom-right. Attach the screenshots to the phase report.
 
-- [ ] **Step 5: Update PROGRESS/docs if the repo tracks one**
+- [x] **Step 5: Update PROGRESS/docs if the repo tracks one** — _done for items 17/27 only. Item 9 (the shop's icon well) and this plan's own 56 checkboxes were left untouched by every Phase 1 commit; both were closed afterwards, in the follow-up that wrote the caveats at the top of this file._
 
 Check `git grep -l "PROGRESS"` — if a progress tracker lists items 17/27 (freeze feedback), mark the behavioral half done, chicken pending Phase 3.
 
-- [ ] **Step 6: Final commit (only if step 4/5 produced fixes)**
+- [x] **Step 6: Final commit (only if step 4/5 produced fixes)**
 
 ```bash
 git add -A
