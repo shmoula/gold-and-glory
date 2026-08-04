@@ -6,6 +6,8 @@ Gold & Glory is a browser-based, turn-based arena fighter with a faucet/sink eco
 
 There's no save file and no persistence between runs — every game is a single, self-contained climb that ends when you retire rich, get crowned champion, or die in the ring.
 
+Third-party asset attributions: see [CREDITS.md](CREDITS.md).
+
 ## Gameplay Overview
 
 - Between fights, you manage a single character from the Ludus (your hub): train stats, repair your weapon, heal injuries, buy gear, and optionally bribe the arena official to cut your tax rate for the next bout.
