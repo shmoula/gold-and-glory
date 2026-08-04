@@ -1,0 +1,36 @@
+<svg viewBox="0 0 120 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sad old sock, in-house derivative inspired by "Long sock" (Oltarus, openclipart 334552).
+       Authored fresh per the house recipe: paper-3 fill, ink outline, punched heel/toe voids,
+       wood-4-tinted stains, faint crayon hatch. Credited in CREDITS.md. -->
+  <path
+    d="M 34 6 Q 34 2 38 2 L 82 2 Q 86 2 86 6 L 80 168 C 79 182 86 192 98 198 L 110 214 C 116 222 114 234 104 240 L 68 248 C 54 251 42 244 40 230 L 38 168 Q 36 90 34 6 Z"
+    fill="#e6d6ae" stroke="#2f2318" stroke-width="2.5" stroke-linejoin="round" />
+
+  <!-- stain blobs -->
+  <path d="M 46 55 C 40 58 40 68 46 72 C 52 76 62 74 64 66 C 66 58 58 52 46 55 Z"
+    fill="#6b5638" fill-opacity=".25" />
+  <path d="M 55 100 C 48 104 50 116 58 120 C 66 124 74 118 72 108 C 70 100 62 96 55 100 Z"
+    fill="#6b5638" fill-opacity=".25" />
+
+  <!-- heel hole cluster -->
+  <g fill="#46301b" stroke="#2f2318" stroke-width="1">
+    <ellipse cx="50" cy="236" rx="7" ry="5" />
+    <ellipse cx="56" cy="239" rx="5" ry="4" />
+    <ellipse cx="46" cy="241" rx="4" ry="3" />
+  </g>
+
+  <!-- toe hole cluster -->
+  <g fill="#46301b" stroke="#2f2318" stroke-width="1">
+    <ellipse cx="104" cy="222" rx="6" ry="5" />
+    <ellipse cx="98" cy="228" rx="4" ry="4" />
+    <ellipse cx="108" cy="230" rx="4" ry="3" />
+  </g>
+
+  <!-- crayon hatch -->
+  <g fill="none" stroke="#2f2318" stroke-opacity=".12" stroke-width="2">
+    <path d="M 42 40 Q 52 46 46 54" />
+    <path d="M 60 70 Q 70 76 64 84" />
+    <path d="M 44 100 Q 54 106 48 114" />
+    <path d="M 66 140 Q 76 146 70 154" />
+  </g>
+</svg>
