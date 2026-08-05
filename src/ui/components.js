@@ -294,7 +294,7 @@ export function titlePlaque(text) {
 // `sub` is markup — call sites embed `.amount` spans in it — so it is deliberately not
 // escaped; everything else here is. hp: {value, max} | null. tilt: 1|2|3, and neighbouring
 // posters must never share a tilt token.
-export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent }) {
+export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent, portrait = '' }) {
   // Raw name: meter() escapes its own label (escaping here would double-encode).
   // Urgency is derived here by default, not demanded of the caller. Spec §6.5 requires the
   // player poster and the HUD beam to read the same field, so they must not disagree about
@@ -310,7 +310,7 @@ export function poster({ name, sub = '', snark = '', hp = null, tilt = 1, urgent
     : '';
   return `<article class="poster parchment tape poster--tilt-${escapeHtml(tilt)}">
     <h3 class="poster__name">${escapeHtml(name)}</h3>
-    <div class="poster__portrait" aria-hidden="true"><span class="poster__silhouette"></span></div>
+    <div class="poster__portrait" aria-hidden="true"${portrait ? ` data-portrait="${escapeHtml(portrait)}"` : ''}><span class="poster__silhouette"></span></div>
     ${hpBar}
     ${sub ? `<p class="poster__sub">${sub}</p>` : ''}
     ${snark ? `<span class="snark">(${escapeHtml(snark)})</span>` : ''}

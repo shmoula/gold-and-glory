@@ -180,9 +180,9 @@ export function renderHub(state, config) {
         ${sponsorCard}
       </div>
       <div class="hub__fight">
-        ${poster({ name: 'You', tilt: 1, hp: playerHealth(state) })}
+        ${poster({ name: 'You', tilt: 1, hp: playerHealth(state), portrait: 'player' })}
         <span class="hub__next-label">Next bout</span>
-        ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent) })}
+        ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent), portrait: opponent.id })}
       </div>
       <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
       <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
@@ -324,6 +324,7 @@ export function renderResult(state, config) {
           urgent: false,
           sub: foe ? opponentSub(foe) : '',
           snark: foe ? (config.snark[foe.id] ?? '') : '',
+          portrait: foe?.id ?? '',
         })}
         ${r.won ? '<div class="result__cross" aria-hidden="true"></div>' : ''}
         <p class="snark result__flavor">${escapeHtml(r.commentary)}</p>
@@ -520,6 +521,7 @@ export function renderFight(state, config) {
         hp: playerHealth(state),
         sub: playerSub(state),
         snark: config.snark.player,
+        portrait: 'player',
       })}</div>
       <div class="fight__stage">${renderMeter(state, config)}</div>
       <div class="fight__foe">${poster({
@@ -528,6 +530,7 @@ export function renderFight(state, config) {
         hp: { value: c.enemy.health, max: c.enemy.maxHealth },
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
+        portrait: opponent.id,
       })}</div>
       <div class="fight__actions">
         <div class="fight__grid">
