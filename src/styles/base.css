@@ -44,6 +44,12 @@ body {
   z-index: var(--z-frame);
   pointer-events: none;
   border: var(--frame-w) solid var(--stone-2);
+  /* §6.17 Phase 3 amendment: cartoon masonry over the placeholder. Slice matches the SVG's
+     96px corner geometry; `round` keeps edge blocks whole. If the file is absent at runtime
+     the solid border above simply shows — §10 costs nothing here. */
+  border-image-source: url('../assets/art/stone-frame.svg');
+  border-image-slice: 96;
+  border-image-repeat: round;
 }
 @media (max-width: 640px) {
   :root {
