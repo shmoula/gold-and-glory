@@ -449,6 +449,13 @@ describe('title plaques (§6.16)', () => {
     expect(plaqueText(resultHtml())).toBe('Result');
     expect(plaqueText(gameoverHtml())).toBe('Game over');
   });
+
+  it('mounts the chicken on the cursor, decorative, with the ink line as fallback (§6.4)', () => {
+    const html = fightHtml();
+    expect(html).toMatch(
+      /<div class="meter-cursor"><img class="meter-chicken" src="[^"]+" alt="" \/><\/div>/
+    );
+  });
 });
 
 describe('titlePlaque', () => {

@@ -20,6 +20,7 @@ import {
   iconWell,
 } from './components.js';
 import { meterZones } from './timing.js';
+import chickenUrl from '../assets/art/chicken.svg';
 
 export {
   URGENT_FRACTION,
@@ -470,7 +471,7 @@ function renderMeter(state, config) {
         ${zone('graze')}
         ${zone('hit')}
         ${zone('crit')}
-        <div class="meter-cursor"></div>
+        <div class="meter-cursor"><img class="meter-chicken" src="${chickenUrl}" alt="" /></div>
       </div>
       <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
 }

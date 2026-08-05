@@ -53,7 +53,8 @@ are drawn:
 - Colors from `tokens.css` only; transparent background.
 - Uniform ink outline: `--border-ink`, one stroke width across the whole pack — the value is
   chosen when the chicken (first asset) is drawn, then locked for everything after. **Locked
-  value: (recorded by Phase 3 Task 2 when the chicken lands.)**
+  value: 2 units at a ~40-unit-wide viewBox — scale stroke width proportionally to each asset's
+  viewBox so the rendered pen width matches.**
 - Flat fills, at most one shade layer per shape.
 - One low-opacity crayon-scribble hatch group for texture.
 - Fixed geometry per §10: chicken 40×48 feet-down side view (flipped via `scaleX(-1)`),
