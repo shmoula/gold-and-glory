@@ -1281,6 +1281,12 @@ describe('renderGameOver (spec §6.14)', () => {
     expect(renderGameOver(s, CONFIG)).toMatch(/champion|circuit/i);
   });
 
+  it('stamps the achieved ending onto the section and shows the death vignette only for deaths', () => {
+    const dead = renderGameOver(gameOverState('dead'), CONFIG);
+    expect(dead).toMatch(/<section class="screen screen--gameover" data-achieved="dead">/);
+    expect(dead).toContain('prop--vignette');
+  });
+
   // The gallery, from every ending. Locked-ness is read off the cards rather than counted in
   // the markup: `ending-card--locked` contains the string `ending-card`, so a regex tally of
   // the two class names passes just as happily with two cards as with three.

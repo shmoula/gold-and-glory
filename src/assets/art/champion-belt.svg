@@ -1,0 +1,18 @@
+<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#2f2318" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- §4.4 win-circuit tease: the comically oversized champion belt. House recipe: pack pen
+       (stroke 6 on a 120u viewBox). "You got a belt. It doesn't fit." — the strap droops off
+       BOTH sides of the frame. -->
+  <!-- leather strap, sagging past both edges -->
+  <path d="M-6 36Q18 70 42 54L78 54Q102 70 126 36L126 58Q102 86 78 70L42 70Q18 86 -6 58Z" fill="#6b5638"/>
+  <!-- huge gold plate -->
+  <ellipse cx="60" cy="50" rx="34" ry="31" fill="#d9a441"/>
+  <!-- one shade layer: lower crescent -->
+  <path d="M28 54Q60 84 92 54 92 74 60 78 28 74 28 54Z" fill="#b07f24" fill-opacity=".3" stroke="none"/>
+  <!-- crown emblem -->
+  <path d="M42 58 46 40 54 50 60 37 66 50 74 40 78 58Z" fill="#b5402f"/>
+  <!-- one crayon-hatch group -->
+  <g stroke="#2f2318" stroke-opacity=".12" stroke-width="3" fill="none">
+    <path d="M36 46Q60 40 84 46"/>
+    <path d="M34 54Q60 48 86 54"/>
+  </g>
+</svg>

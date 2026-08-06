@@ -410,7 +410,7 @@ export function renderGameOver(state, config) {
   return `
     ${renderHud(state, config, { urgent: false })}
     ${titlePlaque('Game over')}
-    <section class="screen screen--gameover">
+    <section class="screen screen--gameover"${achieved ? ` data-achieved="${escapeHtml(achieved)}"` : ''}>
       <div class="gameover__left">${gallery(others.slice(0, half))}</div>
       <div class="gameover__stamp">
         ${stamp ? bannerStamp(stamp.variant, stamp.text) : ''}
@@ -423,6 +423,7 @@ export function renderGameOver(state, config) {
       </div>
       <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
       <div class="gameover__props" aria-hidden="true">
+        <i class="prop prop--vignette"></i>
         <i class="prop prop--sock-left"></i>
         <i class="prop prop--sock-right"></i>
         <i class="prop prop--confetti"></i>

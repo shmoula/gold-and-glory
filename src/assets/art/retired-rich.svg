@@ -1,0 +1,40 @@
+<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- §4.4 retired tease: the worried recruit (portrait-player head, reused at ~0.5 scale)
+       perched on a mound of gold. "You have all the gold. And no friends." A dozen-odd coin
+       ellipses, NOT the deleted 147KB stock pile. -->
+  <!-- gold mound silhouette -->
+  <path d="M4 88Q10 58 30 54 50 50 60 52 72 50 90 55 112 60 116 88Z" fill="#b07f24"/>
+  <!-- one shade layer on the mound -->
+  <path d="M14 88Q20 66 40 64 70 66 104 66 112 74 114 88Z" fill="#7d5714" fill-opacity=".22" stroke="none"/>
+  <!-- ~15 coins, alternating gold / gold-deep -->
+  <g stroke-width="4">
+    <ellipse cx="22" cy="80" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="38" cy="83" rx="8" ry="4.5" fill="#b07f24"/>
+    <ellipse cx="56" cy="82" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="74" cy="83" rx="8" ry="4.5" fill="#b07f24"/>
+    <ellipse cx="92" cy="81" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="30" cy="72" rx="8" ry="4.5" fill="#b07f24"/>
+    <ellipse cx="48" cy="73" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="66" cy="72" rx="8" ry="4.5" fill="#b07f24"/>
+    <ellipse cx="84" cy="73" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="100" cy="74" rx="8" ry="4.5" fill="#b07f24"/>
+    <ellipse cx="40" cy="64" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="58" cy="63" rx="8" ry="4.5" fill="#b07f24"/>
+    <ellipse cx="76" cy="64" rx="8" ry="4.5" fill="#d9a441"/>
+    <ellipse cx="14" cy="80" rx="7" ry="4" fill="#f4cf7a"/>
+    <ellipse cx="108" cy="80" rx="7" ry="4" fill="#f4cf7a"/>
+  </g>
+  <!-- worried recruit, portrait-player head shapes at ~0.5 scale, seated on the mound -->
+  <g transform="translate(30 -4) scale(0.5)" stroke-width="11">
+    <path d="M16 90 22 74Q60 60 98 74L104 90Z" fill="#6b5638"/>
+    <path d="M50 60 51 74 69 74 70 60Z"/>
+    <ellipse cx="60" cy="47" rx="21" ry="22"/>
+    <path d="M35 36Q30 14 60 11 92 10 85 32Q60 24 35 36Z" fill="#93836d"/>
+    <path d="M57 11Q50 0 65 1 80 3 73 11Q65 6 57 11Z" fill="#b5402f"/>
+    <path d="M45 41 55 37" fill="none"/>
+    <path d="M75 41 65 37" fill="none"/>
+    <circle cx="52" cy="47" r="2.4" fill="#2f2318" stroke="none"/>
+    <circle cx="68" cy="47" r="2.4" fill="#2f2318" stroke="none"/>
+    <path d="M55 60Q60 56 65 60" fill="none"/>
+  </g>
+</svg>

@@ -1,0 +1,48 @@
+<svg viewBox="0 0 320 140" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="16" stroke-linejoin="round" stroke-linecap="round">
+  <!-- §6.14 death tableau: the both-tripped ending. Two collapsed gladiators, one banana peel
+       between them. House recipe: pack pen (stroke 16 on a 320u viewBox). Shown ONLY when the
+       run actually died (screens.css keys it to data-achieved='dead'). -->
+  <!-- blood splats -->
+  <g fill="#b5402f" stroke="none">
+    <ellipse cx="140" cy="126" rx="15" ry="6"/>
+    <ellipse cx="196" cy="120" rx="11" ry="5"/>
+    <ellipse cx="96" cy="120" rx="9" ry="4"/>
+  </g>
+  <!-- figure A: the player, fallen and tilted -->
+  <g transform="rotate(-16 92 96)">
+    <path d="M54 132 62 102Q92 90 122 102L130 132Z" fill="#6b5638"/>
+    <ellipse cx="92" cy="76" rx="27" ry="26"/>
+    <path d="M63 62Q58 34 92 30 128 30 121 60Q92 50 63 62Z" fill="#93836d"/>
+    <path d="M88 30Q80 12 100 13 118 16 110 31Q100 24 88 30Z" fill="#b5402f"/>
+    <g stroke-width="9">
+      <path d="M78 70 88 80M88 70 78 80" fill="none"/>
+      <path d="M98 70 108 80M108 70 98 80" fill="none"/>
+      <path d="M84 92Q92 87 100 92" fill="none"/>
+    </g>
+  </g>
+  <!-- figure B: a rival in a horned helm, also down -->
+  <g transform="rotate(19 228 96)">
+    <path d="M190 132 198 102Q228 90 258 102L266 132Z" fill="#6b5638"/>
+    <ellipse cx="228" cy="76" rx="27" ry="26"/>
+    <path d="M199 60Q194 34 228 31 262 34 257 60Q228 50 199 60Z" fill="#93836d"/>
+    <path d="M203 40Q184 26 190 12 202 24 210 38Z" fill="#6b5638"/>
+    <path d="M253 40Q272 26 266 12 254 24 246 38Z" fill="#6b5638"/>
+    <g stroke-width="9">
+      <path d="M214 70 224 80M224 70 214 80" fill="none"/>
+      <path d="M234 70 244 80M244 70 234 80" fill="none"/>
+      <path d="M220 92Q228 87 236 92" fill="none"/>
+    </g>
+  </g>
+  <!-- the shared banana peel -->
+  <g stroke-width="7">
+    <path d="M148 130Q158 104 172 128 166 136 160 131 154 136 148 130Z" fill="#f4cf7a"/>
+    <path d="M160 120 160 106" fill="none"/>
+  </g>
+  <!-- 4 confetti flecks -->
+  <g stroke="none">
+    <rect x="40" y="20" width="12" height="7" transform="rotate(24 46 23)" fill="#d9a441"/>
+    <rect x="286" y="30" width="12" height="7" transform="rotate(-30 292 33)" fill="#b5402f"/>
+    <rect x="160" y="16" width="12" height="7" transform="rotate(14 166 19)" fill="#3e6fae"/>
+    <rect x="250" y="14" width="12" height="7" transform="rotate(-18 256 17)" fill="#3f6b35"/>
+  </g>
+</svg>

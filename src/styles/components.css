@@ -1015,17 +1015,34 @@
    where art exists; every other card keeps the §10 fallback untouched. */
 .ending-card[data-ending='retired'] .poster__portrait {
   background-image:
-    url('../assets/props/gold-pile.svg'),
+    url('../assets/art/retired-rich.svg'),
     radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
   background-size:
-    78% auto,
+    92% auto,
     100% 100%;
   background-position:
-    center 68%,
+    center 78%,
     center;
   background-repeat: no-repeat;
 }
 .ending-card[data-ending='retired'] .poster__portrait .poster__silhouette {
+  display: none;
+}
+/* §4.4 win-circuit tease: the oversized champion belt fills the well the same way the retired
+   pile does — hand-authored art over the well's own recession gradient. */
+.ending-card[data-ending='win-circuit'] .poster__portrait {
+  background-image:
+    url('../assets/art/champion-belt.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    82% auto,
+    100% 100%;
+  background-position:
+    center 60%,
+    center;
+  background-repeat: no-repeat;
+}
+.ending-card[data-ending='win-circuit'] .poster__portrait .poster__silhouette {
   display: none;
 }
 /* §6.14's screenshot payload, and the one line on this screen with no card under it — so it
