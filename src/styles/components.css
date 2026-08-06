@@ -18,7 +18,7 @@
   /* §6.1 Phase 2 amendment: plank texture over the gradient; the gradient stays as the
      no-asset fallback and as the tone bed the texture multiplies into. */
   background:
-    url('../assets/textures/wood-planks.jpg') center / 288px auto repeat,
+    url('../assets/textures/wood-planks.webp') center / 288px auto repeat,
     var(--grad-wood);
   background-blend-mode: multiply, normal;
   border: var(--border-w) solid var(--border-ink);
