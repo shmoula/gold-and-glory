@@ -103,6 +103,22 @@ describe('glyph rules ↔ rendered names ↔ files (§4.2, one mapping, no drift
   });
 });
 
+describe('sheet urls resolve (§2.1 — a moved/deleted asset must fail in CI, not on screen)', () => {
+  it('every url(../assets/…) in every sheet points at a committed file', () => {
+    for (const sheet of [
+      'src/styles/base.css',
+      'src/styles/components.css',
+      'src/styles/screens.css',
+      'src/styles/tokens.css',
+    ]) {
+      const css = readFileSync(sheet, 'utf8');
+      for (const m of css.matchAll(/url\('\.\.\/assets\/([^']+)'\)/g)) {
+        expect(existsSync(join('src/assets', m[1])), `${sheet} → assets/${m[1]}`).toBe(true);
+      }
+    }
+  });
+});
+
 describe('weight budget (§6: 300KB hard, fonts pre-date the budget)', () => {
   it('keeps everything the visual phases add under 300KB', () => {
     let total = 0;

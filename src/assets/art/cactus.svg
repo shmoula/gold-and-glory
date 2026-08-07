@@ -1,0 +1,22 @@
+<svg viewBox="0 0 46 62" xmlns="http://www.w3.org/2000/svg" fill="#3f6b35" stroke="#2f2318" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round">
+  <!-- §6.14 dressing: a pot-less desert cactus, redrawn in-house (replaces the stock cactus).
+       House recipe: pack pen (stroke 2.3 on a 46u viewBox). Two arms, ink spines. -->
+  <!-- trunk -->
+  <path d="M18 60Q17 34 18 20 19 8 23 8 27 8 28 20 29 34 28 60Z"/>
+  <!-- arms -->
+  <path d="M18 34Q8 34 8 26 8 20 12 21 13 27 18 27Z"/>
+  <path d="M28 40Q39 40 39 30 39 23 34 24 33 31 28 32Z"/>
+  <!-- one shade layer -->
+  <path d="M23 12Q26 30 25 58" stroke="#2f2318" stroke-opacity=".18" stroke-width="2" fill="none"/>
+  <!-- ink spines -->
+  <g stroke-width="1.6" fill="none">
+    <path d="M18 24 15 23"/>
+    <path d="M18 34 15 33"/>
+    <path d="M18 44 15 43"/>
+    <path d="M28 28 31 27"/>
+    <path d="M28 40 31 39"/>
+    <path d="M28 50 31 49"/>
+    <path d="M10 24 7 23"/>
+    <path d="M37 32 40 31"/>
+  </g>
+</svg>

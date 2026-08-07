@@ -355,7 +355,7 @@ fight__actions, result__recap, result__ledger, result__cta, result__cross, resul
 gameover__left, gameover__stamp, gameover__right, gameover__cause, gameover__cta,
 title-plaque, stage-backdrop, stage-frame, icon-well, icon-well--sm, hud__count,
 btn--arrow, fight__press, is-flashing, gameover__props, prop, prop--sock-left, prop--sock-right,
-prop--confetti, prop--sandal, prop--banana, prop--cactus`
+prop--confetti, prop--sandal, prop--banana, prop--cactus, prop--vignette, is-reversing`
 
 `modal` and `modal__scrim` (§6.15) are specified, not yet rendered — no screen mounts a modal
 today, but the spec still calls for one (death-match clause confirm).
@@ -816,6 +816,15 @@ the line keeps its box and nothing below it shifts when the stamp arrives. CSS-o
 small inline data-URI SVG `background-image` over their band colors — texture, not color, is
 the extra channel (§3 stays the authority on the ramp). Static; nothing to reduce for motion.
 
+**Amendment (Phase 3):** facing is driven by a `.is-reversing` class main.js toggles on
+`.meter-cursor` when the sweep direction turns; the flip is a `--flip: -1` custom property so
+the drop keyframes (which override `transform`) preserve it. The landed pose after capture is
+STATE (a static `transform` under `.meter.is-captured`), and `chicken-drop` is decoration that
+ends where the state already is — the same pattern the stamp landed on, so reduced-motion's
+1ms blanket yields an instantly-parked chicken, never a snap-back. Sweep motion itself remains
+under reduced motion (§5's existing exception: it is the game mechanic); only the drop
+choreography compresses.
+
 ### 6.5 Wanted poster (combatant card)
 
 Parchment M2 + tape M4, `--tilt-1` (player) / `--tilt-2` (opponent) — neighbors never share tilt.
@@ -824,6 +833,13 @@ Anatomy top-to-bottom: `.poster__name` (display, 27px, centered), `.poster__port
 `.poster__sub` (tier · fight purse with `--gold-ink` amount), `.snark` line.
 HP plate for fight screen: one `.bar` (width 100%) mounted _below_ the portrait — exactly one
 per poster. Player poster and HUD may both show HP; they must read from the same state field.
+
+**Amendment (Phase 3, visual-upgrade §5.4):** `poster()` accepts a `portrait` key emitted as
+`data-portrait` on `.poster__portrait`. Keys are the five character ids: `player`, `brute`,
+`journeyman`, `veteran`, `champion`. CSS keyed on the attribute layers the 4:3 authored art
+over the well's recession and hides the silhouette — an unkeyed or unmatched poster keeps the
+§10 silhouette fallback untouched. Call sites: fight (both plates), hub (both plates), result
+recap (the defeated opponent).
 
 ### 6.6 The Ledger (result breakdown)
 
@@ -1061,6 +1077,15 @@ gains one `aria-hidden` dressing layer, `.gameover__props` (`pointer-events: non
 `.prop` elements: two distressed socks hung from the top edge, a confetti scatter, the sandal
 base, the banana peel, the cactus. All decorative, all CSS-positioned, all invisible to AT.
 
+**Amendment (Phase 3, visual-upgrade §5.5):** the game-over section carries
+`data-achieved="<ending>"` when the ending is known. The dressing layer gains
+`.prop--vignette` — the both-tripped-on-the-same-banana-peel tableau — shown only under
+`[data-achieved='dead']` (`display: none` otherwise): the vignette illustrates a death, not a
+retirement. `.gameover__stamp` takes `position: relative; z-index: 2` so the verdict banner
+always reads above the dressing layer. Ending-card art grows to `win-circuit` (the ill-fitting
+championship belt) beside `retired` (now one authored figure-on-gold-pile illustration
+replacing the Phase 2 stock pile).
+
 ### 6.15 Modal (generic, e.g. death-match clause confirm)
 
 `.modal__scrim`: `rgba(31,22,12,0.6)` full-screen, `z-index: var(--z-modal)`.
@@ -1135,6 +1160,12 @@ of three things, deliberately:
 
 Whichever is chosen, the body-padding offset stops being the whole mechanism the moment the frame's
 paint can reach inward, and this section is where that has to be re-stated.
+
+**Amendment (Phase 3, visual-upgrade §5.2/§5.3):** `.stage-frame` upgrades its placeholder
+border to cartoon masonry via `border-image` (nine-slice SVG, ink-outlined blocks, token
+fills); the solid `--stone-2` border stays declared beneath it as the runtime fallback.
+`.stage-backdrop` gains the arena scene as a muted background layer (opacity ≈ 0.55) — the
+parchment UI stays loudest, and an absent file leaves the stone body showing (§10).
 
 ### 6.18 Icon well (`.icon-well`)
 

@@ -30,11 +30,6 @@ anyway — provenance beats amnesia. Source pages, alternates, and pinning ratio
 
 ## Props — openclipart.org (CC0 / Public Domain, credited for provenance)
 
-- "Gold Coins Illustration" by GDJ (src/assets/props/gold-pile.svg — swapped in for the
-  manifest's primary pick, "Pile of Golden Coins" by J_Alves (id 43969), which alone is
-  185KB and busted the asset weight budget; this alternate, id 228358, is lighter)
 - "Banana Peel" by Gerald_G (src/assets/props/banana-peel.svg)
-- "Cactus" by Julianvb98 (src/assets/props/cactus.svg)
-- "feet in sandals" by jonadab (src/assets/props/sandal-base.svg — Phase 3 redraws this Roman)
 - "Long sock" by Oltarus — base for the in-house src/assets/art/sock-distressed.svg
 - "organized confetti" by 10binary — base for the in-house recolor src/assets/art/confetti.svg

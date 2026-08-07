@@ -1,0 +1,22 @@
+<svg viewBox="0 0 72 58" xmlns="http://www.w3.org/2000/svg" fill="#6b5638" stroke="#2f2318" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- §6.14 dressing: a Roman caliga, redrawn in-house (replaces the stock sandal). House
+       recipe: pack pen (stroke 3.6 on a 72u viewBox). Flat leather sole, cross-straps with
+       ink gaps, worn edge nicks. -->
+  <!-- sole -->
+  <path d="M9 40Q7 30 16 27 36 24 54 27 66 30 65 38 63 46 52 47 30 48 16 47 11 46 9 40Z"/>
+  <!-- one shade layer: the recessed footbed -->
+  <path d="M16 32Q34 29 56 33 58 40 50 42 30 43 18 42 15 38 16 32Z" fill="#5f4227" fill-opacity=".4" stroke="none"/>
+  <!-- cross-straps with ink gaps -->
+  <g stroke-width="3.2">
+    <path d="M22 30 28 44"/>
+    <path d="M33 29 38 44"/>
+    <path d="M44 29 47 43"/>
+    <path d="M20 36Q34 33 52 37" fill="none"/>
+  </g>
+  <!-- worn edge nicks -->
+  <g stroke-width="2.4" fill="none">
+    <path d="M11 41 8 43"/>
+    <path d="M63 40 66 42"/>
+    <path d="M37 47 37 50"/>
+  </g>
+</svg>

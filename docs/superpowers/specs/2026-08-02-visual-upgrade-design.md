@@ -52,7 +52,9 @@ are drawn:
 
 - Colors from `tokens.css` only; transparent background.
 - Uniform ink outline: `--border-ink`, one stroke width across the whole pack — the value is
-  chosen when the chicken (first asset) is drawn, then locked for everything after.
+  chosen when the chicken (first asset) is drawn, then locked for everything after. **Locked
+  value: 2 units at a ~40-unit-wide viewBox — scale stroke width proportionally to each asset's
+  viewBox so the rendered pen width matches.**
 - Flat fills, at most one shade layer per shape.
 - One low-opacity crayon-scribble hatch group for texture.
 - Fixed geometry per §10: chicken 40×48 feet-down side view (flipped via `scaleX(-1)`),
@@ -134,6 +136,11 @@ changes — the glyphs are decoration on top of already-complete labels.
 ## 5. Phase 3 — Hand-authored art
 
 Ordered by leverage; each piece is one commit into a working well; the game ships at any cut:
+
+Phase 3 also owns the budget rebalance: the Phase 2 stand-ins it redraws (`gold-pile.svg` 147KB,
+`cactus.svg` 31KB, `sandal-base.svg` 11KB) are deleted in the same commits that land their
+replacements — §4.4's 'composites the character on top' resolves as ONE authored illustration,
+not a layer over the 147KB stock file.
 
 1. **Rubber chicken** — calibrates the recipe at 40×48; completes §6.4 (drop + `scaleY(0.7)`
    squash onto the track joins the freeze choreography).

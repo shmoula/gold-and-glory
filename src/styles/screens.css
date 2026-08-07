@@ -201,6 +201,10 @@
   grid-area: stamp;
   text-align: center;
   --card-tilt: var(--tilt-2);
+  /* The verdict banner and its centre card read ABOVE the death dressing (§6.14 Phase 3): the
+     vignette sits behind, the words in front. */
+  position: relative;
+  z-index: 2;
 }
 .gameover__right {
   grid-area: endR;
@@ -266,7 +270,7 @@
   width: 72px;
   height: 58px;
   transform: rotate(-22deg);
-  background-image: url('../assets/props/sandal-base.svg');
+  background-image: url('../assets/art/sandal-roman.svg');
 }
 .prop--banana {
   bottom: 24%;
@@ -281,11 +285,28 @@
   right: 7%;
   width: 46px;
   height: 62px;
-  background-image: url('../assets/props/cactus.svg');
+  background-image: url('../assets/art/cactus.svg');
+}
+/* §6.14 Phase 3 amendment: the death tableau. Hidden unless the run actually died —
+   a retirement gets confetti and socks, not corpses. */
+.prop--vignette {
+  display: none;
+  top: 34%;
+  left: 50%;
+  width: 340px;
+  height: 150px;
+  transform: translateX(-50%);
+  background-image: url('../assets/art/death-vignette.svg');
+}
+.screen--gameover[data-achieved='dead'] .prop--vignette {
+  display: block;
 }
 @media (max-width: 640px) {
   .prop--confetti {
     width: 210px;
+  }
+  .prop--vignette {
+    width: 240px;
   }
   .prop--sandal,
   .prop--cactus {

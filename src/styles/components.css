@@ -18,7 +18,7 @@
   /* §6.1 Phase 2 amendment: plank texture over the gradient; the gradient stays as the
      no-asset fallback and as the tone bed the texture multiplies into. */
   background:
-    url('../assets/textures/wood-planks.jpg') center / 288px auto repeat,
+    url('../assets/textures/wood-planks.webp') center / 288px auto repeat,
     var(--grad-wood);
   background-blend-mode: multiply, normal;
   border: var(--border-w) solid var(--border-ink);
@@ -329,6 +329,76 @@
   background: var(--silhouette);
   border-radius: 46% 46% 40% 40%;
 }
+/* §6.5 Phase 3 amendment: authored portraits layer over the well's own recession; the
+   silhouette hides only where art exists. Unkeyed/unmatched wells keep the §10 fallback.
+   `background-image` is one property, so the recession gradient (kept in sync with
+   `.poster__portrait` above) is restated as the second layer beside each portrait. Five
+   explicit pairs, like the glyph rules — a typo'd key shows a silhouette, not a hole. */
+.poster__portrait[data-portrait='player'] {
+  background-image:
+    url('../assets/art/portrait-player.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    contain,
+    100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.poster__portrait[data-portrait='player'] .poster__silhouette {
+  display: none;
+}
+.poster__portrait[data-portrait='brute'] {
+  background-image:
+    url('../assets/art/portrait-brute.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    contain,
+    100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.poster__portrait[data-portrait='brute'] .poster__silhouette {
+  display: none;
+}
+.poster__portrait[data-portrait='journeyman'] {
+  background-image:
+    url('../assets/art/portrait-journeyman.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    contain,
+    100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.poster__portrait[data-portrait='journeyman'] .poster__silhouette {
+  display: none;
+}
+.poster__portrait[data-portrait='veteran'] {
+  background-image:
+    url('../assets/art/portrait-veteran.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    contain,
+    100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.poster__portrait[data-portrait='veteran'] .poster__silhouette {
+  display: none;
+}
+.poster__portrait[data-portrait='champion'] {
+  background-image:
+    url('../assets/art/portrait-champion.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    contain,
+    100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.poster__portrait[data-portrait='champion'] .poster__silhouette {
+  display: none;
+}
 .poster__sub {
   font-size: var(--text-sm);
   font-weight: 700;
@@ -569,8 +639,8 @@
    Track, zones and cursor are spec §6.4's block verbatim. The zone hierarchy is a
    monochromatic gold ramp (brighter = closer to glory) plus ink notches on the crit band and
    the label row below, so it survives grayscale and every CVD type — colour is never the only
-   channel. `.meter-chicken` is omitted: the asset does not exist yet and the ink cursor line
-   is the spec's own stated fallback. */
+   channel. `.meter-chicken` now rides the cursor (see the rule below `.meter.is-captured
+   .meter-cursor`); the ink cursor line stays as its spec-stated fallback if the asset fails. */
 .meter {
   position: relative;
   height: 48px;
@@ -612,6 +682,39 @@
 .meter.is-captured .meter-cursor {
   background: var(--blood);
   width: 4px;
+}
+/* §6.4's chicken. --flip carries facing through every state INCLUDING the drop keyframes
+   (a keyframe's transform would otherwise discard the scaleX and un-flip the bird mid-fall).
+   The captured pose is STATE, the drop is decoration ending where the state already is —
+   the stamp's own lesson, so reduced-motion's 1ms blanket parks it instantly, no snap-back. */
+.meter-chicken {
+  --flip: 1;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 40px;
+  height: 48px;
+  transform: translateX(-50%) scaleX(var(--flip));
+  transform-origin: 50% 100%;
+  pointer-events: none;
+}
+.meter-cursor.is-reversing .meter-chicken {
+  --flip: -1;
+}
+.meter.is-captured .meter-chicken {
+  transform: translate(-50%, 14px) scaleX(var(--flip));
+  animation: chicken-drop var(--dur-stamp) var(--ease-drop);
+}
+@keyframes chicken-drop {
+  0% {
+    transform: translate(-50%, 0) scaleX(var(--flip));
+  }
+  70% {
+    transform: translate(-50%, 14px) scaleX(var(--flip)) scaleY(0.7);
+  }
+  100% {
+    transform: translate(-50%, 14px) scaleX(var(--flip));
+  }
 }
 /* §6.4 step 3: the verdict pops at the frozen cursor, in display type, reusing §6.13's two-frame
    `stamp-in`. main.js sets `left` to the captured position; the offsets are stated on the
@@ -879,9 +982,9 @@
    slot sets `--card-tilt` and the card still owns its own `transform`: a screen that overrode
    the whole property would silently discard anything else the component ever puts in it, and
    this is the sheet's only place where a screen reaches into a §6 component's transform.
-   §6.13's giant sandal — a content image descending behind the death stamp — is omitted along
-   with the chicken: the asset does not exist, and spec §10 requires the UI to look complete
-   with zero content assets present. */
+   §6.13's giant sandal — a content image descending behind the death stamp — is still omitted:
+   that asset does not exist yet (the chicken has since landed on the meter), and spec §10
+   requires the UI to look complete with zero content assets present. */
 .ending-card {
   border-radius: var(--wobble-1);
   padding: var(--space-4);
@@ -912,17 +1015,34 @@
    where art exists; every other card keeps the §10 fallback untouched. */
 .ending-card[data-ending='retired'] .poster__portrait {
   background-image:
-    url('../assets/props/gold-pile.svg'),
+    url('../assets/art/retired-rich.svg'),
     radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
   background-size:
-    78% auto,
+    92% auto,
     100% 100%;
   background-position:
-    center 68%,
+    center 78%,
     center;
   background-repeat: no-repeat;
 }
 .ending-card[data-ending='retired'] .poster__portrait .poster__silhouette {
+  display: none;
+}
+/* §4.4 win-circuit tease: the oversized champion belt fills the well the same way the retired
+   pile does — hand-authored art over the well's own recession gradient. */
+.ending-card[data-ending='win-circuit'] .poster__portrait {
+  background-image:
+    url('../assets/art/champion-belt.svg'),
+    radial-gradient(circle at 50% 42%, var(--paper-4), var(--paper-5));
+  background-size:
+    82% auto,
+    100% 100%;
+  background-position:
+    center 60%,
+    center;
+  background-repeat: no-repeat;
+}
+.ending-card[data-ending='win-circuit'] .poster__portrait .poster__silhouette {
   display: none;
 }
 /* §6.14's screenshot payload, and the one line on this screen with no card under it — so it

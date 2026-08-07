@@ -20,6 +20,7 @@ import {
   iconWell,
 } from './components.js';
 import { meterZones } from './timing.js';
+import chickenUrl from '../assets/art/chicken.svg';
 
 export {
   URGENT_FRACTION,
@@ -179,9 +180,9 @@ export function renderHub(state, config) {
         ${sponsorCard}
       </div>
       <div class="hub__fight">
-        ${poster({ name: 'You', tilt: 1, hp: playerHealth(state) })}
+        ${poster({ name: 'You', tilt: 1, hp: playerHealth(state), portrait: 'player' })}
         <span class="hub__next-label">Next bout</span>
-        ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent) })}
+        ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent), portrait: opponent.id })}
       </div>
       <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
       <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
@@ -323,6 +324,7 @@ export function renderResult(state, config) {
           urgent: false,
           sub: foe ? opponentSub(foe) : '',
           snark: foe ? (config.snark[foe.id] ?? '') : '',
+          portrait: foe?.id ?? '',
         })}
         ${r.won ? '<div class="result__cross" aria-hidden="true"></div>' : ''}
         <p class="snark result__flavor">${escapeHtml(r.commentary)}</p>
@@ -408,7 +410,7 @@ export function renderGameOver(state, config) {
   return `
     ${renderHud(state, config, { urgent: false })}
     ${titlePlaque('Game over')}
-    <section class="screen screen--gameover">
+    <section class="screen screen--gameover"${achieved ? ` data-achieved="${escapeHtml(achieved)}"` : ''}>
       <div class="gameover__left">${gallery(others.slice(0, half))}</div>
       <div class="gameover__stamp">
         ${stamp ? bannerStamp(stamp.variant, stamp.text) : ''}
@@ -421,6 +423,7 @@ export function renderGameOver(state, config) {
       </div>
       <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
       <div class="gameover__props" aria-hidden="true">
+        <i class="prop prop--vignette"></i>
         <i class="prop prop--sock-left"></i>
         <i class="prop prop--sock-right"></i>
         <i class="prop prop--confetti"></i>
@@ -470,7 +473,7 @@ function renderMeter(state, config) {
         ${zone('graze')}
         ${zone('hit')}
         ${zone('crit')}
-        <div class="meter-cursor"></div>
+        <div class="meter-cursor"><img class="meter-chicken" src="${chickenUrl}" alt="" /></div>
       </div>
       <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
 }
@@ -519,6 +522,7 @@ export function renderFight(state, config) {
         hp: playerHealth(state),
         sub: playerSub(state),
         snark: config.snark.player,
+        portrait: 'player',
       })}</div>
       <div class="fight__stage">${renderMeter(state, config)}</div>
       <div class="fight__foe">${poster({
@@ -527,6 +531,7 @@ export function renderFight(state, config) {
         hp: { value: c.enemy.health, max: c.enemy.maxHealth },
         sub: opponentSub(opponent),
         snark: config.snark[opponent.id] ?? '',
+        portrait: opponent.id,
       })}</div>
       <div class="fight__actions">
         <div class="fight__grid">
