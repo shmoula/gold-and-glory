@@ -1,0 +1,31 @@
+<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Journeyman, tier 2 (§5.4): leaner, competent — plain helm, scarred cheek, a flat
+       unimpressed stare. House recipe, pack pen (stroke 6). -->
+  <!-- shoulders -->
+  <path d="M16 90 22 74Q60 62 98 74L104 90Z" fill="#6b5638"/>
+  <!-- neck -->
+  <path d="M51 60 52 74 68 74 69 60Z"/>
+  <!-- lean face -->
+  <path d="M42 38Q41 68 60 68 79 68 78 38Z"/>
+  <!-- plain helm -->
+  <path d="M39 42Q36 18 60 16 84 18 81 42Q60 34 39 42Z" fill="#93836d"/>
+  <path d="M60 16 60 42" fill="none" stroke-width="4"/>
+  <!-- flat brows -->
+  <path d="M46 40 56 40" fill="none"/>
+  <path d="M64 40 74 40" fill="none"/>
+  <!-- level eyes -->
+  <circle cx="51" cy="46" r="2.2" fill="#2f2318" stroke="none"/>
+  <circle cx="69" cy="46" r="2.2" fill="#2f2318" stroke="none"/>
+  <!-- straight, unimpressed mouth -->
+  <path d="M52 58 68 58" fill="none"/>
+  <!-- scar across the right cheek -->
+  <path d="M72 44 70 56" fill="none" stroke-width="3"/>
+  <path d="M69 48 73 52" fill="none" stroke-width="3"/>
+  <!-- one shade layer under the jaw -->
+  <path d="M44 50Q60 68 76 50 76 60 60 66 44 60 44 50Z" fill="#b98a3a" fill-opacity=".25" stroke="none"/>
+  <!-- one crayon-hatch group -->
+  <g stroke="#2f2318" stroke-opacity=".12" stroke-width="3" fill="none">
+    <path d="M44 26Q60 21 76 26"/>
+    <path d="M43 32Q60 28 77 32"/>
+  </g>
+</svg>

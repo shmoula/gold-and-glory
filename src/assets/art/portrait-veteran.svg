@@ -1,0 +1,31 @@
+<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Veteran, tier 3 (§5.4): grizzled — eye patch, dented helm, grey-flecked beard,
+       a slight knowing grin. He has done this. House recipe, pack pen (stroke 6). -->
+  <!-- shoulders -->
+  <path d="M14 90 20 74Q60 60 100 74L106 90Z" fill="#6b5638"/>
+  <!-- neck -->
+  <path d="M50 58 51 74 69 74 70 58Z"/>
+  <!-- face -->
+  <path d="M40 36Q39 66 60 66 81 66 80 36Z"/>
+  <!-- grey beard along the jaw (metal-grey strands) -->
+  <path d="M40 52Q60 74 80 52Q80 66 60 68 40 66 40 52Z" fill="#93836d"/>
+  <!-- dented helm -->
+  <path d="M37 40Q34 16 60 14 86 16 83 40Q72 33 60 34 48 33 37 40Z" fill="#93836d"/>
+  <path d="M56 20 62 26 58 30" fill="none" stroke-width="4"/>
+  <!-- eye patch on the left, strap across the helm -->
+  <path d="M45 44 55 42 54 51 44 52Z" fill="#2f2318"/>
+  <path d="M40 40 84 38" fill="none" stroke-width="3"/>
+  <!-- good eye, heavy brow -->
+  <path d="M64 40 74 41" fill="none"/>
+  <circle cx="69" cy="46" r="2.4" fill="#2f2318" stroke="none"/>
+  <!-- slight grin -->
+  <path d="M52 56Q60 61 70 55" fill="none"/>
+  <!-- one shade layer under the jaw -->
+  <path d="M42 50Q60 68 78 50 78 60 60 66 42 60 42 50Z" fill="#b98a3a" fill-opacity=".25" stroke="none"/>
+  <!-- one crayon-hatch group (beard flecks) -->
+  <g stroke="#2f2318" stroke-opacity=".14" stroke-width="3" fill="none">
+    <path d="M46 56 48 62"/>
+    <path d="M58 60 59 66"/>
+    <path d="M70 58 71 63"/>
+  </g>
+</svg>

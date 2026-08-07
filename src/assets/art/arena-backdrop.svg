@@ -1,0 +1,90 @@
+<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#2f2318" stroke-width="4" stroke-linejoin="round">
+  <!-- Arena backdrop, in-house §2.3 house-recipe scene. Sits BEHIND the parchment UI in
+       .stage-backdrop at 55% opacity (§5.3/§6.17): the parchment stays loudest, so this scene
+       runs LOW internal contrast, flat fills, no saturated grounds. Ink outline #2f2318 at the
+       pack pen (locked 2026-08-02 §2.3), scaled to this 1600×900 viewBox as a light confident
+       stroke-width 4. Tokens only: #f6ecd1 (paper-1), #d9a441 (gold), #93836d (stone-2),
+       #46301b (wood-4), #443019 (silhouette), #b5402f (blood), #3e6fae (commit), #d9c69a (paper-4).
+       The crowd row and the arch openings are single <defs> shapes stamped with <use>; the bytes
+       come from the stamps, not from redrawing every head or arch (that is what keeps this tiny). -->
+  <defs>
+    <!-- ONE 7-head spectator row; stamped along the wall top. No outline — a flat silhouette. -->
+    <g id="crowd" stroke="none">
+      <circle cx="8" cy="20" r="10"/>
+      <circle cx="32" cy="18" r="11"/>
+      <circle cx="56" cy="21" r="10"/>
+      <circle cx="80" cy="17" r="11"/>
+      <circle cx="104" cy="20" r="10"/>
+      <circle cx="128" cy="18" r="11"/>
+      <circle cx="152" cy="21" r="10"/>
+      <path d="M-6 52 Q8 30 22 50 Q32 33 46 50 Q56 30 70 50 Q80 33 94 50 Q104 30 118 50 Q128 33 142 50 Q152 30 166 52 L166 60 L-6 60 Z"/>
+    </g>
+    <!-- ONE round-topped arch opening; stamped across the wall. -->
+    <path id="arch" d="M0 170 L0 66 Q0 0 55 0 Q110 0 110 66 L110 170 Z"/>
+    <!-- ONE scalloped awning strip; stamped over a few arches, colour set per <use>. -->
+    <path id="awning" d="M0 0 L132 0 L132 24 Q124 42 117 24 Q109 42 102 24 Q94 42 87 24 Q79 42 72 24 Q64 42 57 24 Q49 42 42 24 Q34 42 27 24 Q19 42 12 24 Q4 42 0 24 Z"/>
+    <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9c69a" stop-opacity="0"/>
+      <stop offset="1" stop-color="#d9c69a" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sky band, warmed by a low gold wash -->
+  <rect x="-20" y="-20" width="1640" height="700" fill="#f6ecd1" stroke="none"/>
+  <rect x="-20" y="-20" width="1640" height="700" fill="#d9a441" fill-opacity=".15" stroke="none"/>
+
+  <!-- Spectator row along the wall top; shoulders tuck behind the wall. Slight per-use y jitter
+       so the row never reads as a stamped ruler. -->
+  <g fill="#443019" fill-opacity=".7">
+    <use href="#crowd" x="-20" y="292"/>
+    <use href="#crowd" x="130" y="286"/>
+    <use href="#crowd" x="280" y="296"/>
+    <use href="#crowd" x="430" y="288"/>
+    <use href="#crowd" x="580" y="294"/>
+    <use href="#crowd" x="730" y="285"/>
+    <use href="#crowd" x="880" y="295"/>
+    <use href="#crowd" x="1030" y="288"/>
+    <use href="#crowd" x="1180" y="293"/>
+    <use href="#crowd" x="1330" y="286"/>
+    <use href="#crowd" x="1480" y="294"/>
+  </g>
+
+  <!-- Distant arena wall: a shallow arc, stone fill, ink outline -->
+  <path d="M-20 620 L-20 340 Q800 314 1620 340 L1620 620 Z" fill="#93836d"/>
+  <!-- the wall's ONE shade layer: a soft band along its base -->
+  <rect x="-20" y="560" width="1640" height="60" fill="#2f2318" fill-opacity=".1" stroke="none"/>
+
+  <!-- Arch openings row -->
+  <g fill="#46301b">
+    <use href="#arch" x="40" y="372"/>
+    <use href="#arch" x="220" y="372"/>
+    <use href="#arch" x="400" y="372"/>
+    <use href="#arch" x="580" y="372"/>
+    <use href="#arch" x="760" y="372"/>
+    <use href="#arch" x="940" y="372"/>
+    <use href="#arch" x="1120" y="372"/>
+    <use href="#arch" x="1300" y="372"/>
+    <use href="#arch" x="1480" y="372"/>
+  </g>
+
+  <!-- Awning strips over a few arches, low opacity, alternating blood / commit -->
+  <g stroke="none">
+    <use href="#awning" x="209" y="352" fill="#b5402f" fill-opacity=".35"/>
+    <use href="#awning" x="569" y="352" fill="#3e6fae" fill-opacity=".35"/>
+    <use href="#awning" x="929" y="352" fill="#b5402f" fill-opacity=".35"/>
+    <use href="#awning" x="1289" y="352" fill="#3e6fae" fill-opacity=".35"/>
+  </g>
+
+  <!-- ONE low-opacity crayon-hatch group on the wall -->
+  <g stroke="#2f2318" stroke-opacity=".1" stroke-width="3">
+    <path d="M120 470 148 430"/>
+    <path d="M150 476 178 436"/>
+    <path d="M690 486 718 446"/>
+    <path d="M720 492 748 452"/>
+    <path d="M1300 470 1328 430"/>
+    <path d="M1330 476 1358 436"/>
+  </g>
+
+  <!-- Arena floor, fading up toward the wall base -->
+  <rect x="-20" y="560" width="1640" height="360" fill="url(#floorGrad)" stroke="none"/>
+</svg>

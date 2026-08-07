@@ -222,9 +222,14 @@ function startMeter() {
   });
 
   const cursor = bar.querySelector('.meter-cursor');
+  let prevP = null;
   function step() {
     if (!sweep.running) return;
-    paintCursor(bar, cursor, meterPosition(performance.now() - sweep.t0, sweep.period));
+    const p = meterPosition(performance.now() - sweep.t0, sweep.period);
+    // Face the travel direction (§6.4): the ping-pong sweep reverses, the chicken turns.
+    if (prevP != null && p !== prevP) cursor.classList.toggle('is-reversing', p < prevP);
+    prevP = p;
+    paintCursor(bar, cursor, p);
     sweep.raf = requestAnimationFrame(step);
   }
   sweep.raf = requestAnimationFrame(step);

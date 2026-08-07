@@ -28,6 +28,20 @@ function copyFontLicenses() {
 
 export default defineConfig({
   plugins: [copyFontLicenses()],
+  build: {
+    // Keep the small `icons/` glyphs inlined as data URIs — the opening HUB screen paints most of
+    // them (shop, stats, HUD), so inlining spares that many requests on the critical path. But
+    // DON'T inline `art/` and `props/` SVGs: those are large, decorative, and mostly belong to
+    // screens the player hasn't reached (belt, death vignette, retired figure, confetti, banana
+    // gag, the other opponents' portraits). Inlined, they fold ~30KB into the render-blocking
+    // stylesheet and push Lighthouse Time to Interactive past the 2000ms CI gate. As separate
+    // files, a CSS background is fetched only when a matching element renders — so nothing here is
+    // requested on the HUB, and the critical CSS drops back under budget.
+    assetsInlineLimit(filePath) {
+      if (/[\\/]assets[\\/](art|props)[\\/][^\\/]+\.svg$/.test(filePath)) return false;
+      return undefined;
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

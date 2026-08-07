@@ -449,6 +449,13 @@ describe('title plaques (§6.16)', () => {
     expect(plaqueText(resultHtml())).toBe('Result');
     expect(plaqueText(gameoverHtml())).toBe('Game over');
   });
+
+  it('mounts the chicken on the cursor, decorative, with the ink line as fallback (§6.4)', () => {
+    const html = fightHtml();
+    expect(html).toMatch(
+      /<div class="meter-cursor"><img class="meter-chicken" src="[^"]+" alt="" \/><\/div>/
+    );
+  });
 });
 
 describe('titlePlaque', () => {
@@ -1272,6 +1279,12 @@ describe('renderGameOver (spec §6.14)', () => {
     const s = createGameState(1, CONFIG);
     s.ended = 'win-circuit';
     expect(renderGameOver(s, CONFIG)).toMatch(/champion|circuit/i);
+  });
+
+  it('stamps the achieved ending onto the section and shows the death vignette only for deaths', () => {
+    const dead = renderGameOver(gameOverState('dead'), CONFIG);
+    expect(dead).toMatch(/<section class="screen screen--gameover" data-achieved="dead">/);
+    expect(dead).toContain('prop--vignette');
   });
 
   // The gallery, from every ending. Locked-ness is read off the cards rather than counted in
@@ -2188,5 +2201,25 @@ describe('meterPeriod', () => {
 
   it('never drops below the configured minimum', () => {
     expect(meterPeriod(100, CONFIG)).toBe(CONFIG.combat.meterPeriodMs.min);
+  });
+});
+
+// §5.4 Phase 3: the fight and hub posters key their wells to the authored portraits — the
+// player's own worried mug and the foe's, by opponent id — while wells with no key (the
+// game-over ending cards) keep the §10 silhouette fallback untouched.
+describe('portrait keys on the poster wells (§5.4)', () => {
+  const fightHtml = () => renderFight(startFight(createGameState(1, CONFIG), CONFIG), CONFIG);
+  const gameoverHtml = () => renderGameOver(gameOverState('dead'), CONFIG);
+
+  it('keys the fight posters for their portraits, player and foe (§5.4)', () => {
+    const html = fightHtml();
+    expect(html).toContain('data-portrait="player"');
+    expect(html).toMatch(/data-portrait="(brute|journeyman|veteran|champion)"/);
+  });
+
+  it('keeps the silhouette fallback for unkeyed posters', () => {
+    // endingCard mounts poster wells with no portrait key — they must stay bare.
+    const html = gameoverHtml();
+    expect(html).not.toContain('data-portrait=');
   });
 });

@@ -1,0 +1,28 @@
+<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="#93836d" stroke="#2f2318" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Champion, tier 4 (§5.4): most imposing — a full-face helm filling the frame,
+       a single narrow eye slit (void), gold laurels, NO face. Menace by absence.
+       House recipe, pack pen (stroke 6). -->
+  <!-- huge armoured shoulders, edge to edge -->
+  <path d="M2 90 6 68Q60 54 114 68L118 90Z" fill="#6b5638"/>
+  <!-- full-face great helm filling the well -->
+  <path d="M24 44Q22 8 60 6 98 8 96 44 94 78 60 80 26 78 24 44Z"/>
+  <!-- central ridge -->
+  <path d="M60 8 60 78" fill="none" stroke-width="4"/>
+  <!-- narrow eye slit (void) -->
+  <rect x="36" y="40" width="48" height="9" rx="4" fill="#241a11"/>
+  <!-- breathing rivets below the slit -->
+  <circle cx="52" cy="62" r="2.5" fill="#241a11" stroke="none"/>
+  <circle cx="60" cy="64" r="2.5" fill="#241a11" stroke="none"/>
+  <circle cx="68" cy="62" r="2.5" fill="#241a11" stroke="none"/>
+  <!-- gold laurels crowning the helm -->
+  <path d="M36 20Q22 14 16 24Q26 26 34 28Z" fill="#d9a441"/>
+  <path d="M84 20Q98 14 104 24Q94 26 86 28Z" fill="#d9a441"/>
+  <path d="M28 26 24 22M32 30 28 27M92 26 96 22M88 30 92 27" fill="none" stroke="#d9a441" stroke-width="3"/>
+  <!-- one shade layer down one cheek of the helm -->
+  <path d="M60 12Q90 12 92 44 90 74 60 78Z" fill="#b98a3a" fill-opacity=".25" stroke="none"/>
+  <!-- one crayon-hatch group -->
+  <g stroke="#2f2318" stroke-opacity=".14" stroke-width="3" fill="none">
+    <path d="M34 34Q60 30 86 34"/>
+    <path d="M32 54Q60 58 88 54"/>
+  </g>
+</svg>

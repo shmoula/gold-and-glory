@@ -1,0 +1,30 @@
+<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Player (§5.4): worried recruit — oversized crested helm slipping, raised inner
+       brows, a small frown. House recipe: pack pen (stroke 6 = 3x the 40u chicken). -->
+  <!-- shoulders / leather jerkin -->
+  <path d="M16 90 22 74Q60 60 98 74L104 90Z" fill="#6b5638"/>
+  <!-- neck -->
+  <path d="M50 60 51 74 69 74 70 60Z"/>
+  <!-- face -->
+  <ellipse cx="60" cy="47" rx="21" ry="22"/>
+  <!-- oversized helm, tilted (slipping to its left), rim high so the brows read -->
+  <path d="M35 36Q30 14 60 11 92 10 85 32Q60 24 35 36Z" fill="#93836d"/>
+  <path d="M35 33Q60 25 85 31" fill="none"/>
+  <!-- red plume flopping over the crest -->
+  <path d="M57 11Q50 0 65 1 80 3 73 11Q65 6 57 11Z" fill="#b5402f"/>
+  <!-- raised inner brows (worried): inner ends lifted toward the centre -->
+  <path d="M45 41 55 37" fill="none"/>
+  <path d="M75 41 65 37" fill="none"/>
+  <!-- small eyes -->
+  <circle cx="52" cy="47" r="2.4" fill="#2f2318" stroke="none"/>
+  <circle cx="68" cy="47" r="2.4" fill="#2f2318" stroke="none"/>
+  <!-- small frown -->
+  <path d="M55 60Q60 56 65 60" fill="none"/>
+  <!-- one shade layer under the jaw/helm -->
+  <path d="M41 50Q60 70 79 50 79 62 60 68 41 62 41 50Z" fill="#b98a3a" fill-opacity=".25" stroke="none"/>
+  <!-- one crayon-hatch group -->
+  <g stroke="#2f2318" stroke-opacity=".12" stroke-width="3" fill="none">
+    <path d="M42 20Q60 15 78 20"/>
+    <path d="M40 26Q60 21 80 26"/>
+  </g>
+</svg>

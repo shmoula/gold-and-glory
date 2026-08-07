@@ -11,6 +11,7 @@
 **Baseline at start:** Phase 2 landed on `main` (`9112bee`); suite + lint green; asset payload **272,116 bytes of the 300KB budget** — see the budget rebalance below.
 
 **Rules that bind every task:**
+
 - Doc-first: Task 1 amends the docs before any code/art lands (§10).
 - **Per-task visual verification is NOT skippable.** Phase 1's retro records that batching visual checks to the end let two layout defects ride through a green jsdom suite. Art tasks are eyeball work by definition: every task here ends with its own dev-server look at true rendered size, and the task is not done until that look happened. No batching to Task 8.
 - House recipe (§2.3): colors from `tokens.css` only; transparent background; ink outline `#2f2318` at the stroke width Task 2 locks; flat fills, ≤1 shade layer per shape; one low-opacity crayon-hatch group; per-asset byte caps below are HARD (the budget test is the arbiter).
@@ -38,38 +39,39 @@ committed first — Task 8's reference pass and every art task's squint test dep
 
 Committed payload is 272,116 bytes; the ceiling is 307,200 (300KB). Three Phase 2 stand-ins are both the heaviest files and the very slots Phase 3 redraws:
 
-| Change | Bytes |
-| --- | ---: |
-| Current payload | 272,116 |
-| DELETE `props/gold-pile.svg` (147,146 — over half the entire budget; §5.5 composites the retired figure over the pile anyway, so pile+figure become ONE authored piece) | −147,146 |
-| DELETE `props/cactus.svg` (30,724 for a corner gag; redrawn in-house at ~3KB) | −30,724 |
-| DELETE `props/sandal-base.svg` (11,347; §4.4 called it a stand-in until Phase 3 redraws it Roman) | −11,347 |
-| Base after removals | 82,899 |
-| ADD (hard caps): chicken 8K, frame 24K, backdrop 48K, portraits 5×12K, belt 8K, retired-rich 14K, vignette 12K, sandal 8K, cactus 3K, optional gags 6K | +191,000 max |
-| **Projected ceiling-case total** | **≤ 273,899 ✓** |
+| Change                                                                                                                                                                  |           Bytes |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------: |
+| Current payload                                                                                                                                                         |         272,116 |
+| DELETE `props/gold-pile.svg` (147,146 — over half the entire budget; §5.5 composites the retired figure over the pile anyway, so pile+figure become ONE authored piece) |        −147,146 |
+| DELETE `props/cactus.svg` (30,724 for a corner gag; redrawn in-house at ~3KB)                                                                                           |         −30,724 |
+| DELETE `props/sandal-base.svg` (11,347; §4.4 called it a stand-in until Phase 3 redraws it Roman)                                                                       |         −11,347 |
+| Base after removals                                                                                                                                                     |          82,899 |
+| ADD (hard caps): chicken 8K, frame 24K, backdrop 48K, portraits 5×12K, belt 8K, retired-rich 14K, vignette 12K, sandal 8K, cactus 3K, optional gags 6K                  |    +191,000 max |
+| **Projected ceiling-case total**                                                                                                                                        | **≤ 273,899 ✓** |
 
 Deletions happen in the task that lands each replacement (never earlier — ship-at-any-cut), with the matching `CREDITS.md` line pruned in the same commit (the manifest keeps historical provenance; CREDITS describes current files only).
 
 **File structure (what changes where):**
 
-| File | Responsibility in this plan |
-| --- | --- |
-| design-system doc + visual-upgrade spec + manifest | doc-first amendments (Task 1); stroke-width lock recorded (Task 2) |
-| `src/assets/art/chicken.svg` … `art/winged-boot.svg` | the authored pack (Tasks 2–7) |
-| `src/ui/render.js` | chicken `<img>` in `renderMeter` (T2); `portrait` keys at 4 poster call sites (T5); `data-achieved` on the game-over section (T6) |
-| `src/ui/components.js` | `poster()` gains `portrait` opt (T5) |
-| `src/main.js` | sweep direction flip for the chicken (T2) |
-| `src/styles/components.css` | chicken + drop choreography (T2); portrait rules (T5); belt/retired-rich rules (T6); optional gag mask swaps (T7) |
-| `src/styles/base.css` | frame `border-image` (T3); backdrop layer (T4) |
-| `src/styles/screens.css` | vignette prop, sandal/cactus url swaps (T6) |
-| `tests/assets.test.js` | generic sheet-url→file test (T2); mask-count edit if T7 runs |
-| `tests/render.test.js`, `tests/main.test.js` | chicken/portrait/vignette assertions (T2, T5, T6) |
+| File                                                 | Responsibility in this plan                                                                                                       |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| design-system doc + visual-upgrade spec + manifest   | doc-first amendments (Task 1); stroke-width lock recorded (Task 2)                                                                |
+| `src/assets/art/chicken.svg` … `art/winged-boot.svg` | the authored pack (Tasks 2–7)                                                                                                     |
+| `src/ui/render.js`                                   | chicken `<img>` in `renderMeter` (T2); `portrait` keys at 4 poster call sites (T5); `data-achieved` on the game-over section (T6) |
+| `src/ui/components.js`                               | `poster()` gains `portrait` opt (T5)                                                                                              |
+| `src/main.js`                                        | sweep direction flip for the chicken (T2)                                                                                         |
+| `src/styles/components.css`                          | chicken + drop choreography (T2); portrait rules (T5); belt/retired-rich rules (T6); optional gag mask swaps (T7)                 |
+| `src/styles/base.css`                                | frame `border-image` (T3); backdrop layer (T4)                                                                                    |
+| `src/styles/screens.css`                             | vignette prop, sandal/cactus url swaps (T6)                                                                                       |
+| `tests/assets.test.js`                               | generic sheet-url→file test (T2); mask-count edit if T7 runs                                                                      |
+| `tests/render.test.js`, `tests/main.test.js`         | chicken/portrait/vignette assertions (T2, T5, T6)                                                                                 |
 
 ---
 
 ### Task 1: Doc-first amendments
 
 **Files:**
+
 - Modify: `docs/superpowers/specs/2026-07-23-gold-and-glory-design-system.md`
 - Modify: `docs/superpowers/specs/2026-08-02-visual-upgrade-design.md`
 - Modify: `docs/superpowers/specs/2026-08-02-asset-sourcing-manifest.md`
@@ -134,6 +136,7 @@ parchment UI stays loudest, and an absent file leaves the stone body showing (§
 - [ ] **Step 5: visual-upgrade spec — budget rebalance + recipe lock slot**
 
 In `2026-08-02-visual-upgrade-design.md`:
+
 1. Append to §5's intro: "Phase 3 also owns the budget rebalance: the Phase 2 stand-ins it redraws (`gold-pile.svg` 147KB, `cactus.svg` 31KB, `sandal-base.svg` 11KB) are deleted in the same commits that land their replacements — §4.4's 'composites the character on top' resolves as ONE authored illustration, not a layer over the 147KB stock file."
 2. In §2.3, change the stroke-width bullet's ending from "…then locked for everything after." to "…then locked for everything after. **Locked value: (recorded by Phase 3 Task 2 when the chicken lands.)**"
 
@@ -153,6 +156,7 @@ git commit -m "docs(design-system): phase 3 amendments — chicken choreography,
 ### Task 2: The rubber chicken (recipe-calibrating asset, §5.1)
 
 **Files:**
+
 - Create: `src/assets/art/chicken.svg` (≤ 8KB)
 - Modify: `src/ui/render.js` (`renderMeter`, cursor line ~473)
 - Modify: `src/main.js` (`startMeter`'s `step()` ~line 225)
@@ -187,7 +191,9 @@ In `tests/render.test.js` (fight describe area):
 ```js
 it('mounts the chicken on the cursor, decorative, with the ink line as fallback (§6.4)', () => {
   const html = fightHtml();
-  expect(html).toMatch(/<div class="meter-cursor"><img class="meter-chicken" src="[^"]+" alt="" \/><\/div>/);
+  expect(html).toMatch(
+    /<div class="meter-cursor"><img class="meter-chicken" src="[^"]+" alt="" \/><\/div>/
+  );
 });
 ```
 
@@ -196,6 +202,7 @@ Run: `npx vitest run tests/render.test.js -t chicken` — Expected: FAIL (bare c
 - [ ] **Step 2: Author `src/assets/art/chicken.svg`**
 
 Hand-write the SVG (this task CALIBRATES the house recipe — every later asset inherits its choices):
+
 - `viewBox="0 0 40 48"`, transparent background, drawn facing RIGHT (travel direction; CSS flips the return leg), feet at the bottom edge.
 - Composition: classic limp rubber chicken — plump oval body, drooping neck curving forward/down, small dismayed head with round eye + open beak, two stubby wing bumps, two splayed orange feet planted on the baseline.
 - Palette (tokens only): body `#d9a441` (`--gold`) with ONE shade layer `#b07f24` (`--gold-deep`) on the belly/underside; beak + feet `#b5402f` (`--blood`); eye `#2f2318` ink.
@@ -218,23 +225,25 @@ import chickenUrl from '../assets/art/chicken.svg';
 and in `renderMeter()` replace `<div class="meter-cursor"></div>` with §6.4's own markup:
 
 ```js
-        <div class="meter-cursor"><img class="meter-chicken" src="${chickenUrl}" alt="" /></div>
+<div class="meter-cursor">
+  <img class="meter-chicken" src="${chickenUrl}" alt="" />
+</div>
 ```
 
 2. `src/main.js` — in `startMeter()`, the `step()` closure learns direction (the chicken faces where it walks):
 
 ```js
-  const cursor = bar.querySelector('.meter-cursor');
-  let prevP = null;
-  function step() {
-    if (!sweep.running) return;
-    const p = meterPosition(performance.now() - sweep.t0, sweep.period);
-    // Face the travel direction (§6.4): the ping-pong sweep reverses, the chicken turns.
-    if (prevP != null && p !== prevP) cursor.classList.toggle('is-reversing', p < prevP);
-    prevP = p;
-    paintCursor(bar, cursor, p);
-    sweep.raf = requestAnimationFrame(step);
-  }
+const cursor = bar.querySelector('.meter-cursor');
+let prevP = null;
+function step() {
+  if (!sweep.running) return;
+  const p = meterPosition(performance.now() - sweep.t0, sweep.period);
+  // Face the travel direction (§6.4): the ping-pong sweep reverses, the chicken turns.
+  if (prevP != null && p !== prevP) cursor.classList.toggle('is-reversing', p < prevP);
+  prevP = p;
+  paintCursor(bar, cursor, p);
+  sweep.raf = requestAnimationFrame(step);
+}
 ```
 
 3. `src/styles/components.css` — in the meter block (after `.meter.is-captured .meter-cursor`, ~line 612), add:
@@ -298,12 +307,14 @@ git commit -m "feat(art): the rubber chicken rides the meter — house recipe ca
 ### Task 3: Stone-brick frame (§5.2 — one asset, all four screens)
 
 **Files:**
+
 - Create: `src/assets/art/stone-frame.svg` (≤ 24KB)
 - Modify: `src/styles/base.css` (`.stage-frame` rule, ~line 41)
 
 - [ ] **Step 1: Author `src/assets/art/stone-frame.svg`**
 
 A nine-slice frame tile:
+
 - `viewBox="0 0 288 288"` with a **96px** slice geometry: four 96×96 corner blocks, 96-wide repeating edge strips, EMPTY center (the center slice is discarded by `border-image`; leave it blank — bytes are budget).
 - Composition: a child's drawing of a stone archway — irregular rounded-rectangle blocks, 2–4 per corner and 2–3 per edge strip, mortar gaps showing the ink between blocks. Edge strips must tile seamlessly against themselves (`border-image-repeat: round`) and meet the corners cleanly: draw edge blocks so the strip's two ends are mirror-compatible.
 - Palette: block fills cycling muted token mixes — `#93836d` (`--stone-2`) base plus blocks tinted with `#6b5638`, `#3f6b35`, `#3e6fae`, `#b98a3a`, `#9c3226` at `fill-opacity=".35"` OVER a stone-2 underblock (the reference's colored masonry, §2.3's tokens-only rule kept); ink outlines at the Task 2 locked pen width (scaled: this viewBox is ~7× the chicken's, so ~7× the stroke units for the same rendered pen).
@@ -346,12 +357,14 @@ git commit -m "feat(art): cartoon masonry frame via nine-slice border-image"
 ### Task 4: Arena backdrop (§5.3 — muted, parchment stays loudest)
 
 **Files:**
+
 - Create: `src/assets/art/arena-backdrop.svg` (≤ 48KB)
 - Modify: `src/styles/base.css` (`.stage-backdrop` rule)
 
 - [ ] **Step 1: Author `src/assets/art/arena-backdrop.svg`**
 
 One wide scene, `viewBox="0 0 1600 900"`:
+
 - Composition (background → foreground): sky band (`#f6ecd1` warmed with a `#d9a441` `fill-opacity=".15"` wash); distant arena wall arc with arch openings (`--stone-2` fills, ink outlines); a crowd band along the wall top — **define ONE 6–8 head silhouette group in `<defs>` and stamp it with `<use>` repeatedly** (`#443019` `--silhouette` at `fill-opacity=".7"`, slight per-use y-jitter) — bytes come from `<use>`, not from drawing a crowd; awning strips over a few arches (`#b5402f`/`#3e6fae` at low opacity); arena floor from `#d9c69a` up to nothing (the UI covers it).
 - Ink outlines at the locked pen width (scaled to this viewBox); one hatch group on the wall.
 - Whole-scene restraint: this sits BEHIND parchment at 55% opacity — low contrast internally, no saturated fills, nothing that strobes against the cards.
@@ -389,6 +402,7 @@ git commit -m "feat(art): muted arena backdrop behind the parchment UI"
 ### Task 5: Five portraits (§5.4 — escalating menace, silhouettes stay wired)
 
 **Files:**
+
 - Create: `src/assets/art/portrait-player.svg`, `portrait-brute.svg`, `portrait-journeyman.svg`, `portrait-veteran.svg`, `portrait-champion.svg` (≤ 12KB each)
 - Modify: `src/ui/components.js` (`poster()`)
 - Modify: `src/ui/render.js` (4 call sites)
@@ -430,6 +444,7 @@ and the portrait div becomes:
 ```
 
 In `src/ui/render.js`, add the keys at all four poster call sites:
+
 - `renderFight`: the You plate gets `portrait: 'player'`; the foe plate gets `portrait: opponent.id`.
 - `renderHub`: the You plate gets `portrait: 'player'`; the next-bout plate gets `portrait: opponent.id`.
 - `renderResult`'s defeated-opponent poster: `portrait: foe?.id ?? ''` (it already resolves the opponent via `foeOf` — reuse that; an unresolvable foe stays silhouette, never throws).
@@ -439,6 +454,7 @@ In `src/ui/render.js`, add the keys at all four poster call sites:
 Common geometry: `viewBox="0 0 120 90"` (4:3 per §2.3), bust-crop (head + shoulders), transparent background, ink outlines at the locked pen width (scaled ×3 vs the chicken's viewBox), one shade layer per face (`#b98a3a` `fill-opacity=".25"` under jaw/helmet), one hatch group each. Skin `#d9c69a`, leather/straps `#6b5638`, metal `#93836d`.
 
 Escalation (§5.4 "escalating menace") and character:
+
 1. **player** — worried is the brief: raised inner eyebrows, small frown, oversized crested helmet (`#b5402f` plume) slipping slightly; body language "why am I here".
 2. **brute** (tier 1) — the reference's horned-helmet heavy: wide jaw, tiny eyes, two chipped horns, one missing tooth. Menace: low but bulky.
 3. **journeyman** (tier 2) — leaner, competent, scarred cheek, plain helm, flat unimpressed stare.
@@ -488,6 +504,7 @@ git commit -m "feat(art): five hand-authored portraits with escalating menace"
 ### Task 6: Endings & death dressing (§5.5) + budget rebalance
 
 **Files:**
+
 - Create: `src/assets/art/champion-belt.svg` (≤8KB), `art/retired-rich.svg` (≤14KB), `art/death-vignette.svg` (≤12KB), `art/sandal-roman.svg` (≤8KB), `art/cactus.svg` (≤3KB)
 - Delete: `src/assets/props/gold-pile.svg`, `props/cactus.svg`, `props/sandal-base.svg`
 - Modify: `src/ui/render.js` (`renderGameOver` section tag ~line 411 + props container)
@@ -512,6 +529,7 @@ Run: `npx vitest run tests/render.test.js -t achieved` — Expected: FAIL.
 - [ ] **Step 2: Author the five pieces**
 
 All at the locked pen width (scaled per viewBox), tokens only, one hatch group each:
+
 - **champion-belt.svg** (`viewBox="0 0 120 90"`, matches the card wells): comically oversized wrestling belt — huge `#d9a441` plate with a `#b5402f` crown emblem, `#6b5638` strap drooping off both sides of the frame ("It doesn't fit").
 - **retired-rich.svg** (`viewBox="0 0 120 90"`): the reference's right-hand tease — small gladiator (player's worried face, reuse the Task 5 head shapes at smaller scale) sitting atop a mound of `#d9a441`/`#b07f24` coins (draw ~15 coin ellipses + mound silhouette, NOT hundreds — the 147KB stock pile is the cautionary tale here).
 - **death-vignette.svg** (`viewBox="0 0 320 140"`): the both-tripped tableau — two collapsed gladiators (player crest + horned helm, X eyes), ONE banana peel between them, a few `#b5402f` splats, 3–4 confetti flecks.
@@ -521,6 +539,7 @@ All at the locked pen width (scaled per viewBox), tokens only, one hatch group e
 - [ ] **Step 3: Renderer — achieved key + vignette prop**
 
 In `src/ui/render.js` `renderGameOver()`:
+
 1. The section tag (line ~411) becomes:
 
 ```js
@@ -530,12 +549,13 @@ In `src/ui/render.js` `renderGameOver()`:
 2. In the `.gameover__props` container (Phase 2), add as FIRST child:
 
 ```js
-        <i class="prop prop--vignette"></i>
+<i class="prop prop--vignette"></i>
 ```
 
 - [ ] **Step 4: The CSS swaps and additions**
 
 `src/styles/screens.css`:
+
 1. `.prop--sandal` (~line 263): change the `background-image` url to `'../assets/art/sandal-roman.svg'`.
 2. `.prop--cactus`: change its url to `'../assets/art/cactus.svg'`.
 3. `.gameover__stamp` (~line 200): add `position: relative;` and `z-index: 2;` (the verdict banner reads above the dressing).
@@ -564,6 +584,7 @@ In `src/ui/render.js` `renderGameOver()`:
 ```
 
 `src/styles/components.css`:
+
 1. The Phase 2 retired rule: change its first `background-image` layer from `url('../assets/props/gold-pile.svg')` to `url('../assets/art/retired-rich.svg')`.
 2. Add the belt beside it:
 
@@ -614,6 +635,7 @@ git commit -m "feat(art): endings and death dressing — belt, retired figure, v
 Skip this task entirely unless the phase is ahead of schedule; nothing depends on it.
 
 **Files:**
+
 - Create: `src/assets/art/leech.svg`, `src/assets/art/winged-boot.svg` (≤3KB each)
 - Modify: `src/styles/components.css` (two mask rules), `tests/assets.test.js`
 

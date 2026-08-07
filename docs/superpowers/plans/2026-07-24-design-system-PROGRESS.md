@@ -348,11 +348,13 @@ Original text follows.
     the plan shipped only the `is-captured` class and a colour change, so the freeze feedback was
     thinner than §6.4's "never skip it". **Two of the four have since shipped** (visual-upgrade
     Phase 1, Task 7): the struck-zone flash (`.meter__zone.is-flashing`) and the verdict stamp
-    (`.meter__stamp`), both raised by `main.js` at the capture. Still outstanding: the chicken
-    squash, omitted entirely for want of an asset and deferred to Phase 3 (§6.4 names the ink
-    cursor as the functional fallback), and the **250ms hold**, which is still not implemented —
-    there is no timer in `main.js` at all, so the verdict shows at the freeze and the action
-    resolves on the player's next click rather than after a held beat.
+    (`.meter__stamp`), both raised by `main.js` at the capture. **The chicken squash also shipped
+    in visual-upgrade Phase 3 (Task 2, `0c2b103`)**: the hand-authored `chicken.svg` rides the
+    cursor and drops with a `scaleY(0.7)` squash onto the frozen position (`chicken-drop`
+    keyframes), the ink cursor staying wired as the §10 fallback. Still outstanding (NOT an asset
+    matter): the **250ms hold**, which is still not implemented — there is no timer in `main.js` at
+    all, so the verdict shows at the freeze and the action resolves on the player's next click
+    rather than after a held beat.
 18. `.meter__labels`, `.meter__taunt` and `is-captured` are not in spec §6.0's **closed class
     index** — though §6.4's own HTML fence uses `meter__labels`, so the index is internally
     inconsistent. Also §6.4 wants MISS/GRAZE/HIT/CRIT ticks aligned to zone edges; the plan's six
@@ -389,10 +391,12 @@ Original text follows.
 
 Carried out of Task 9's review-fix round. All are Task 10's, and none were touched by it.
 
-27. **§6.13's giant Roman sandal** — a content image descending behind the death stamp — is not
-    rendered. Same call as the §6.4 chicken: no asset exists, and spec §10 requires the UI to
-    look complete with zero content assets present. Reconcile the spec text with the asset-free
-    cover, or commission the asset.
+27. **§6.13's giant Roman sandal** — a content image descending behind the death stamp. **Resolved
+    in visual-upgrade Phase 3 (Task 6, `4ea17f4`)**: the hand-authored `sandal-roman.svg` (caligae)
+    replaces the Phase 2 stock stand-in on `.prop--sandal`, and the death screen also gained the
+    hand-authored `death-vignette.svg` (the both-tripped tableau, shown only under
+    `[data-achieved='dead']`). The §10 zero-asset cover stays wired (verified by the phase's
+    zero-asset exam).
 28. **Backlog item 26 needs extending to game over.** It reasons about the _result_ stamps only,
     but `renderGameOver` now emits a `.banner-stamp` too, with no `role="status"` at all. The
     fix is the same persistent-region-outside-`#app` arrangement, and it should be decided once
