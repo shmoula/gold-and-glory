@@ -532,10 +532,10 @@ export function renderFight(state, config) {
       <div class="fight__stage">${renderMeter(state, config)}</div>
       <div class="fight__actions">
         <div class="fight__grid">
-          ${btn('strike', 'Strike')}
-          ${btn('heavy', 'Heavy')}
-          ${btn('block', 'Block')}
-          ${btn('feint', 'Feint')}
+          ${btn('strike', 'Strike', { keyHint: '1' })}
+          ${btn('heavy', 'Heavy', { keyHint: '2' })}
+          ${btn('block', 'Block', { keyHint: '3' })}
+          ${btn('feint', 'Feint', { keyHint: '4' })}
         </div>
       </div>
       <div class="fight__you">${poster({

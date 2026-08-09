@@ -92,6 +92,7 @@ export function btn(
     owned = false,
     icon = '',
     arrow = false,
+    keyHint = '',
   } = {}
 ) {
   // `gold` deliberately has no default. With one, a priced call site that forgot to pass it
@@ -133,9 +134,15 @@ export function btn(
   // shrinks for the HUD beam and the ledger. Absent for every other button, so most `.btn`s keep
   // their original [label][price][snark] anatomy with no leading span.
   const well = icon ? iconWell(icon) : '';
+  // Phase 4 (D8): the optional key chip, after the label. aria-hidden — the document-level
+  // handler, not the chip, is the mechanism, and the label already names the action; the chip
+  // is the sighted user's shortcut key. CSS hides it where there is no keyboard to hint at.
+  const kbd = keyHint
+    ? ` <kbd class="key-hint" aria-hidden="true">${escapeHtml(keyHint)}</kbd>`
+    : '';
   return (
     `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${well}${escapeHtml(label)}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
+    `${well}${escapeHtml(label)}${kbd}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
   );
 }
 

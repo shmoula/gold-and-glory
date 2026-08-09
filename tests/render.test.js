@@ -2088,6 +2088,27 @@ describe('renderFight timing meter (spec §6.4)', () => {
     expect(html.indexOf('meter__taunt')).toBeLessThan(html.indexOf('data-meter'));
   });
 
+  // Phase 4 (D8): the digits 1–4 have been keyboard bindings since spec §8, but nothing on
+  // screen ever said so. Each action button carries its digit as an aria-hidden chip — the
+  // document handler is the mechanism and the label already names the action, so the chip is
+  // sighted-only; CSS drops it for coarse pointers.
+  it('hints each fight action with its aria-hidden digit', () => {
+    const host = dom(renderFight(fightState(), CONFIG));
+    for (const [action, digit] of [
+      ['strike', '1'],
+      ['heavy', '2'],
+      ['block', '3'],
+      ['feint', '4'],
+    ]) {
+      const kbd = host.querySelector(`[data-action="${action}"] kbd.key-hint`);
+      expect(kbd, `no hint on ${action}`).not.toBeNull();
+      expect(kbd.textContent).toBe(digit);
+      expect(kbd.getAttribute('aria-hidden')).toBe('true');
+    }
+    // Hint-less buttons emit no <kbd> — the chip is opt-in per call site.
+    expect(host.querySelector('[data-meter]').innerHTML).not.toContain('<kbd');
+  });
+
   // Phase 4 (D9): a blank parchment scroller reads as a rendering failure, so the strip's
   // pre-fight state is one status-register line. Real entries retire it — the placeholder is
   // the empty state, never a header.
