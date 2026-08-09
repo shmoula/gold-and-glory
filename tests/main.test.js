@@ -700,6 +700,45 @@ describe('the exchange beat (phase 4 D5)', () => {
   });
 });
 
+// Phase 4 (D8): mount() replaces #app wholesale, which used to drop focus to <body> on every
+// action — a keyboard user had to re-tab to the meter each exchange. render() now remembers
+// the focused element by its stable hook (data-action / the meter) and restores it in the new
+// tree; a fight falls back to the meter when the old control is gone.
+describe('focus continuity across renders (phase 4 D8)', () => {
+  it('keeps a keyboard user on the meter across an exchange', () => {
+    enterFight();
+    q('[data-meter]').focus();
+    act('1'); // resolves the exchange: two renders, two new meters
+    expect(document.activeElement).toBe(q('[data-meter]'));
+  });
+
+  it('keeps focus on the same hub control across a purchase', () => {
+    const btn = q('[data-action="train-power"]');
+    btn.focus();
+    btn.click();
+    expect(document.activeElement).toBe(q('[data-action="train-power"]'));
+    expect(document.activeElement).not.toBe(btn); // the old node is gone; the hook survived
+  });
+
+  it('falls back to the meter when the focused fight control disappeared', () => {
+    enterFight();
+    captureAt(renderedCenter());
+    q('[data-action="strike"]').focus();
+    act('1'); // crit → press offered; the action grid re-rendered mid-offer
+    // strike still exists here, so focus stays with it — now finish the press:
+    q('[data-action="press"]').focus();
+    click('[data-action="press"]'); // the press button does not survive its own resolution
+    t0 = clock;
+    expect(document.activeElement).toBe(q('[data-meter]'));
+  });
+
+  it('never steals focus that was not in the app', () => {
+    document.body.focus();
+    enterFight();
+    expect(document.activeElement).toBe(document.body);
+  });
+});
+
 // Spec §8 wants the ledger announced politely. §6.6's theater makes that impossible inside the
 // card — it rewrites every money cell about six times as it counts, ~30 utterances over 2.5s —
 // but moving the announcement to a once-written `role="status"` line *inside the card* does not

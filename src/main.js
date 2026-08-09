@@ -126,6 +126,16 @@ function newRun() {
 
 function render() {
   const previousGold = lastGold;
+  // Phase 4 (D8): mount() replaces #app wholesale, which dropped focus to <body> on every
+  // action — a keyboard user had to re-tab to the meter each exchange. Remember what was
+  // focused by its stable hook (data-action / the meter) and restore it in the new tree.
+  const active = document.activeElement;
+  const focusKey =
+    active && app.contains(active)
+      ? active.hasAttribute('data-meter')
+        ? 'meter'
+        : active.getAttribute('data-action')
+      : null;
   // Retire the outgoing theater before its rows are replaced: finishing it writes every posted
   // figure one last time and clears the timers that would otherwise keep counting on detached
   // rows. Cheap and idempotent when there was no theater running.
@@ -156,6 +166,22 @@ function render() {
     ledgerTheater = runLedgerTheater(app.querySelector('.screen--result'));
   }
   if (state.phase === PHASE.GAMEOVER) announceEnding();
+  restoreFocus(focusKey);
+}
+
+// The tail of render(): put focus back where the player had it, in the tree that replaced the
+// one it was in. Nothing focused inside #app means nothing to restore — a mouse user's focus
+// on <body> is never stolen. A fight falls back to the meter when the old control is gone (an
+// action plank during the enemy beat, a press offer that resolved): the meter is the next
+// required act. preventScroll, because a restore is not a navigation.
+function restoreFocus(key) {
+  if (!key) return;
+  const el =
+    key === 'meter'
+      ? app.querySelector('[data-meter]')
+      : app.querySelector(`[data-action="${key}"]:not([disabled])`);
+  const target = el ?? (state.phase === PHASE.FIGHT ? app.querySelector('[data-meter]') : null);
+  target?.focus({ preventScroll: true });
 }
 
 // Spec §6.7: every gold change is announced by the purse itself — the number counts toward its
