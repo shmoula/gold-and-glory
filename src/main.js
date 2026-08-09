@@ -536,3 +536,47 @@ document.addEventListener('keydown', (e) => {
 });
 
 newRun();
+
+// Phase 4 (D6): the one-time intro. Outside #app like the live regions, so renderers and the
+// state machine stay untouched; once per page load, not per run — Fight Again's newRun()
+// never re-creates it. The audit's finding: the game dropped a new player into a dense hub
+// with 100 G and no framing, and nothing ever explained the two-step combat interaction
+// (freeze the meter, then pick an action) — clicking Strike cold resolves as a silent miss.
+function showIntro() {
+  const scrim = document.createElement('div');
+  scrim.className = 'intro-scrim';
+  scrim.innerHTML = `
+    <section class="intro parchment tape" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+      <h1 id="intro-title">Gold &amp; Glory</h1>
+      <p class="snark intro__premise">(Death or glory, and a small administrative fee.)</p>
+      <ol class="intro__steps">
+        <li>Watch the chicken sweep the meter.</li>
+        <li>Click, tap or press <kbd class="key-hint">Space</kbd> to freeze it &mdash; land on the gold.</li>
+        <li>Pick an action: <b>Strike</b>, <b>Heavy</b>, <b>Block</b> or <b>Feint</b>.</li>
+      </ol>
+      <p class="snark">(Win purses. The arena taxes them. Everything else costs gold.)</p>
+      <button class="btn btn--commit" data-intro-start>Enter the Arena ▸</button>
+    </section>`;
+  document.body.appendChild(scrim);
+  const start = scrim.querySelector('[data-intro-start]');
+  const onKey = (e) => {
+    if (e.key === 'Escape') return close();
+    // One focusable control: the dialog's whole tab ring is the Start button.
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      start.focus();
+    }
+  };
+  const close = () => {
+    document.removeEventListener('keydown', onKey, true);
+    scrim.remove();
+    app.querySelector('[data-action="next-fight"]')?.focus({ preventScroll: true });
+  };
+  start.addEventListener('click', close);
+  // Capture phase: the fight-keys listener above also lives on the document, and the dialog
+  // must answer first. The game is HUB-phased under the intro so nothing contests it today —
+  // capture keeps that true if the boot flow ever changes.
+  document.addEventListener('keydown', onKey, true);
+  start.focus();
+}
+showIntro();

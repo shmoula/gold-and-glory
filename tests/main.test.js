@@ -154,6 +154,10 @@ beforeEach(async () => {
   });
 
   await loadMain();
+  // Phase 4 (D6): boot shows the one-time intro dialog. Everything in this file tests the
+  // game behind it, so the shared setup dismisses it; the intro describe below loads its own
+  // fresh instances to test the dialog itself.
+  document.querySelector('[data-intro-start]')?.click();
 });
 
 afterEach(() => vi.useRealTimers());
@@ -700,6 +704,50 @@ describe('the exchange beat (phase 4 D5)', () => {
   });
 });
 
+// Phase 4 (D6): the one-time intro. Built outside #app like the live regions — mount() can
+// never destroy it — and once per page load: Fight Again starts a new run, not a new visit.
+// It exists because the audit found nothing anywhere teaching the two-step combat
+// interaction, and a player who clicks Strike cold resolves a silent miss.
+describe('the intro dialog (phase 4 D6)', () => {
+  const intro = () => document.querySelector('.intro-scrim');
+  const start = () => document.querySelector('[data-intro-start]');
+
+  it('opens on boot as a labelled modal dialog with focus on Start', async () => {
+    await loadMain(); // a fresh visit, intro not yet dismissed
+    const dialog = intro().querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    const labelId = dialog.getAttribute('aria-labelledby');
+    expect(dialog.querySelector(`#${labelId}`).textContent).toContain('Gold & Glory');
+    expect(app().contains(intro())).toBe(false); // outside #app, like the live regions
+    expect(document.activeElement).toBe(start());
+  });
+
+  it('dismisses to the hub with focus on the commit CTA', async () => {
+    await loadMain();
+    start().click();
+    expect(intro()).toBeNull();
+    expect(document.activeElement).toBe(q('[data-action="next-fight"]'));
+  });
+
+  it('dismisses on Escape too', async () => {
+    await loadMain();
+    press('Escape');
+    expect(intro()).toBeNull();
+  });
+
+  it('does not come back for the next run', async () => {
+    await loadMain();
+    start().click();
+    click('[data-action="retire"]'); // arms…
+    click('[data-action="retire"]'); // …and retires
+    expect(q('.screen--gameover')).not.toBeNull();
+    click('[data-action="restart"]');
+    expect(q('.screen--hub, .screen--fight, section.screen')).not.toBeNull();
+    expect(intro()).toBeNull();
+  });
+});
+
 // Phase 4 (D7): the audit ended a run with one stray click on Retire Rich — the most
 // destructive control in the game confirmed nothing. It now arms in place and retires only
 // on the second activation inside the window; the disarm is an ordinary render(), so any
@@ -775,7 +823,10 @@ describe('focus continuity across renders (phase 4 D8)', () => {
   });
 
   it('never steals focus that was not in the app', () => {
-    document.body.focus();
+    // blur(), not body.focus(): jsdom refuses focus() on a non-focusable body, which would
+    // leave the intro-dismissal focus in place and turn this into a fallback test.
+    document.activeElement.blur();
+    expect(document.activeElement).toBe(document.body);
     enterFight();
     expect(document.activeElement).toBe(document.body);
   });
