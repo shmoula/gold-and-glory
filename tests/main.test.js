@@ -11,7 +11,7 @@ import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
 import { formatGold } from '../src/ui/format.js';
-import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS } from '../src/ui/effects.js';
+import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS, ENEMY_BEAT_MS, HIT_FLASH_MS } from '../src/ui/effects.js';
 import { dtLabel } from './support/ledger.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
@@ -41,15 +41,29 @@ function press(key, init = {}) {
   return event;
 }
 
+// Phase 4 (D5): a fight action schedules the enemy's reply one ENEMY_BEAT_MS later. Most of
+// this file asserts whole-exchange outcomes — the beat is presentation pacing, not the
+// behaviour under test — so the helpers flush it before handing back, and the dedicated
+// sequencing describe below drives the beat by hand instead of using them. The guard is the
+// beat's own DOM signal (scheduleEnemy disables the four action planks), so a capture, a hub
+// click or a fight-ending blow flushes nothing.
+function flushBeat() {
+  if (vi.isFakeTimers() && q('.fight__grid .btn[disabled]')) {
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+  }
+}
+
 // A key that resolves the turn: the re-render restarts the sweep at "now".
 function act(key, init = {}) {
   const event = press(key, init);
+  flushBeat();
   t0 = clock;
   return event;
 }
 
 function click(sel) {
   q(sel).click();
+  flushBeat();
   t0 = clock;
 }
 
@@ -132,8 +146,17 @@ beforeEach(async () => {
   vi.stubGlobal('requestAnimationFrame', raf);
   vi.stubGlobal('cancelAnimationFrame', caf);
 
+  // Fake timers file-wide (phase 4 D5): the enemy's reply now rides a setTimeout, and a real
+  // 550ms timer never fires inside a synchronous test. Same toFake list as the withTimers
+  // helpers below — `performance` stays real so the `performance.now` spy keeps its clock.
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+  });
+
   await loadMain();
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe('sweet-spot seeding', () => {
   it('seeds a centre inside the configured band for the first player turn', () => {
@@ -556,18 +579,29 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     expect(live()).toBe(region); // same node, so the announcement is a real content change
   });
 
-  it('announces the turn that just happened, not the whole strip', () => {
+  // Phase 4 (D5): the exchange lands in two renders, so it is spoken in two utterances — the
+  // player's verdict with the stamp, the enemy's reply one beat later with its own render.
+  // Better than the single utterance it replaced: the verdict is spoken the moment the sighted
+  // player sees it, and the 550ms gap keeps the second write from clobbering the first
+  // mid-speech (two same-tick writes to one atomic region speak only the last).
+  it('announces each half of the exchange as its own utterance', () => {
     enterFight();
     expect(live().textContent).toBe('');
-    act('1'); // a miss, then the enemy's answer: one exchange, one utterance
+    press('1'); // the player's half renders and speaks immediately…
+    expect(live().textContent).toContain('You strike (miss) for 0 damage.');
+    expect(live().textContent).not.toContain('strikes ('); // …without the reply
+    flushBeat(); // the enemy's answer arrives one beat later, as its own utterance
+    t0 = clock;
     const spoken = live().textContent;
-    expect(spoken).toContain('You strike (miss) for 0 damage.');
-    expect(spoken).toContain('strikes ('); // the enemy's reply is in the same announcement
+    expect(spoken).toContain('strikes (');
+    expect(spoken).not.toContain('You strike'); // the previous utterance is not repeated
     expect(spoken).not.toContain('<'); // plain speech, never markup
     expect(spoken).not.toMatch(/T\d/); // and no turn stamps read out loud
-    act('2');
+    press('2');
     expect(live().textContent).toContain('You heavy (miss)');
-    expect(live().textContent).not.toContain('You strike'); // the last turn is not repeated
+    expect(live().textContent).not.toContain('strikes ('); // the last reply is not repeated
+    flushBeat();
+    t0 = clock;
   });
 
   // The Brute has 40 hp and a crit strike takes 28, so two crits end the bout — deterministic,
@@ -600,9 +634,69 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     // The region is not wiped on the way out — a stale string is never re-announced — but the
     // next turn must still overwrite it. Without the reset, `slice(announced)` on a log that
     // has restarted at zero is empty forever and the whole next bout goes unspoken.
-    act('1');
+    press('1'); // sampled before the beat: the reply's utterance would replace this one
     expect(live().textContent).not.toBe(lastFight);
     expect(live().textContent).toContain('You strike (miss) for 0 damage.');
+    flushBeat(); // finish the exchange so its timer cannot leak into the next test
+  });
+});
+
+// Phase 4 (D5): the exchange lands in two renders — the player's immediately, the enemy's one
+// ENEMY_BEAT_MS later — so the reply reads as an event. Outcomes are untouched: the same pure
+// calls run in the same order off the same rng; only when the second half is *drawn* moves.
+describe('the exchange beat (phase 4 D5)', () => {
+  it('renders the player’s half immediately and the enemy’s only after the beat', () => {
+    enterFight();
+    press('1');
+    expect(logText()).toContain('You strike');
+    expect(logText()).not.toContain('The Brute strikes');
+    // The beat reads as a wind-up, not a dead screen: the four actions are dead planks…
+    expect(q('.fight__grid .btn[disabled]')).not.toBeNull();
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    expect(logText()).toContain('The Brute strikes');
+    // …and the reply's render re-arms everything.
+    expect(q('.fight__grid .btn[disabled]')).toBeNull();
+  });
+
+  it('ignores the fight keys during the beat', () => {
+    enterFight();
+    press('1');
+    press('2'); // smuggled into the beat: the guard must drop it
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    expect(logText()).not.toContain('You heavy');
+    expect(logText()).toContain('The Brute strikes');
+  });
+
+  it('flashes the struck poster and floats the damage it took', () => {
+    enterFight();
+    press('1'); // a miss, so the enemy's answer lands real damage on the player
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    const you = q('.fight__you .poster');
+    expect(you.classList.contains('is-hit')).toBe(true);
+    const chip = you.querySelector('.damage-chip');
+    expect(chip).not.toBeNull();
+    expect(chip.textContent).toMatch(/^−\d+$/); // −N, the real figure, minus by codepoint
+    vi.advanceTimersByTime(HIT_FLASH_MS);
+    expect(you.classList.contains('is-hit')).toBe(false);
+  });
+
+  it('offers the press with no beat pending — the enemy is not owed a turn yet', () => {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1'); // crit → press offered; the enemy does not answer until the press resolves
+    expect(q('[data-action="press"]')).not.toBeNull();
+    expect(q('.fight__grid .btn[disabled]')).toBeNull();
+  });
+
+  it('collapses the beat to the next tick under reduced motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((media) => ({ media, matches: true }))
+    );
+    enterFight();
+    press('1');
+    vi.advanceTimersByTime(0);
+    expect(logText()).toContain('The Brute strikes');
   });
 });
 

@@ -4,6 +4,7 @@ import { createGameState, transition, PHASE } from './state.js';
 import { makeRng } from './rng.js';
 import {
   effectiveStats,
+  playerHealth,
   trainStat,
   repairWeapon,
   healInjuries,
@@ -11,7 +12,9 @@ import {
   bribeOfficial,
   startFight,
   resolveFightOutcome,
-  retire,
+  // Freed for the handler table: `handlers.retire` arms and confirms (phase 4 D7), and the
+  // pure state transition keeps its own name there.
+  retire as retireRun,
 } from './game.js';
 import {
   resolveTiming,
@@ -32,6 +35,10 @@ import {
   spawnShortfallChip,
   purseShake,
   tickTo,
+  hitFlash,
+  spawnDamageChip,
+  reducedMotion,
+  ENEMY_BEAT_MS,
 } from './ui/effects.js';
 import { mount, wire } from './ui/screens.js';
 
@@ -88,6 +95,14 @@ let ledgerTheater = () => {};
 // The live sweep. Named `sweep`, not `meter`, because `meter()` is the mandated bar helper in
 // ui/components.js and a module-scope shadow of it invites a call site to render a bar from this.
 const sweep = { running: false, t0: 0, period: 0, sweet: 0, captured: null, raf: 0 };
+// Phase 4 (D5): the exchange lands in two renders — the player's, then the enemy's one beat
+// later — so the reply reads as an event instead of a simultaneous ledger update. `resolving`
+// is the guard between them: the pure core still runs the same calls in the same order, so a
+// click smuggled into the beat could not corrupt anything, but it *would* act on a turn the
+// player has not seen yet. Checked by the action handlers and the document keydown; render()
+// also skips startMeter() while it stands, so the waiting beat reads as the foe's wind-up.
+let resolving = false;
+let enemyTimer = 0;
 
 // The cursor is the only thing that moves, and it moves the same way from the rAF loop and from
 // the freeze, so both go through here — otherwise the frozen cursor sits at the last painted
@@ -103,6 +118,9 @@ function newRun() {
   // A new run is not a transaction: the old run's purse must not spawn a chip against it.
   lastGold = null;
   announcedEnding = false;
+  // Nor is it mid-exchange: a beat scheduled by the old run must not land in the new one.
+  clearTimeout(enemyTimer);
+  resolving = false;
   render();
 }
 
@@ -128,7 +146,7 @@ function render() {
   if (log) log.scrollTop = log.scrollHeight;
   moveTheMoney(previousGold);
   announceTurn();
-  if (state.phase === PHASE.FIGHT) startMeter();
+  if (state.phase === PHASE.FIGHT && !resolving) startMeter();
   // Spec §6.6: the ledger tallies itself one beat at a time, and a click anywhere on the
   // screen — not just on the card — skips to the final state. The renderer emits the rows
   // already hidden and already carrying their final values, so a run with no JS theater at
@@ -298,7 +316,36 @@ function currentTiming() {
 }
 
 // --- Combat turn flow ---
+// Feedback on the fighter who just lost health, read at the render seam — the renderer is
+// handed one state and no history, so the diff lives here, exactly the moveTheMoney
+// arrangement. Called after render(), so the poster it decorates is the freshly mounted one.
+function strikeFeedback(lost, posterSel) {
+  if (!(lost > 0)) return;
+  const poster = app.querySelector(`${posterSel} .poster`);
+  if (!poster) return;
+  hitFlash(poster);
+  spawnDamageChip(poster, lost);
+}
+
+// The waiting beat (phase 4 D5): the player's render is up, the enemy replies after
+// ENEMY_BEAT_MS. The meter is not sweeping (render() skipped startMeter under `resolving`)
+// and the four actions are dead planks, so the pause reads as the foe's wind-up rather than
+// an unresponsive screen. Reduced motion collapses the beat to the next tick — one render
+// per state like every other reduced animation, but through the same code path.
+function scheduleEnemy() {
+  for (const b of app.querySelectorAll('.fight__grid .btn')) b.disabled = true;
+  enemyTimer = setTimeout(
+    () => {
+      resolving = false;
+      enemyResponds();
+    },
+    reducedMotion() ? 0 : ENEMY_BEAT_MS
+  );
+}
+
 function doPlayerAction(action) {
+  if (resolving) return;
+  const foeBefore = state.combat.enemy.health;
   const timing = currentTiming();
   let combat = applyPlayerAction(state.combat, action, timing, CONFIG);
   combat = markPressable(combat, action, timing);
@@ -311,27 +358,38 @@ function doPlayerAction(action) {
     // previous turn's sweet spot: identical zones, memorised timing, free crit.
     state = { ...state, combat: { ...state.combat, sweet: seedSweet() } };
     render();
+    strikeFeedback(foeBefore - state.combat.enemy.health, '.fight__foe');
     return;
   }
-  enemyResponds();
+  resolving = true;
+  render();
+  strikeFeedback(foeBefore - state.combat.enemy.health, '.fight__foe');
+  scheduleEnemy();
 }
 
 function doPress() {
+  if (resolving) return;
+  const foeBefore = state.combat.enemy.health;
   const timing = currentTiming();
   let combat = applyPress(state.combat, timing, CONFIG);
   combat = { ...combat, canPress: false };
   state = { ...state, combat };
   if (isFightOver(state.combat)) return endFight();
-  enemyResponds();
+  resolving = true;
+  render();
+  strikeFeedback(foeBefore - state.combat.enemy.health, '.fight__foe');
+  scheduleEnemy();
 }
 
 function enemyResponds() {
+  const mineBefore = playerHealth(state).value;
   const combat = enemyTurn(state.combat, rng, CONFIG);
   // A fresh sweet spot for the turn we are handing back to the player, so timing has to be
   // re-read every turn instead of memorised once. Seeded from the run's rng, so replays match.
   state = { ...state, combat: { ...combat, sweet: seedSweet() } };
   if (isFightOver(state.combat)) return endFight();
   render();
+  strikeFeedback(mineBefore - playerHealth(state).value, '.fight__you');
 }
 
 function endFight() {
@@ -382,7 +440,7 @@ const handlers = {
     render();
   },
   retire: () => {
-    state = retire(state);
+    state = retireRun(state);
     render();
   },
   strike: () => doPlayerAction('strike'),
@@ -420,7 +478,8 @@ const inInteractive = (target) =>
   typeof target?.closest === 'function' && target.closest(INTERACTIVE) !== null;
 
 document.addEventListener('keydown', (e) => {
-  if (state.phase !== PHASE.FIGHT || e.repeat) return;
+  // The enemy's beat is nobody's turn (phase 4 D5): the same guard the click handlers apply.
+  if (state.phase !== PHASE.FIGHT || e.repeat || resolving) return;
   const run = KEYS[e.key];
   if (!run) return;
   if (e.key === METER_KEY && inInteractive(e.target)) return;
