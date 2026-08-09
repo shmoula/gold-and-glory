@@ -50,6 +50,11 @@ const PIP_MIN_SLOTS = 5;
 // maximum (the training meter is presentational; the row label carries the true number).
 const TRAIN_METER_CAP = 50;
 
+// Phase 4 (D9): the log strip before the first exchange. A blank parchment scroller reads as
+// a rendering failure, and §6.9's strip is the player's record of the bout — an empty record
+// still deserves a line. Status register (italic), no turn stamp: nothing has happened yet.
+const EMPTY_LOG = '<li class="log__entry log__entry--empty"><em>The crowd gathers…</em></li>';
+
 // Spec §6.5's poster sub line: "tier · fight purse", the amount in gold ink. It is markup, so
 // it is written once here rather than at each call site — the hub and the fight screen bill
 // the same bout and must not drift. The separator is escaped (· MIDDLE DOT) rather than
@@ -504,7 +509,7 @@ export function renderFight(state, config) {
   // The bout being fought is still the current one: resolveFightOutcome advances the index
   // only after the fight is over, so the poster bills the right tier, purse and aside.
   const opponent = config.opponents[state.currentOpponentIndex];
-  const logHtml = c.log.map(logEntry).join('');
+  const logHtml = c.log.length ? c.log.map(logEntry).join('') : EMPTY_LOG;
   // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
   // at the shared urgency threshold — the fight screen states no number by hand.
   //

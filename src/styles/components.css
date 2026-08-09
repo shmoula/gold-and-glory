@@ -968,6 +968,13 @@
 .log__entry em {
   font-style: italic;
 }
+/* Phase 4 (D5): the damage-taken marker, inked apart from its number so it cannot scan as a
+   multiplication sign. Blood like the dealt-damage channel — both are wounds — but regular
+   weight: taken damage stays the quieter of the two, per §6.9's hierarchy. */
+.log__entry .log__glyph {
+  color: var(--blood-ink);
+  font-size: 0.9em;
+}
 .log .amount {
   color: var(--color-money);
 }

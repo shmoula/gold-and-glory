@@ -1636,7 +1636,9 @@ describe('logEntry (spec §6.9)', () => {
     const html = logEntry(
       entry({ text: '{who} strikes (hit) for {taken}.', who: 'The Brute', taken: 9 })
     );
-    const glyph = html.match(/<span aria-hidden="true">(.)<\/span>/)[1];
+    // `.log__glyph` (phase 4 D5): the bare glyph at text size scanned as "× 9", so the class
+    // is what inks and sizes it apart — its presence is part of the channel, not decoration.
+    const glyph = html.match(/<span class="log__glyph" aria-hidden="true">(.)<\/span>/)[1];
     expect(glyph.codePointAt(0)).toBe(SWORD);
     expect(html).toContain('The Brute strikes (hit) for ');
     expect(html).toContain('9.');
@@ -2084,6 +2086,21 @@ describe('renderFight timing meter (spec §6.4)', () => {
     const html = renderFight(fightState({ wins: 0 }), CONFIG);
     expect(html.indexOf('meter__taunt')).toBeGreaterThan(-1);
     expect(html.indexOf('meter__taunt')).toBeLessThan(html.indexOf('data-meter'));
+  });
+
+  // Phase 4 (D9): a blank parchment scroller reads as a rendering failure, so the strip's
+  // pre-fight state is one status-register line. Real entries retire it — the placeholder is
+  // the empty state, never a header.
+  it('renders one placeholder line in an empty log, and none once the bout begins', () => {
+    const fresh = fightState();
+    expect(fresh.combat.log).toHaveLength(0);
+    const empties = (s) => dom(renderFight(s, CONFIG)).querySelectorAll('.log__entry--empty');
+    expect(empties(fresh)).toHaveLength(1);
+    const fought = fightState({
+      combat: { log: [{ turn: 1, kind: 'attack', text: 'You strike (hit) for {dmg}.', dmg: 7 }] },
+    });
+    expect(empties(fought)).toHaveLength(0);
+    expect(dom(renderFight(fought, CONFIG)).querySelectorAll('.log__entry')).toHaveLength(1);
   });
 
   // Phase 4 (D4): the legend replaced the old fixed six-label row, which was evenly spaced

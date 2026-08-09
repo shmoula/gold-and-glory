@@ -238,7 +238,9 @@ const SKINS = {
     dmg: (v) => `<b>${Number(v)}</b>`,
     // Damage taken: plain ink, a sword glyph, and a non-breaking space so the glyph can never
     // be orphaned on its own line. The glyph is a visual channel; AT reads the number.
-    taken: (v) => `<span aria-hidden="true">${SWORD}</span>${NBSP}${Number(v)}`,
+    // `.log__glyph` (phase 4 D5): the bare glyph rendered at text size scanned as a
+    // multiplication sign — "for ⚔ 9" read as "× 9" — so the class inks and sizes it apart.
+    taken: (v) => `<span class="log__glyph" aria-hidden="true">${SWORD}</span>${NBSP}${Number(v)}`,
     gold: (v) => `<span class="amount">${formatGold(v)}</span>`,
   },
   text: {
