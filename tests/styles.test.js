@@ -588,6 +588,20 @@ describe('selector coverage — every unaffordable surface is painted', () => {
       'no unaffordable button rendered'
     ).toBe(true);
   });
+
+  // The snark slot travels between two grounds and its ink must travel with it. §6.2's
+  // `.btn__snark` is `--bone-dim`, an on-wood colour (4.76:1 vs --wood-3) — but shopItem()
+  // mounts the same span on a PARCHMENT card, where bone-dim lands at ~1.3:1 and the aside
+  // ("(A sock?) (need 50 G more)") all but vanished. On paper the slot must take the muted
+  // ink every other parchment aside uses (--ink-soft via --color-text-muted, 5.67:1).
+  it('re-inks the snark slot for the parchment gear card', () => {
+    const rule = bare.match(/\.shop-item \.btn__snark\s*\{[^}]*\}/);
+    expect(
+      rule,
+      'no .shop-item .btn__snark override — bone-dim on paper is invisible'
+    ).not.toBeNull();
+    expect(rule[0]).toMatch(/color:\s*var\(--color-text-muted\)/);
+  });
 });
 
 // --- Spec Law 4: "Text only sits on paper or wood. Never directly on stone." ---

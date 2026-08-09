@@ -218,6 +218,13 @@
   font-size: var(--text-sm);
   color: var(--bone-dim);
 }
+/* `--bone-dim` is an on-wood colour (4.76:1 vs --wood-3) — the shop card is PARCHMENT, where
+   it lands at ~1.3:1 and the aside all but vanishes. On paper the snark takes the muted ink
+   the base `.snark` uses everywhere else on parchment (--ink-soft, 5.67:1 vs --paper-2).
+   tests/styles.test.js pins each ground to its ink. */
+.shop-item .btn__snark {
+  color: var(--color-text-muted);
+}
 
 /* The display face's size is `--text-commit`, not the 21px literal spec §6.2's block carries:
    Law 5 gives a component tokens only, and 21px is a real step of the scale (§6.2 is the only
