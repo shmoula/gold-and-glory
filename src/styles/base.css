@@ -82,8 +82,14 @@ button {
    option was already taken (`aria-disabled`). tests/styles.test.js now derives one number from
    the other rather than restating it. */
 button:disabled {
-  opacity: 0.45;
+  /* Phase 4 (D9): a dead plank stays a plank — fully opaque, dimmed by ink rather than by
+     transparency. The 0.45 opacity this replaces let the fixed arena backdrop bleed through
+     and the control read as a rendering glitch. --bone-dim on --wood-4 is 6.43:1 (tokens.css).
+     tests/styles.test.js holds this rule and `.btn[aria-disabled="true"]` to one treatment. */
   cursor: not-allowed;
+  background: var(--wood-4);
+  color: var(--bone-dim);
+  box-shadow: none;
 }
 
 /* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and

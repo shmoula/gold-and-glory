@@ -501,29 +501,34 @@ describe('rules inherited from the deleted legacy sheet', () => {
 
     const disabled = bare.match(/button:disabled\s*\{[^}]*\}/g) ?? [];
     expect(disabled.length, 'exactly one button:disabled rule').toBe(1);
-    expect(disabled[0]).toMatch(/opacity:/);
     expect(disabled[0]).toMatch(/cursor:\s*not-allowed/);
   });
 
   // Two rules dim a dead button, and the game emits both: `btn({ disabled: true })` writes the
   // native attribute for a true no-op (nothing to repair) while `owned` writes `aria-disabled`.
   // They used to fade by different amounts (0.4 in the moved legacy rule, §6.2's 0.45 in the
-  // component), so one Repair plank had two dim states. Derived from each other rather than
-  // restated, so raising §6.2's number carries the native rule with it or fails here.
-  it('dims a natively-disabled button by exactly as much as an aria-disabled one', () => {
-    const opacityOf = (re, what) => {
+  // component), so one Repair plank had two dim states. Phase 4 (D9) replaced the shared
+  // opacity with an opaque ground — solid --wood-4 under --bone-dim text — because a
+  // 45%-transparent plank let the fixed arena backdrop bleed through and read as a rendering
+  // glitch. The invariant survives the change of treatment: one dead-plank state, spelled
+  // identically by both selectors, and never via `opacity` (which is exactly the bleed-through
+  // channel this closed).
+  it('grounds a natively-disabled button exactly as an aria-disabled one, opaquely', () => {
+    const ruleOf = (re, what) => {
       const rule = bare.match(re)?.[0];
       expect(rule, `no ${what} rule`).toBeTruthy();
-      const value = rule.match(/opacity:\s*([\d.]+)/)?.[1];
-      expect(value, `${what} declares no opacity`).toBeTruthy();
-      return Number(value);
+      return rule;
     };
-    const native = opacityOf(/button:disabled\s*\{[^}]*\}/, 'button:disabled');
-    const aria = opacityOf(
-      /\.btn\[aria-disabled=["']true["']\]\s*\{[^}]*\}/,
-      '.btn[aria-disabled]'
-    );
-    expect(native).toBe(aria);
+    const native = ruleOf(/button:disabled\s*\{[^}]*\}/, 'button:disabled');
+    const aria = ruleOf(/\.btn\[aria-disabled=["']true["']\]\s*\{[^}]*\}/, '.btn[aria-disabled]');
+    for (const [what, rule] of [
+      ['button:disabled', native],
+      ['.btn[aria-disabled]', aria],
+    ]) {
+      expect(rule, `${what} grounds on solid wood`).toMatch(/background:\s*var\(--wood-4\)/);
+      expect(rule, `${what} dims via ink, not transparency`).toMatch(/color:\s*var\(--bone-dim\)/);
+      expect(rule, `${what} must not reopen the opacity bleed-through`).not.toMatch(/opacity:/);
+    }
   });
 });
 

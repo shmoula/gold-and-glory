@@ -255,8 +255,12 @@
 }
 
 .btn[aria-disabled='true'] {
-  opacity: 0.45;
+  /* Same dead-plank treatment as base.css's `button:disabled` — one state, two selectors,
+     held together by tests/styles.test.js (phase 4 D9 replaced the shared 0.45 opacity:
+     transparency let the fixed backdrop bleed through). */
   cursor: not-allowed;
+  background: var(--wood-4);
+  color: var(--bone-dim);
   box-shadow: none;
 }
 /* `.is-unaffordable` stays full-strength EXCEPT the price: §6.2 spells that as an empty rule,
@@ -286,8 +290,11 @@
 }
 
 .btn.is-owned {
-  opacity: 0.6;
+  /* The taken-option plank ("Bribed ✓") joins the dead-plank ground treatment (phase 4 D9):
+     opaque wood, dim bone — its 0.6 opacity had the same backdrop-bleed failure. */
   cursor: default;
+  background: var(--wood-4);
+  color: var(--bone-dim);
   box-shadow: none;
 }
 
