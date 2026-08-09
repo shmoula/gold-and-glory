@@ -419,7 +419,6 @@ describe('screen grid areas', () => {
 // real engine are listed in the browser-pass checklist in the Task 10 handoff, not faked here.
 const STEP4_WIDTHS = [1280, 900, 640, 375];
 const MOBILE_WIDTHS = [640, 375];
-const DESKTOP_WIDTHS = [1280, 900];
 // The page gutter: `.screen` pads by --space-4 on each side (screens.css) — `#app` itself only
 // sets `min-height` (item 34; the gutter used to double when both declared it). Read from the
 // token rather than restated, so lowering the token cannot leave the budget silently generous.
@@ -499,67 +498,55 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
     expect(wrong).toEqual([]);
   });
 
-  // "At ≤640 the commit bar is sticky-bottom." Checked on the elements the renderers actually
-  // emit rather than on the selector, because a sticky rule matching nothing is the failure mode
-  // that reads as a pass. Note the fight screen emits no `.commit-bar` at all — deferred
-  // backlog item 20, spec §7's line about it is a comment, not a rule — so this walks whatever
-  // is emitted instead of asserting a fixed set of screens, which would fail the day item 20 is
-  // decided either way.
+  // Phase 4 (D1): "the commit bar is a fixed footer at every width." Checked on the elements
+  // the renderers actually emit rather than on the selector, because a rule matching nothing is
+  // the failure mode that reads as a pass. Note the fight screen emits no `.commit-bar` at all —
+  // deferred backlog item 20, spec §7's line about it is a comment, not a rule — so this walks
+  // whatever is emitted instead of asserting a fixed set of screens.
   //
-  // It also owns the *width* of that footer, which is the half spec §7 forgets. Every element
-  // carrying `.commit-bar` also carries its screen's slot class, and all three of those align the
-  // item (`.hub__commit` end, `.result__cta` / `.gameover__cta` center) — and an aligned grid item
-  // is content-sized, so a bar whose `justify-self` is not reset at ≤640 sticks as a chip floating
-  // over the content below it rather than as a full-bleed footer, with its `border-top` spanning a
-  // fraction of the screen. Rule-level like everything else in this file: the chip's used width is
-  // 173px in a browser and 0 in jsdom, so the only decidable form of the claim is that no
-  // content-sizing `justify-self` survives at the sticky breakpoint.
-  it('lifts every rendered commit bar into a sticky footer below 640px, and only there', () => {
+  // Why fixed and not the ≤640px sticky this replaced: a sticky element cannot leave its
+  // containing block, and the commit row's grid area IS the below-the-fold strip the phase 4
+  // audit caught (every screen ran ~900px tall on a 1280×720 viewport, so the primary CTA
+  // rendered off-screen on desktop). `position: fixed` also retires the whole justify-self
+  // reset dance — a fixed element is out of grid flow, so no alignment keyword can
+  // content-size it against the viewport-anchored left/right offsets pinned here.
+  it('anchors every rendered commit bar as a fixed footer at every width', () => {
     const bars = Object.entries(MOUNTED).flatMap(([name, host]) =>
       [...host.querySelectorAll('.commit-bar')].map((el) => [name, el])
     );
     expect(
       bars.length,
-      'no .commit-bar is rendered anywhere - the sticky rule is dead'
+      'no .commit-bar is rendered anywhere - the fixed-footer rule is dead'
     ).toBeGreaterThan(0);
-    // Allowlist, not a denylist of the alignment keywords: `justify-self` has a dozen of them
-    // (`self-end`, `flex-end`, `right`, `anchor-center`, …) and a denylist would let the next one
-    // through. `null` means nothing declares it, which is the initial `normal` — stretch, for a
-    // grid item with a definite-free cross size and `auto` margins absent.
-    const STRETCHES = [null, 'normal', 'stretch'];
     const wrong = [];
     for (const [name, bar] of bars) {
-      for (const width of DESKTOP_WIDTHS) {
+      for (const width of STEP4_WIDTHS) {
         const pos = winner(bar, 'position', width);
-        if (pos) wrong.push(`${width}px: ${name} commit bar is already "${pos}"`);
-      }
-      for (const width of MOBILE_WIDTHS) {
-        const pos = winner(bar, 'position', width);
-        const bottom = winner(bar, 'bottom', width);
-        const justify = winner(bar, 'justify-self', width);
-        if (pos !== 'sticky') wrong.push(`${width}px: ${name} commit bar is "${pos}", not sticky`);
-        // Was a literal `0` before the stage frame (§6.17) existed; the bar now seats on the
-        // frame's inner edge so its border-top does not rest under the frame's own border.
-        if (bottom !== 'var(--frame-w)')
-          wrong.push(`${width}px: ${name} commit bar sticks at bottom "${bottom}"`);
-        if (!STRETCHES.includes(justify)) {
-          wrong.push(
-            `${width}px: ${name} commit bar keeps "justify-self: ${justify}", so the sticky footer is content-sized`
-          );
+        if (pos !== 'fixed')
+          wrong.push(`${width}px: ${name} commit bar is "${pos}", not a fixed footer`);
+        // Seated on the stage frame's inner edge on all three anchored sides, so its
+        // border-top divider spans the playfield and never rests under the frame's border.
+        for (const side of ['bottom', 'left', 'right']) {
+          const offset = winner(bar, side, width);
+          if (offset !== 'var(--frame-w)')
+            wrong.push(`${width}px: ${name} commit bar anchors ${side} at "${offset}"`);
         }
       }
     }
-    // The two spellings `winner()` cannot see. `place-self` is the shorthand for `justify-self`,
-    // and `justify-items` on the container sets the item's `justify-self` when it computes to
-    // `auto` - either one could content-size the bar behind the check above without tripping it.
-    // Nothing in the sheets uses either today, so refuse them loudly rather than silently.
-    const invisible = RULES.flatMap((r) =>
-      r.decls
-        .filter((d) => d.prop === 'place-self' || d.prop === 'justify-items')
-        .map((d) => `${r.sheet}: ${r.selectors.join(', ')} { ${d.prop}: ${d.value} }`)
-    );
-    expect(invisible, 'extend the commit-bar alignment check to read this spelling').toEqual([]);
     expect(wrong).toEqual([]);
+  });
+
+  // The other half of D1: the footer is out of flow, so the screen must reserve its height or
+  // the last in-flow content (the retire plank, the gameover payload) hides beneath it.
+  it('reserves the fixed footer’s room in the screen’s own bottom padding', () => {
+    const section = MOUNTED['hub (fresh run)'].querySelector('.screen');
+    expect(section).not.toBeNull();
+    for (const width of STEP4_WIDTHS) {
+      const pad = winner(section, 'padding-bottom', width);
+      expect(pad, `${width}px: .screen reserves no room for the fixed footer`).toMatch(
+        /calc\(.*var\(--space-4\)\)/
+      );
+    }
   });
 
   // §6.17's --frame-w is declared once in tokens.css (14px) and overridden on :root inside a

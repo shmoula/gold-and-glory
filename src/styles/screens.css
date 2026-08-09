@@ -88,6 +88,14 @@
   margin-right: var(--space-2);
   background: url('../assets/art/gladiators-fighting.svg') center / contain no-repeat;
 }
+/* Phase 4 (D1): on short desktop viewports the 4/3 portraits are what pushes every screen
+   past the fold, so they give up height first. background-size: contain keeps the art whole. */
+@media (max-height: 780px) and (min-width: 641px) {
+  .poster__portrait {
+    max-height: 150px;
+  }
+}
+
 /* Hub layout label, not a §6 component: the eyebrow over the NEXT BOUT poster. */
 .hub__next-label {
   font-family: var(--font-display);
@@ -170,6 +178,17 @@
 .result__recap {
   grid-area: recap;
   position: relative;
+  /* Phase 4 (D9): verdict first, corpse second — the stamp is the screen's headline and the
+     beaten poster its supporting cut, so the poster is capped and centred and the stamp takes
+     the death-size display step. */
+  text-align: center;
+}
+.result__recap .banner-stamp {
+  font-size: var(--text-4xl);
+}
+.result__recap .poster {
+  max-width: 340px;
+  margin: 0 auto;
 }
 .result__ledger {
   grid-area: ledger;
@@ -183,7 +202,13 @@
    offsets. `pointer-events: none` so it cannot eat the click that skips the ledger theater. */
 .result__cross {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  /* The X tracks the capped, centred poster (phase 4 D9) rather than the whole recap column,
+     or its bars would overshoot the portrait into the empty flanks. */
+  left: 50%;
+  width: min(340px, 100%);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 .result__cross::before,
@@ -457,32 +482,40 @@
   .screen > * {
     grid-area: auto;
   }
-  /* `justify-self` is the fourth half of the reset, and spec §7 omits it exactly as it omits the
-     `grid-area` one above. Every element that carries `.commit-bar` also carries its screen's own
-     slot class — `.hub__commit` (`end`), `.result__cta` / `.gameover__cta` (`center`) — and an
-     `end`/`center` grid item is *content-sized*, so the bar was a 173px chip floating over
-     whatever it stuck above (measured at 375px: 173px wide at left: 170, its `border-top`
-     spanning a third of the screen). A sticky-bottom bar with a wood ground and a top border is a
-     footer, and a footer is full-bleed: `stretch` is what makes that border read as a divider
-     rather than a stub. Same (0,1,0) as the three slot classes and later in the sheet, so it wins
-     on source order alone - no `!important`. `text-align` keeps the button centred in the new
-     full-width ground: the two CTA screens already centred theirs, and left-hard against a
-     full-bleed plank is nobody's intent. tests/grid-areas.test.js fails if a rendered commit bar
-     is left content-sized at either mobile width. */
-  .commit-bar {
-    position: sticky;
-    bottom: var(--frame-w);
-    z-index: var(--z-hud);
-    justify-self: stretch;
-    text-align: center;
-    /* `stretch` fills the grid column, but the column is not the viewport: since item 34 the
-       page gutter lives on `.screen` alone (one `var(--space-4)`), so the bar stops 16px short of
-       both edges and its `border-top` — the divider the footer is for — spanned only the middle.
-       Cancel that single gutter with a matching negative margin, then pad the content back in, so
-       the wood ground and its divider reach the viewport edges the sticky footer is meant to span. */
-    margin: 0 calc(-1 * var(--space-4));
-    padding: var(--space-2) var(--space-4);
-    background: var(--grad-wood);
-    border-top: var(--border-w) solid var(--border-ink);
-  }
+}
+
+/* Phase 4 (D1): the primary CTA is a fixed footer at EVERY width, not a ≤640px sticky. Two
+   reasons. Sticky could never do this job on the wider grids: a sticky element cannot leave
+   its containing block, and the commit row's grid area is exactly the below-the-fold strip
+   the phase 4 audit caught (every screen is ~900px tall on a 1280×720 viewport, so Next
+   Fight / Return to Ludus / Fight Again all rendered off-screen). And a footer is one thing:
+   the same wood ground and divider at every width, instead of a floating chip on desktop and
+   a bar on phones. `position: fixed` takes the element out of grid flow entirely (its
+   `grid-area`/`justify-self` become inert), and `.screen`'s bottom padding below is what
+   keeps the last in-flow content clear of it. tests/grid-areas.test.js pins both halves. */
+.commit-bar {
+  position: fixed;
+  bottom: var(--frame-w);
+  left: var(--frame-w);
+  right: var(--frame-w);
+  z-index: var(--z-hud);
+  /* Not vestigial: the slot classes still declare `justify-self` (end/center), and CSS Align
+     applies self-alignment to absolutely-positioned boxes too — `end` would shrink-wrap the
+     bar against its right inset instead of letting both insets stretch it. Later in the sheet
+     at the same (0,1,0), so it wins on source order. */
+  justify-self: stretch;
+  /* One footer layout for all three bars: the hub's (deco + button, already flex) and the two
+     CTA screens' (one button each) all centre in the full-bleed ground. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--grad-wood);
+  border-top: var(--border-w) solid var(--border-ink);
+}
+/* The room the fixed footer occupies: tallest footer content is the commit banner (~44px)
+   plus the bar's own padding and border — 76px covers it with a step of slack. On .screen,
+   not #app, for item 34's reason: the page column belongs to .screen alone. */
+.screen {
+  padding-bottom: calc(76px + var(--space-4));
 }
