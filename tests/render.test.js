@@ -1885,19 +1885,22 @@ describe('renderFight', () => {
     expect(foe).not.toContain('-6');
   });
 
-  // §7 amendment (decision 2). Source order *is* reading order and tab order — the grid areas
-  // move these blocks around the screen, they never reorder them — so the order of the
-  // section's own children is the behaviour worth pinning, not the pixels.
-  it('composes the fight centre column meter → actions → log → press (decision 2)', () => {
+  // Phase 4 (D3), superseding §7-amendment decision 2's child order. Source order *is* reading
+  // order and tab order — the grid areas move these blocks around the screen, they never
+  // reorder them — so the order of the section's own children is the behaviour worth pinning,
+  // not the pixels. The stage leads because the meter is the turn's first required act, and on
+  // the stacked mobile grids source order is also visual order: the old you-first order put a
+  // full-height poster above the fold and the core verb below it.
+  it('composes the fight screen stage → actions → posters → log → press (phase 4 D3)', () => {
     const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
     const areas = [...section.children].map((el) =>
       [...el.classList].find((c) => c.startsWith('fight__'))
     );
     expect(areas).toEqual([
-      'fight__you',
       'fight__stage',
-      'fight__foe',
       'fight__actions',
+      'fight__you',
+      'fight__foe',
       'fight__log',
       'fight__press',
     ]);
@@ -1958,6 +1961,8 @@ describe('renderFight', () => {
     // The meter is the stage, not a stray sibling of it.
     expect(html.indexOf('fight__stage')).toBeLessThan(html.indexOf('data-meter'));
     expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'));
+    // Phase 4 (D3): the actions follow the stage directly; the posters come after both.
+    expect(html.indexOf('fight__actions')).toBeLessThan(html.indexOf('fight__you'));
   });
 });
 

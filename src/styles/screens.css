@@ -361,20 +361,20 @@
     grid-template-columns: 1fr 1fr;
     grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
   }
-  /* Same rule here: area order is renderFight's DOM order — you, stage, foe, actions, log,
-     press — so visual, reading and tab order stay one thing (§8). The posters stack down the
-     left column with the meter spanning beside them; actions, commentary and the commit arrow
-     take full-width bands below, in the order the markup emits them. */
+  /* Same rule here: area order is renderFight's DOM order — stage, actions, you, foe, log,
+     press (phase 4 D3: the core verb leads) — so visual, reading and tab order stay one thing
+     (§8). Meter and actions take the top full-width bands, the two fighter strips pair below
+     them, commentary and the commit arrow close the screen, in the order the markup emits. */
   /* Rows must be reset with the areas. The base rule's `auto auto 1fr auto` is written for the
      four-row desktop grid where the free space belongs to the actions row; this grid has more
-     rows and a spanning stage, so the leftover `1fr` would land on whatever row 3 happens to
-     be. Inert while `.screen` is auto-height (free space is 0), but it is a trap the moment
-     Tasks 8/9 give a screen a definite height. `none` rather than a hand-counted track list: at
-     this width every row should size to its content. */
+     rows, so the leftover `1fr` would land on whatever row 3 happens to be. Inert while
+     `.screen` is auto-height (free space is 0), but it is a trap the moment a screen gets a
+     definite height. `none` rather than a hand-counted track list: at this width every row
+     should size to its content. */
   .screen--fight {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'actions actions' 'log log' 'press press';
+    grid-template-areas: 'hud hud' 'stage stage' 'actions actions' 'you foe' 'log log' 'press press';
   }
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
