@@ -36,7 +36,7 @@ the verdict stamp; the commentary strip renders empty before the first exchange.
 ## 2. Scope guardrails
 
 - **No gameplay or balance changes.** `config.js`, `combat.js`, `economy.js`,
-  `game.js`, `state.js` are untouched. Turn *sequencing* is presentation pacing and
+  `game.js`, `state.js` are untouched. Turn _sequencing_ is presentation pacing and
   lives in `main.js`; every outcome is computed exactly as today, in the same order,
   from the same RNG draws.
 - **No audio.** A prior spec decision (2026-08-02) and unchanged here; the feedback
@@ -48,23 +48,29 @@ the verdict stamp; the commentary strip renders empty before the first exchange.
 ## 3. Decisions (with alternatives considered)
 
 ### D1. Primary CTA always on screen
-`.commit-bar` becomes sticky at **all** widths (today: ≤640px only), keeping the
-existing wood-ground footer treatment. A `@media (max-height: 760px)` block caps
-`.poster__portrait` height on short desktop viewports so screens shrink toward the
-fold rather than past it.
-*Rejected:* compressing every screen into 100dvh (fights the hand-drawn scale, large
+
+`.commit-bar` becomes a viewport-fixed footer at **all** widths (today: ≤640px sticky
+only), keeping the existing wood-ground footer treatment; `.screen` reserves the
+footer's height in its own bottom padding. (Implementation note: _fixed_, not the
+sticky first drafted here — a sticky element cannot leave its containing block, and
+the commit row's grid area is exactly the below-the-fold strip the audit caught.)
+A `@media (max-height: 780px)` block caps `.poster__portrait` height on short desktop
+viewports so screens shrink toward the fold rather than past it.
+_Rejected:_ compressing every screen into 100dvh (fights the hand-drawn scale, large
 test churn); viewport-height grids with inner scroll panes (a rewrite).
 
 ### D2. Compact mobile HUD
+
 ≤640px the `.hud` beam becomes a two-column grid (`Gold | Health` / `Durability |
 Injuries`) with `--space-2`/`--space-3` gaps and reduced padding. Target ≤120px tall
 (from ~470px). Bars keep their 108px tracks and numerals; nothing is dropped from
 the accessibility tree.
 
 ### D3. Fight screen: core verb first
+
 - `renderFight` child order becomes **stage → actions → you → foe → log → press**.
   DOM order stays == reading order == tab order (the repo's §8 rule), and the meter
-  becomes the *first* interactive element — an improvement, since it is the turn's
+  becomes the _first_ interactive element — an improvement, since it is the turn's
   first required act. Desktop `grid-template-areas` continue to seat posters on the
   flanks; the ≤900px and ≤640px grids stack in the new source order, so meter and
   actions sit above the fold on mobile.
@@ -77,17 +83,19 @@ the accessibility tree.
   (margin/padding) so the sweep never runs through the copy.
 
 ### D4. Honest meter legend
+
 Delete the static six-label row (it implies fixed zone positions; zones are seeded per
 turn). Replace with a **swatch legend**: three small ramp chips — Graze, Hit, Crit —
 in the zones' own fills plus the ink-notch treatment on the crit chip, and the words
-"anywhere else: miss". The legend states the *mapping* (brighter gold = better), which
+"anywhere else: miss". The legend states the _mapping_ (brighter gold = better), which
 is true at every zone position. A `<kbd>Space</kbd>` hint joins the legend line
 (hidden for coarse pointers, `aria-hidden` — the meter's aria-label already names the
 key).
-*Rejected:* dynamically positioning labels under the live zones (jitters every turn,
+_Rejected:_ dynamically positioning labels under the live zones (jitters every turn,
 collides at narrow widths).
 
 ### D5. Turn sequencing + hit feedback
+
 - `main.js` splits the exchange into two renders: the player's action renders
   immediately (foe HP drops, log line lands); the enemy's reply is applied after one
   beat (`ENEMY_BEAT_MS = 550`, `0` under reduced motion) and renders with feedback.
@@ -103,6 +111,7 @@ collides at narrow widths).
   spaced) so it cannot scan as a multiplication sign; the accessible text is unchanged.
 
 ### D6. Onboarding overlay
+
 A one-time intro overlay on first page load (not per restart — `newRun()` via the
 Fight Again button skips it): parchment card over a dimmed scrim at `--z-modal`,
 containing the wordmark title, the one-line premise, a three-step "how to fight"
@@ -111,11 +120,12 @@ containing the wordmark title, the one-line premise, a three-step "how to fight"
 live regions, so renderers and the state machine are untouched. `role="dialog"`,
 `aria-modal="true"`, focus moves to Start on open and to the hub on dismiss; Escape
 also dismisses. Reduced motion: no entrance animation.
-*Rejected:* a real TITLE phase in `state.js` (touches the pure core for a
+_Rejected:_ a real TITLE phase in `state.js` (touches the pure core for a
 presentation concern); an inline hub banner (fails the "teach before the first
 fight" requirement — the meter needs explaining before the player ever sees it).
 
 ### D7. Retire confirmation
+
 Two-step arm/confirm on the same button, DOM-only in `main.js`: first activation
 swaps the plank to an armed state ("Sure? Retiring ends the run") with `btn--danger`
 skin; a second activation within 2.5s retires; the timer disarms it back. The arm is
@@ -124,6 +134,7 @@ naturally resets the armed state — acceptable, since any other action is itsel
 "no".
 
 ### D8. Keyboard visibility + focus continuity
+
 - Fight action buttons carry `<kbd class="key-hint">1</kbd>`–`4` (aria-hidden — the
   handlers, not the hints, are the mechanism; labels already name the actions).
   Hidden under `@media (pointer: coarse)`.
@@ -133,12 +144,13 @@ naturally resets the armed state — acceptable, since any other action is itsel
   mouse users; keyboard users stop being dropped to `<body>` every turn.
 
 ### D9. Grounded disabled states, empty-log line, result hierarchy
+
 - `button:disabled` and `.btn[aria-disabled='true']` keep a **fully opaque** plank:
   solid `--wood-4` ground, `--bone-dim` text, no shadow, `not-allowed` cursor —
   dimmed by ink, not by transparency, so the fixed backdrop can never bleed through.
   (`--bone-dim` on `--wood-4` is 6.43:1, documented in tokens.css.)
   `tests/styles.test.js`'s opacity-parity assertion is updated to hold the two dead
-  states to the same *treatment* rather than the same opacity literal.
+  states to the same _treatment_ rather than the same opacity literal.
 - An empty combat log renders one placeholder entry ("The crowd gathers…", snark
   register, no turn stamp) so the strip never reads as a broken blank card.
 - Result screen: the recap column caps the beaten poster at ~340px and centers it;

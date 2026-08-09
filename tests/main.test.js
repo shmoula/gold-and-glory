@@ -11,7 +11,12 @@ import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
 import { formatGold } from '../src/ui/format.js';
-import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS, ENEMY_BEAT_MS, HIT_FLASH_MS } from '../src/ui/effects.js';
+import {
+  CHIP_LIFE_MS,
+  REDUCED_CHIP_LIFE_MS,
+  ENEMY_BEAT_MS,
+  HIT_FLASH_MS,
+} from '../src/ui/effects.js';
 import { dtLabel } from './support/ledger.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
@@ -1019,7 +1024,7 @@ describe('money theater (spec §6.6 / §6.7)', () => {
   it('keeps the HUD on screen once the run has ended (§6.1)', () => {
     withTimers(() => {
       click('[data-action="retire"]'); // arms (phase 4 D7)…
-    click('[data-action="retire"]'); // …and confirms
+      click('[data-action="retire"]'); // …and confirms
       expect(q('.screen--gameover')).not.toBeNull();
       expect(purse(), 'the beam persists into GAMEOVER').not.toBeNull();
       expect(ticker().textContent).toBe(formatGold(START));

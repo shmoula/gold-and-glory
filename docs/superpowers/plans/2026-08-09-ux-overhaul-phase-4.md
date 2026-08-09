@@ -17,6 +17,7 @@
 ### Task 1: Grounded disabled states (D9a)
 
 **Files:**
+
 - Modify: `src/styles/base.css` (the `button:disabled` rule, ~line 84)
 - Modify: `src/styles/components.css` (`.btn[aria-disabled='true']`, ~line 257; `.btn.is-owned`, ~line 288)
 - Test: `tests/styles.test.js` (the opacity-parity test around lines 504–530)
@@ -55,7 +56,7 @@ In `components.css`, give the aria-disabled and owned planks the identical treat
 }
 ```
 
-- [ ] **Step 2:** Update `tests/styles.test.js`: the test that held `button:disabled` and `.btn[aria-disabled="true"]` to the same *opacity* now holds them to the same *ground treatment* — assert both rules declare `background: var(--wood-4)`, `color: var(--bone-dim)`, and declare **no** `opacity`. Keep the test's original intent comment, updated.
+- [ ] **Step 2:** Update `tests/styles.test.js`: the test that held `button:disabled` and `.btn[aria-disabled="true"]` to the same _opacity_ now holds them to the same _ground treatment_ — assert both rules declare `background: var(--wood-4)`, `color: var(--bone-dim)`, and declare **no** `opacity`. Keep the test's original intent comment, updated.
 
 - [ ] **Step 3:** Run `npx vitest run tests/styles.test.js tests/a11y.test.js` — expect PASS. Then `npm test` — fix only assertions that pinned the old opacity treatment.
 
@@ -66,6 +67,7 @@ In `components.css`, give the aria-disabled and owned planks the identical treat
 ### Task 2: Honest meter legend + Space hint (D4, D8-part)
 
 **Files:**
+
 - Modify: `src/ui/render.js` (`renderMeter`, the `.meter__labels` line)
 - Modify: `src/styles/components.css` (delete `.meter__labels`, add `.meter__legend` + `.legend__chip` + `.key-hint`)
 - Test: `tests/render.test.js`, `tests/styles.test.js` (waiver list entry `div.meter__labels > span`, ~line 664)
@@ -73,7 +75,7 @@ In `components.css`, give the aria-disabled and owned planks the identical treat
 - [ ] **Step 1:** In `renderMeter`, replace the labels row with a legend that states the zone→verdict mapping (true at every seeded position) instead of implying fixed positions:
 
 ```js
-  return `
+return `
       ${state.wins === 0 ? `<p class="meter__taunt snark">${escapeHtml(config.snark.taunt)}</p>` : ''}
       <div class="meter" data-meter="1" tabindex="0" role="button"
         aria-label="Timing meter — press Space or click to strike">
@@ -166,6 +168,7 @@ In `components.css`, give the aria-disabled and owned planks the identical treat
 ### Task 3: Fight screen core-verb-first DOM order (D3a)
 
 **Files:**
+
 - Modify: `src/ui/render.js` (`renderFight` child order)
 - Modify: `src/styles/screens.css` (`.screen--fight` base + ≤900px grids)
 - Test: `tests/render.test.js` (the two order tests ~lines 1891–1959), `tests/grid-areas.test.js` (runs as-is; it checks area consistency)
@@ -175,31 +178,31 @@ In `components.css`, give the aria-disabled and owned planks the identical treat
 - [ ] **Step 2:** In `screens.css`, keep the desktop grid pixel-identical (areas move blocks; order of declarations already irrelevant) and restack the ≤900px grid in the new source order:
 
 ```css
-  .screen--fight {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'stage stage' 'actions actions' 'you foe' 'log log' 'press press';
-  }
+.screen--fight {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: none;
+  grid-template-areas: 'hud hud' 'stage stage' 'actions actions' 'you foe' 'log log' 'press press';
+}
 ```
 
 - [ ] **Step 3:** Update `tests/render.test.js` expected arrays:
 
 ```js
-    expect(areas).toEqual([
-      'fight__stage',
-      'fight__actions',
-      'fight__you',
-      'fight__foe',
-      'fight__log',
-      'fight__press',
-    ]);
+expect(areas).toEqual([
+  'fight__stage',
+  'fight__actions',
+  'fight__you',
+  'fight__foe',
+  'fight__log',
+  'fight__press',
+]);
 ```
 
 ```js
-    expect(stops).toEqual(['meter', 'strike', 'heavy', 'block', 'feint', 'log', 'press']);
+expect(stops).toEqual(['meter', 'strike', 'heavy', 'block', 'feint', 'log', 'press']);
 ```
 
-(the stops order is unchanged — meter and actions simply stop being *after* the posters in the DOM), and in the "wraps each grid area" test flip the second index assertion to `expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'))` — still true — plus `expect(html.indexOf('fight__actions')).toBeLessThan(html.indexOf('fight__you'))`.
+(the stops order is unchanged — meter and actions simply stop being _after_ the posters in the DOM), and in the "wraps each grid area" test flip the second index assertion to `expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'))` — still true — plus `expect(html.indexOf('fight__actions')).toBeLessThan(html.indexOf('fight__you'))`.
 
 - [ ] **Step 4:** `npx vitest run tests/render.test.js tests/grid-areas.test.js tests/a11y.test.js` → PASS. Browser-verify desktop fight looks unchanged; at 375px the meter + actions now precede the posters.
 
@@ -208,6 +211,7 @@ In `components.css`, give the aria-disabled and owned planks the identical treat
 ### Task 4: Compact fight posters ≤900px, mascot/chicken fixes (D3b–d)
 
 **Files:**
+
 - Modify: `src/styles/screens.css` (fight-scoped poster variant)
 - Modify: `src/styles/components.css` (`.train-row::before` mobile, taunt/chicken clearance)
 
@@ -284,6 +288,7 @@ and reserve the chicken's lane so the sweep never runs through the taunt copy:
 ### Task 5: Compact mobile HUD (D2)
 
 **Files:**
+
 - Modify: `src/styles/components.css` (§6.1 block, mobile amendment)
 
 - [ ] **Step 1:** Append to the §6.1 HUD section:
@@ -319,6 +324,7 @@ and reserve the chicken's lane so the sweep never runs through the taunt copy:
 ### Task 6: Commit bar always on screen + result hierarchy (D1, D9c)
 
 **Files:**
+
 - Modify: `src/styles/screens.css` (`.commit-bar` ≤640px block → all-widths fixed footer; result recap rules; short-viewport portrait cap)
 - Test: `tests/grid-areas.test.js` / `tests/styles.test.js` (whichever pins the mobile commit-bar treatment — update to pin the new invariant: the commit bar is viewport-fixed at every width)
 
@@ -394,6 +400,7 @@ and reserve the chicken's lane so the sweep never runs through the taunt copy:
 ### Task 7: Empty-log line + damage-taken glyph fix (D9b, D5c)
 
 **Files:**
+
 - Modify: `src/ui/render.js` (`renderFight` log strip)
 - Modify: `src/ui/components.js` (SKINS.html.taken)
 - Modify: `src/styles/components.css` (§6.9 block)
@@ -402,8 +409,8 @@ and reserve the chicken's lane so the sweep never runs through the taunt copy:
 - [ ] **Step 1:** In `renderFight`, render a placeholder when the log is empty:
 
 ```js
-  const EMPTY_LOG = '<li class="log__entry log__entry--empty"><em>The crowd gathers…</em></li>';
-  const logHtml = c.log.length ? c.log.map(logEntry).join('') : EMPTY_LOG;
+const EMPTY_LOG = '<li class="log__entry log__entry--empty"><em>The crowd gathers…</em></li>';
+const logHtml = c.log.length ? c.log.map(logEntry).join('') : EMPTY_LOG;
 ```
 
 (hoist `EMPTY_LOG` to module scope beside the other presentation constants, with a comment: a blank parchment strip reads as a rendering failure, and §6.9's strip is the player's record — an empty record still deserves a line.)
@@ -435,6 +442,7 @@ and in `components.css` §6.9:
 ### Task 8: Hit feedback primitives (D5b)
 
 **Files:**
+
 - Modify: `src/ui/effects.js` (add `HIT_FLASH_MS`, `ENEMY_BEAT_MS`, `hitFlash`, `spawnDamageChip`)
 - Modify: `src/styles/components.css` (poster tilt var refactor, `.is-hit`, `.damage-chip`)
 - Modify: `src/styles/base.css` (reduced-motion carve-out gains `.damage-chip`)
@@ -518,10 +526,10 @@ and in `components.css` §6.9:
 and in `base.css`'s reduced-motion block extend the carve-out (the generalised styles test will demand this):
 
 ```css
-  .delta-chip,
-  .damage-chip {
-    animation: none !important;
-  }
+.delta-chip,
+.damage-chip {
+  animation: none !important;
+}
 ```
 
 - [ ] **Step 3:** In `effects.js` add (beside the existing constants and chip machinery, reusing `chipTimers`/`dropChip`):
@@ -574,6 +582,7 @@ export function spawnDamageChip(poster, amount, { lifeMs = CHIP_LIFE_MS } = {}) 
 ### Task 9: Turn sequencing + input guard (D5a)
 
 **Files:**
+
 - Modify: `src/main.js` (`doPlayerAction`, `doPress`, `enemyResponds`, `newRun`, keydown handler, `render`)
 - Test: `tests/main.test.js`
 
@@ -685,28 +694,29 @@ function enemyResponds() {
 ### Task 10: Focus continuity across renders (D8b)
 
 **Files:**
+
 - Modify: `src/main.js` (`render`)
 - Test: `tests/main.test.js`
 
 - [ ] **Step 1:** In `render()`, capture before `mount()` and restore after the phase-specific work:
 
 ```js
-  // Phase 4 (D8): mount() replaces #app wholesale, which drops focus to <body> on every
-  // action — a keyboard user had to re-tab to the meter each exchange. Remember what was
-  // focused by its stable hook (data-action / the meter), and restore it in the new tree.
-  const active = document.activeElement;
-  const focusKey =
-    active && app.contains(active)
-      ? active.hasAttribute('data-meter')
-        ? 'meter'
-        : active.getAttribute('data-action')
-      : null;
+// Phase 4 (D8): mount() replaces #app wholesale, which drops focus to <body> on every
+// action — a keyboard user had to re-tab to the meter each exchange. Remember what was
+// focused by its stable hook (data-action / the meter), and restore it in the new tree.
+const active = document.activeElement;
+const focusKey =
+  active && app.contains(active)
+    ? active.hasAttribute('data-meter')
+      ? 'meter'
+      : active.getAttribute('data-action')
+    : null;
 ```
 
 and at the end of `render()`:
 
 ```js
-  restoreFocus(focusKey);
+restoreFocus(focusKey);
 ```
 
 ```js
@@ -732,6 +742,7 @@ function restoreFocus(key) {
 ### Task 11: Retire confirmation (D7)
 
 **Files:**
+
 - Modify: `src/main.js` (retire handler; rename the `game.js` import to `retireRun` to free the handler name)
 - Test: `tests/main.test.js`
 
@@ -770,6 +781,7 @@ let retireTimer = 0;
 ### Task 12: Onboarding overlay (D6)
 
 **Files:**
+
 - Modify: `src/main.js` (overlay builder, called once at boot)
 - Modify: `src/styles/components.css` (`.intro-scrim` / `.intro`)
 - Test: `tests/main.test.js`, `tests/a11y.test.js`
@@ -869,6 +881,7 @@ Note the kbd copy reads "Click, tap or press Space" so the sentence survives `@m
 ### Task 13: Keyboard hints on the fight actions (D8a)
 
 **Files:**
+
 - Modify: `src/ui/components.js` (`btn()` gains `keyHint`)
 - Modify: `src/ui/render.js` (`renderFight` action buttons pass hints)
 - Test: `tests/render.test.js`, `tests/a11y.test.js`
@@ -876,16 +889,14 @@ Note the kbd copy reads "Click, tap or press Space" so the sentence survives `@m
 - [ ] **Step 1:** In `btn()`'s options add `keyHint = ''`, and in the returned markup append after the label (before the price slot):
 
 ```js
-  const kbd = keyHint
-    ? `<kbd class="key-hint" aria-hidden="true">${escapeHtml(keyHint)}</kbd>`
-    : '';
+const kbd = keyHint ? `<kbd class="key-hint" aria-hidden="true">${escapeHtml(keyHint)}</kbd>` : '';
 ```
 
 ```js
-  return (
-    `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
-    `${well}${escapeHtml(label)}${kbd}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
-  );
+return (
+  `<button${actionAttr} class="${classes.join(' ')}"${attrs}>` +
+  `${well}${escapeHtml(label)}${kbd}${priceSlot}${snarkAside(snark, missingAttr, missingAmount)}</button>`
+);
 ```
 
 - [ ] **Step 2:** In `renderFight`:
