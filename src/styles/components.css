@@ -322,18 +322,24 @@
 }
 
 /* ---- 6.5 Wanted poster ---- */
+/* The tilt travels through a custom property rather than each modifier owning `transform`
+   outright (phase 4 D5): `poster-hit` below animates `transform`, and a keyframe's transform
+   replaces the element's own — so the shake would un-tilt whichever poster it ran on unless
+   the keyframes can restate the tilt via the variable. Same mechanism as the chicken's
+   `--flip`, for the same reason. */
 .poster {
   border-radius: var(--wobble-1);
   padding: var(--space-4);
+  transform: rotate(var(--poster-tilt, 0deg));
 }
 .poster--tilt-1 {
-  transform: rotate(var(--tilt-1));
+  --poster-tilt: var(--tilt-1);
 }
 .poster--tilt-2 {
-  transform: rotate(var(--tilt-2));
+  --poster-tilt: var(--tilt-2);
 }
 .poster--tilt-3 {
-  transform: rotate(var(--tilt-3));
+  --poster-tilt: var(--tilt-3);
 }
 .poster__name {
   font-size: var(--text-2xl);
@@ -446,6 +452,61 @@
 .poster .snark {
   display: block;
   text-align: center;
+}
+/* Phase 4 (D5): the struck fighter's card jolts and its portrait flashes blood for one
+   --dur-shake. The state class is applied and removed by ui/effects.js on its own timer
+   (hitFlash), exactly the purse-shake contract. The tint lives on the portrait's own overlay:
+   `.poster`'s ::before/::after are the tape strips, so the card itself has no free pseudo. */
+.poster.is-hit {
+  animation: poster-hit var(--dur-shake) steps(3, end);
+}
+@keyframes poster-hit {
+  33% {
+    transform: translateX(-4px) rotate(var(--poster-tilt, 0deg));
+  }
+  66% {
+    transform: translateX(4px) rotate(var(--poster-tilt, 0deg));
+  }
+}
+.poster__portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--blood);
+  opacity: 0;
+  pointer-events: none;
+}
+.poster.is-hit .poster__portrait::after {
+  animation: hit-tint var(--dur-shake) var(--ease-drop);
+}
+@keyframes hit-tint {
+  0%,
+  66% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The floating damage figure (phase 4 D5) — the §6.7 delta chip's pattern, seated on the hurt
+   poster. Mounted and retired by ui/effects.js (spawnDamageChip); reduced motion cancels the
+   fall in base.css exactly as it does for `.delta-chip`, and for the same reason. */
+.damage-chip {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: var(--z-chip);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
+  color: var(--blood-ink);
+  padding: 1px 8px;
+  background: var(--grad-paper);
+  border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  white-space: nowrap;
+  animation: chip-fall var(--dur-chip) steps(4, end) forwards;
 }
 
 /* ---- 6.11 Training row ---- */

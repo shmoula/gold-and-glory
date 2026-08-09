@@ -187,4 +187,10 @@ button:disabled {
   .delta-chip {
     animation: none !important;
   }
+  /* The poster damage figure (phase 4 D5) is the delta chip's twin and needs the same
+     carve-out for the same reason. Its own rule rather than a comma-mate: styles.test.js
+     verifies each vanishing-forwards selector cancels itself, selector by selector. */
+  .damage-chip {
+    animation: none !important;
+  }
 }

@@ -24,6 +24,10 @@ import {
   CHIP_MERGE_MS,
   CHIP_MAX,
   SHAKE_MS,
+  hitFlash,
+  spawnDamageChip,
+  HIT_FLASH_MS,
+  REDUCED_CHIP_LIFE_MS,
 } from '../src/ui/effects.js';
 import { formatGold } from '../src/ui/format.js';
 
@@ -362,6 +366,64 @@ describe('spawnShortfallChip (spec §6.7 rejected purchase)', () => {
     spawnDeltaChip(host, -10, { now });
     spawnShortfallChip(host, formatGold(150), { now });
     expect(host.querySelectorAll('.delta-chip').length).toBe(2);
+  });
+});
+
+describe('hitFlash (phase 4 D5)', () => {
+  it('adds the hit class and takes it off again after HIT_FLASH_MS', () => {
+    const el = document.createElement('article');
+    hitFlash(el);
+    expect(el.classList.contains('is-hit')).toBe(true);
+    advance(HIT_FLASH_MS);
+    expect(el.classList.contains('is-hit')).toBe(false);
+  });
+
+  it('restarts a flash already in flight rather than swallowing it', () => {
+    const el = document.createElement('article');
+    hitFlash(el);
+    advance(HIT_FLASH_MS - 10);
+    hitFlash(el);
+    advance(20); // the first flash's timer has now passed…
+    expect(el.classList.contains('is-hit')).toBe(true); // …but the second is still running
+    advance(HIT_FLASH_MS);
+    expect(el.classList.contains('is-hit')).toBe(false);
+  });
+
+  it('does nothing under reduced motion, and nothing at all without a poster', () => {
+    reduceMotion(true);
+    const el = document.createElement('article');
+    hitFlash(el);
+    expect(el.classList.contains('is-hit')).toBe(false);
+    expect(() => hitFlash(null)).not.toThrow();
+  });
+});
+
+describe('spawnDamageChip (phase 4 D5)', () => {
+  it('mounts a minus-signed figure on the poster and retires it after its life', () => {
+    const poster = document.createElement('article');
+    const chip = spawnDamageChip(poster, 9);
+    expect(chip).not.toBeNull();
+    expect(poster.querySelector('.damage-chip').textContent).toBe('−9');
+    advance(CHIP_LIFE_MS);
+    expect(poster.querySelector('.damage-chip')).toBeNull();
+  });
+
+  it('spawns nothing for a no-damage exchange — silence, not a −0', () => {
+    const poster = document.createElement('article');
+    expect(spawnDamageChip(poster, 0)).toBeNull();
+    expect(spawnDamageChip(poster, -4)).toBeNull();
+    expect(spawnDamageChip(null, 9)).toBeNull();
+    expect(poster.querySelectorAll('.damage-chip')).toHaveLength(0);
+  });
+
+  it('keeps a reduced-motion chip up longer, so a still figure can be read', () => {
+    reduceMotion(true);
+    const poster = document.createElement('article');
+    spawnDamageChip(poster, 12);
+    advance(CHIP_LIFE_MS);
+    expect(poster.querySelector('.damage-chip')).not.toBeNull();
+    advance(REDUCED_CHIP_LIFE_MS - CHIP_LIFE_MS);
+    expect(poster.querySelector('.damage-chip')).toBeNull();
   });
 });
 
