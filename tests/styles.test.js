@@ -666,7 +666,8 @@ describe('Law 4 — text never sits on stone', () => {
     'div.fight__log > h2', // "Commentary", --ink 4.15:1
     'span.train-row__label', // --ink 4.15:1
     'span.hub__next-label', // --bone 2.99:1
-    'div.meter__labels > span', // --bone 2.99:1
+    'span.legend__item', // --bone 2.99:1 (the meter legend, aria-hidden decoration)
+    'span.legend__item.legend__item--miss', // --bone 2.99:1
     'p.meter__taunt.snark', // --bone 2.99:1
     'p.snark.result__flavor', // --ink-soft 1.89:1
   ];
@@ -744,11 +745,16 @@ describe('Law 2 — gold appears only on money', () => {
     //    contradicts Law 2; the spec's CSS was followed (progress-file territory, not a bug).
     //  - the three `.meter__zone--*` bands are §6.4's monochromatic gold ramp, where brighter
     //    means closer to glory. Not money either, and argued for in components.css.
+    //  - the three `.legend__chip--*` swatches (phase 4 D4) are those same bands' legend keys —
+    //    the ramp restated at 13px, so they inherit §6.4's deviation rather than opening one.
     //  - `urgent-pulse`'s 50% stop rings a nagging button in `--gold-deep`.
     expect(fills.sort()).toEqual(
       [
         '.bar__fill--dur',
         '.coin',
+        '.legend__chip--crit',
+        '.legend__chip--graze',
+        '.legend__chip--hit',
         '.meter__zone--crit',
         '.meter__zone--graze',
         '.meter__zone--hit',

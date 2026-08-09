@@ -805,16 +805,65 @@
     opacity: 1;
   }
 }
-.meter__labels {
+/* Phase 4 (D4): the legend that replaced `.meter__labels`. The old six-label row was evenly
+   spaced while the zones are seeded per turn, so the words never sat over the bands they
+   named — a legend states the *mapping* (brighter gold = better), which is true at every
+   position. aria-hidden markup: the meter's aria-label and the spoken log carry the verdicts. */
+.meter__legend {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding-top: var(--space-1);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--bone);
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
-  padding: 2px var(--space-1) 0;
+}
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.legend__chip {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--border-ink);
+  border-radius: 4px 6px 5px 6px;
+}
+.legend__chip--graze {
+  background: var(--gold-mid);
+}
+.legend__chip--hit {
+  background: var(--gold);
+}
+.legend__chip--crit {
+  background: var(--gold-hi);
+  border-inline: 2px solid var(--border-ink);
+}
+
+/* Phase 4 (D8): visible keyboard affordances. aria-hidden at every call site — labels and
+   aria-labels already name the mechanisms; the chip is the sighted user's shortcut key.
+   Hidden where there is no keyboard to hint at. */
+.key-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  border: 1.5px solid var(--border-ink);
+  border-radius: 4px 6px 5px 6px;
+  background: var(--paper-2);
+  color: var(--ink);
+  box-shadow: 0 1.5px 0 rgba(31, 22, 12, 0.5);
+}
+@media (pointer: coarse) {
+  .key-hint {
+    display: none;
+  }
 }
 .meter__taunt {
   text-align: center;

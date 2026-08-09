@@ -2080,6 +2080,27 @@ describe('renderFight timing meter (spec §6.4)', () => {
     expect(html.indexOf('meter__taunt')).toBeGreaterThan(-1);
     expect(html.indexOf('meter__taunt')).toBeLessThan(html.indexOf('data-meter'));
   });
+
+  // Phase 4 (D4): the legend replaced the old fixed six-label row, which was evenly spaced
+  // under zones that are seeded per turn — the words never sat over the bands they named. A
+  // legend states the mapping (one chip per band, plus the miss catch-all), which is true at
+  // every seeded position. aria-hidden: the meter's aria-label and the spoken log carry the
+  // same facts for AT, so the legend is the sighted user's colour key, not a second channel.
+  it('draws an honest zone legend instead of positional labels', () => {
+    const html = renderFight(fightState(), CONFIG);
+    expect(html).not.toContain('meter__labels');
+    const legend = dom(html).querySelector('.meter__legend');
+    expect(legend).not.toBeNull();
+    expect(legend.getAttribute('aria-hidden')).toBe('true');
+    for (const name of ['graze', 'hit', 'crit']) {
+      expect(legend.querySelector(`.legend__chip--${name}`), `chip for ${name}`).not.toBeNull();
+    }
+    expect(legend.querySelector('.legend__item--miss').textContent).toMatch(/miss/i);
+    // The Space hint is a sighted affordance; the aria-label already names the key.
+    expect(legend.querySelector('kbd.key-hint').textContent).toBe('Space');
+    // Below the track, where the row it replaced sat.
+    expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('meter__legend'));
+  });
 });
 
 describe('meterZones', () => {

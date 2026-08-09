@@ -475,7 +475,13 @@ function renderMeter(state, config) {
         ${zone('crit')}
         <div class="meter-cursor"><img class="meter-chicken" src="${chickenUrl}" alt="" /></div>
       </div>
-      <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
+      <div class="meter__legend" aria-hidden="true">
+        <span class="legend__item"><i class="legend__chip legend__chip--graze"></i>Graze</span>
+        <span class="legend__item"><i class="legend__chip legend__chip--hit"></i>Hit</span>
+        <span class="legend__item"><i class="legend__chip legend__chip--crit"></i>Crit</span>
+        <span class="legend__item legend__item--miss">elsewhere: miss</span>
+        <kbd class="key-hint">Space</kbd>
+      </div>`;
 }
 
 // Spec §6.9: the strip is a fixed-height parchment scroller — `max-height: ~160px` plus
