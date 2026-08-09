@@ -289,7 +289,7 @@ function startMeter() {
 
 // Where the verdict stamp is *drawn*, which is not always where the strike *landed*. The stamp
 // is a run of display type centred on the captured position, and `stamp-in` opens it at 1.5×:
-// measured at 375px (24px gutter each side — 8px --frame-w plus 16px .screen), an unclamped
+// measured at 375px (a 16px .screen gutter each side), an unclamped
 // `MISS!` captured at track position 0 opens 1.2px off the left edge and `GRAZE!` at position 1
 // runs 8.1px past the right, clipping a glyph for the opening beats. Transforms create no
 // scrollable overflow, so nothing else would ever report this.

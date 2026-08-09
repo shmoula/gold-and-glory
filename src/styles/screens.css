@@ -506,9 +506,10 @@
    keeps the last in-flow content clear of it. tests/grid-areas.test.js pins both halves. */
 .commit-bar {
   position: fixed;
-  bottom: var(--frame-w);
-  left: var(--frame-w);
-  right: var(--frame-w);
+  /* Flush to the viewport since phase 4 removed the stone frame the offsets used to clear. */
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: var(--z-hud);
   /* Not vestigial: the slot classes still declare `justify-self` (end/center), and CSS Align
      applies self-alignment to absolutely-positioned boxes too — `end` would shrink-wrap the
