@@ -376,6 +376,37 @@
     grid-template-rows: none;
     grid-template-areas: 'hud hud' 'stage stage' 'actions actions' 'you foe' 'log log' 'press press';
   }
+  /* Phase 4 (D3): in a fight at tablet/phone widths the poster is a status strip, not a
+     pin-up — portrait beside name/HP so the meter and actions own the fold. Hub and result
+     posters keep the full treatment; this variant is fight-screen layout, so it lives here. */
+  .screen--fight .poster {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    column-gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+  }
+  .screen--fight .poster__name {
+    grid-column: 2;
+    margin: 0;
+    font-size: var(--text-xl);
+    text-align: left;
+  }
+  .screen--fight .poster__portrait {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    aspect-ratio: 1 / 1;
+    margin: 0;
+  }
+  .screen--fight .poster .bar {
+    grid-column: 2;
+    margin-top: var(--space-1);
+  }
+  .screen--fight .poster__sub,
+  .screen--fight .poster .snark {
+    grid-column: 1 / -1;
+  }
+
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
      their named areas, and CSS Grid §8.3 collapses all of them into one implicit cell rather
@@ -394,6 +425,12 @@
   }
 }
 @media (max-width: 640px) {
+  /* Phase 4 (D3): at phone widths the strip sheds its editorial extras — the HP bar and name
+     carry the fight; tier/purse and the aside are hub reading. */
+  .screen--fight .poster__sub,
+  .screen--fight .poster .snark {
+    display: none;
+  }
   /* One stack reset for every screen, present and future. Both halves are required:
      `grid-template-columns: 1fr` alone does not stack, because a multi-column
      grid-template-areas keeps its extra columns as *implicit* auto tracks. Dropping the areas

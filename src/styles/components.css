@@ -476,6 +476,14 @@
 .train-row:nth-child(4)::before {
   background-image: url('../assets/art/train-speed.svg');
 }
+/* Phase 4 (D3): the mascots hang at a fixed 140px from the row's right edge, which lands them
+   on the Train buttons once the row narrows. They are decoration — the icon wells carry the
+   row's identity — so at phone widths they step off rather than collide. */
+@media (max-width: 640px) {
+  .train-row::before {
+    display: none;
+  }
+}
 
 /* ---- 6.12 Shop item card (state triad) ---- */
 /* `.hub__shop` (the grid the cards sit in) is hub *layout*, not a §6 catalog entry, so it lives
@@ -870,6 +878,13 @@
   font-size: var(--text-md);
   color: var(--bone);
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+  margin-bottom: 0;
+}
+/* Phase 4 (D3): the chicken rides 48px above the track (`.meter-chicken` is `bottom: 100%`),
+   so the track reserves that lane. Without it the sweep runs straight through the taunt copy
+   at narrow widths, and through whatever sits above the stage when the taunt is spent. */
+.fight__stage .meter {
+  margin-top: 52px;
 }
 /* §6.4 amendment: the first-fight taunt is spent the moment the player captures, so it goes as
    the verdict lands. Not a dodge of a collision but the same tutorial decay §6.4 already asks
