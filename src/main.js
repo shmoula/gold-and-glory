@@ -103,6 +103,12 @@ const sweep = { running: false, t0: 0, period: 0, sweet: 0, captured: null, raf:
 // also skips startMeter() while it stands, so the waiting beat reads as the foe's wind-up.
 let resolving = false;
 let enemyTimer = 0;
+// Phase 4 (D7): the one-click run-ender arms first. DOM-only state — any other action
+// re-renders the hub and thereby disarms, which is correct: any other action is itself a
+// "no". The window is generous enough to read the new copy, short enough that a plank armed
+// by a stray click does not lie in wait across the whole visit.
+const RETIRE_DISARM_MS = 2500;
+let retireTimer = 0;
 
 // The cursor is the only thing that moves, and it moves the same way from the rAF loop and from
 // the freeze, so both go through here — otherwise the frozen cursor sits at the last painted
@@ -121,6 +127,8 @@ function newRun() {
   // Nor is it mid-exchange: a beat scheduled by the old run must not land in the new one.
   clearTimeout(enemyTimer);
   resolving = false;
+  // An armed retire from the old run has nothing left to disarm.
+  clearTimeout(retireTimer);
   render();
 }
 
@@ -465,7 +473,21 @@ const handlers = {
     state = { ...state, combat: { ...state.combat, sweet: seedSweet() } };
     render();
   },
-  retire: () => {
+  // Two-step retire (phase 4 D7): the audit ended a run with one stray click on what is the
+  // most destructive control in the game. First activation arms the plank in place — danger
+  // skin, plain question — and speaks it politely; the second within the window retires. The
+  // disarm is a plain render(): the renderer redraws the button from state, which knows
+  // nothing of the arm, so the plank reverts by construction.
+  retire: (el) => {
+    if (!el.classList.contains('is-armed')) {
+      el.classList.add('is-armed', 'btn--danger');
+      el.textContent = 'Sure? Retiring ends the run';
+      announcer.textContent = 'Press again to retire and end the run.';
+      clearTimeout(retireTimer);
+      retireTimer = setTimeout(() => render(), RETIRE_DISARM_MS);
+      return;
+    }
+    clearTimeout(retireTimer);
     state = retireRun(state);
     render();
   },

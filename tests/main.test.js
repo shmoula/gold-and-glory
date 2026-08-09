@@ -700,6 +700,48 @@ describe('the exchange beat (phase 4 D5)', () => {
   });
 });
 
+// Phase 4 (D7): the audit ended a run with one stray click on Retire Rich — the most
+// destructive control in the game confirmed nothing. It now arms in place and retires only
+// on the second activation inside the window; the disarm is an ordinary render(), so any
+// other action is itself a "no".
+describe('retire confirmation (phase 4 D7)', () => {
+  const retireBtn = () => q('[data-action="retire"]');
+
+  it('arms on the first activation instead of ending the run', () => {
+    retireBtn().click();
+    expect(q('.screen--gameover')).toBeNull(); // still on the hub
+    expect(retireBtn().classList.contains('is-armed')).toBe(true);
+    expect(retireBtn().classList.contains('btn--danger')).toBe(true);
+    expect(retireBtn().textContent).toContain('Sure?');
+    // Spoken politely, so a screen-reader user hears what the plank now asks.
+    expect(document.getElementById('log-announcer').textContent).toContain('Press again');
+  });
+
+  it('retires on the second activation inside the window', () => {
+    retireBtn().click();
+    retireBtn().click();
+    expect(q('.screen--gameover')).not.toBeNull();
+    expect(q('.screen--gameover').getAttribute('data-achieved')).toBe('retired');
+  });
+
+  it('disarms by itself after the window passes', () => {
+    retireBtn().click();
+    vi.advanceTimersByTime(2500);
+    expect(retireBtn().classList.contains('is-armed')).toBe(false);
+    expect(retireBtn().textContent).toContain('Retire Rich');
+    retireBtn().click(); // the next activation arms again rather than retiring
+    expect(q('.screen--gameover')).toBeNull();
+  });
+
+  it('treats any other action as a "no"', () => {
+    retireBtn().click();
+    click('[data-action="train-power"]'); // re-renders the hub…
+    expect(retireBtn().classList.contains('is-armed')).toBe(false); // …which disarms
+    retireBtn().click();
+    expect(q('.screen--gameover')).toBeNull();
+  });
+});
+
 // Phase 4 (D8): mount() replaces #app wholesale, which used to drop focus to <body> on every
 // action — a keyboard user had to re-tab to the meter each exchange. render() now remembers
 // the focused element by its stable hook (data-action / the meter) and restores it in the new
@@ -828,7 +870,8 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
   // game-over-reaching helper already in this file; forcing a death would need to fight the
   // run's own rng deterministically, which nothing here does.
   it('announces the ending once, stamp first, and not again on re-render (design §4d)', () => {
-    click('[data-action="retire"]');
+    click('[data-action="retire"]'); // arms (phase 4 D7)…
+    click('[data-action="retire"]'); // …and confirms
     expect(q('.screen--gameover'), 'retire did not reach GAMEOVER').not.toBeNull();
     const region = live();
     // Same lead-ins as the drawn screen (src/ui/render.js's CAUSE_LABEL/PURSE_LABEL and
@@ -924,7 +967,8 @@ describe('money theater (spec §6.6 / §6.7)', () => {
   // renderer's own test cannot see the wiring that mounts it.
   it('keeps the HUD on screen once the run has ended (§6.1)', () => {
     withTimers(() => {
-      click('[data-action="retire"]');
+      click('[data-action="retire"]'); // arms (phase 4 D7)…
+    click('[data-action="retire"]'); // …and confirms
       expect(q('.screen--gameover')).not.toBeNull();
       expect(purse(), 'the beam persists into GAMEOVER').not.toBeNull();
       expect(ticker().textContent).toBe(formatGold(START));
