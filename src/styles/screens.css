@@ -26,32 +26,43 @@
   align-items: stretch;
   gap: var(--space-2);
 }
-.hub__sinks .btn[data-action='repair']::before {
+/* A sink plank carries four parts — well, label, price, snark — and the column is narrow at
+   every width, so the single-line `.btn` row overflowed: the snark ran past the plank's own
+   border. Let the row wrap and give the aside its own full-width line, left-set like the
+   gear cards' — a plank this tall reads as a card, and centred fragments read as an accident. */
+.hub__sinks .btn {
+  position: relative; /* the anchor for the mini-figure badges below */
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+  text-align: left;
+}
+.hub__sinks .btn .btn__snark {
+  flex-basis: 100%;
+}
+/* The phase 3 mini figures, re-hung. As pseudo *flex items* they sat in the content row —
+   26px of art plus a margin ahead of the icon well (the "weird left padding"), riding high on
+   the baseline, and pushing the row into overflow. They are decoration, so they perch on the
+   plank's top-right edge exactly the way the training mascots perch on their rows — absolute,
+   inert, out of the input path and the layout. */
+.hub__sinks .btn::before {
   content: '';
-  display: inline-block;
-  width: 26px;
-  height: 24px;
-  margin-right: var(--space-1);
-  background: url('../assets/art/sink-blacksmith.svg') center / contain no-repeat;
-  vertical-align: middle;
+  position: absolute;
+  top: -14px;
+  right: 12px;
+  width: 30px;
+  height: 28px;
+  background: center / contain no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.hub__sinks .btn[data-action='repair']::before {
+  background-image: url('../assets/art/sink-blacksmith.svg');
 }
 .hub__sinks .btn[data-action='heal']::before {
-  content: '';
-  display: inline-block;
-  width: 26px;
-  height: 24px;
-  margin-right: var(--space-1);
-  background: url('../assets/art/sink-doctor.svg') center / contain no-repeat;
-  vertical-align: middle;
+  background-image: url('../assets/art/sink-doctor.svg');
 }
 .hub__sinks .btn[data-action='bribe']::before {
-  content: '';
-  display: inline-block;
-  width: 26px;
-  height: 24px;
-  margin-right: var(--space-1);
-  background: url('../assets/art/sink-official.svg') center / contain no-repeat;
-  vertical-align: middle;
+  background-image: url('../assets/art/sink-official.svg');
 }
 .hub__develop {
   grid-area: develop;
