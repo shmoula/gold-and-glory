@@ -1,0 +1,12 @@
+<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Guard training: gladiator holding big shield (hub.png reference) -->
+  <!-- body crouching -->
+  <path d="M20 50 35 40 45 40 40 70Z" fill="#6b4a2a"/>
+  <!-- peek head behind shield -->
+  <circle cx="30" cy="32" r="8"/>
+  <circle cx="28" cy="30" r="1.5" fill="#2f2318" stroke="none"/>
+  <!-- large shield in front -->
+  <path d="M38 20 66 20 62 70 38 65Z" fill="#3e6fae"/>
+  <path d="M50 20 50 67" stroke="#2f2318" stroke-width="3" fill="none"/>
+  <circle cx="50" cy="45" r="5" fill="#d9a441"/>
+</svg>

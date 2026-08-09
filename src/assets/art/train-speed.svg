@@ -1,0 +1,14 @@
+<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Speed training: gladiator sprinting (hub.png reference) -->
+  <!-- speed dust lines behind -->
+  <path d="M5 45 20 45 M2 55 16 55 M8 65 24 65" stroke="#93836d" stroke-width="3" fill="none"/>
+  <!-- leaning body -->
+  <path d="M25 45 45 35 55 48 35 58Z" fill="#6b4a2a"/>
+  <!-- head leaning forward -->
+  <circle cx="56" cy="28" r="8"/>
+  <path d="M60 26 63 28" stroke="#2f2318" stroke-width="2"/> <!-- eye -->
+  <!-- running arms -->
+  <path d="M42 37 32 26 24 32 M48 40 60 48 68 40" fill="none"/>
+  <!-- running legs -->
+  <path d="M38 56 22 66 14 60 M52 50 64 66 74 62" fill="none"/>
+</svg>

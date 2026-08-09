@@ -1,0 +1,21 @@
+<svg viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg" fill="#f6ecd1" stroke="#2f2318" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Doctor character for Heal Injuries sink (hub.png reference) -->
+  <!-- toga/coat -->
+  <path d="M25 90 30 52 70 52 75 90Z" fill="#f3e7c8"/>
+  <!-- arms holding forceps with leech -->
+  <path d="M20 58 35 52 50 60" fill="none"/>
+  <!-- forceps -->
+  <path d="M50 60 62 48M50 60 60 44" stroke="#93836d" fill="none"/>
+  <!-- leech wiggling in forceps -->
+  <path d="M62 44Q68 40 64 36" stroke="#443019" stroke-width="6" fill="none"/>
+  <!-- head with balding hair & round glasses -->
+  <ellipse cx="50" cy="34" rx="16" ry="17" fill="#d9c69a"/>
+  <!-- hair tufts -->
+  <path d="M32 30Q30 20 36 26 M68 30Q70 20 64 26" fill="none"/>
+  <!-- glasses -->
+  <circle cx="43" cy="32" r="6" fill="none"/>
+  <circle cx="57" cy="32" r="6" fill="none"/>
+  <path d="M49 32 51 32" fill="none"/>
+  <!-- sly grin -->
+  <path d="M44 42Q50 47 56 42" fill="none"/>
+</svg>

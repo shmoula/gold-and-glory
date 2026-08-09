@@ -26,6 +26,33 @@
   align-items: stretch;
   gap: var(--space-2);
 }
+.hub__sinks .btn[data-action='repair']::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 24px;
+  margin-right: var(--space-1);
+  background: url('../assets/art/sink-blacksmith.svg') center / contain no-repeat;
+  vertical-align: middle;
+}
+.hub__sinks .btn[data-action='heal']::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 24px;
+  margin-right: var(--space-1);
+  background: url('../assets/art/sink-doctor.svg') center / contain no-repeat;
+  vertical-align: middle;
+}
+.hub__sinks .btn[data-action='bribe']::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 24px;
+  margin-right: var(--space-1);
+  background: url('../assets/art/sink-official.svg') center / contain no-repeat;
+  vertical-align: middle;
+}
 .hub__develop {
   grid-area: develop;
 }
@@ -50,6 +77,16 @@
 .hub__commit {
   grid-area: commit;
   justify-self: end;
+  display: flex;
+  align-items: center;
+}
+.hub__commit::before {
+  content: '';
+  display: inline-block;
+  width: 44px;
+  height: 28px;
+  margin-right: var(--space-2);
+  background: url('../assets/art/gladiators-fighting.svg') center / contain no-repeat;
 }
 /* Hub layout label, not a §6 component: the eyebrow over the NEXT BOUT poster. */
 .hub__next-label {
