@@ -698,20 +698,29 @@
 }
 
 /* ---- 6.10 Sponsor notice ---- */
+/* No `.tape` on this card, deliberately (phase 4 follow-up): the card names its pseudos for
+   its own dressing, and tape's strip declarations used to merge into them — the stall
+   rendered as a rotated, ink-bordered band floating off the card's top edge. The right
+   padding is the stall's reserved column, so copy never runs under the art. */
 .sponsor-card {
   position: relative;
   border-radius: var(--wobble-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) calc(96px + var(--space-4)) var(--space-3) var(--space-4);
   transform: rotate(var(--tilt-3));
   margin-top: var(--space-4);
 }
+/* The stall is the sponsor's emblem: seated at the card's right edge, vertically centred,
+   at its own fixed size — not a full-width banner with a card's worth of air around it. */
 .sponsor-card::before {
   content: '';
-  display: block;
-  width: 100%;
-  height: 52px;
-  margin-bottom: var(--space-2);
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  transform: translateY(-50%);
+  width: 88px;
+  height: 64px;
   background: url('../assets/art/sponsor-stall.svg') center / contain no-repeat;
+  pointer-events: none;
 }
 .sponsor-card__eyebrow {
   font-size: var(--text-xs);
@@ -724,24 +733,9 @@
   font-size: var(--text-xl);
 }
 
-/* §6.10's dog-eared corner — the recurring comedy vehicle's recognition mark. One pseudo,
-   three gradient stops: the page-tone corner "behind" the fold, the ink fold line, the
-   darker flap. Decorative; pseudo-content is invisible to AT. */
-.sponsor-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 26px;
-  height: 26px;
-  background: linear-gradient(
-    to bottom left,
-    var(--paper-3) 46%,
-    var(--border-ink) 46% 54%,
-    var(--paper-5) 54%
-  );
-  border-bottom-left-radius: 9px;
-}
+/* (§6.10's dog-eared corner lived here until phase 4: a square fold pasted onto a card whose
+   wobble radius rounds that very corner never sat right, and the tape strips it inherited
+   rotated it off the edge besides. The stall emblem above is the card's recognition mark.) */
 
 /* ---- 6.4 Timing meter (the core verb) ----
    Track, zones and cursor are spec §6.4's block verbatim. The zone hierarchy is a

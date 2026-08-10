@@ -129,7 +129,7 @@ export function renderHub(state, config) {
     .join('');
 
   const sponsorCard = state.sponsorUnlocked
-    ? `<aside class="sponsor-card parchment tape">
+    ? `<aside class="sponsor-card parchment">
       <span class="sponsor-card__eyebrow">Sponsor</span>
       <h3 class="sponsor-card__name">Lord Biggus</h3>
       <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
