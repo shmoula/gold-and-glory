@@ -189,8 +189,8 @@ export function renderHub(state, config) {
         <span class="hub__next-label">Next bout</span>
         ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent), portrait: opponent.id })}
       </div>
-      <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
       <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
+      <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
     </section>`;
 }
 

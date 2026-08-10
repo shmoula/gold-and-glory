@@ -8,14 +8,20 @@
   padding: var(--space-4);
 }
 
-/* HUB — spend left to right, commit bottom-right. Areas are spec §7 verbatim; the `hud` row
-   is reserved for the beam, which still renders above the section (Tasks 8/9 move it in). */
+/* HUB — spend left to right, decide on the right. The whole decision stack — the two posters,
+   Next Fight, Retire — lives in the right column, so the run's forward action sits beside the
+   opponent it commits you to and the entire screen fits one viewport (phase 4 follow-up: the
+   fixed footer this replaces cost its own height and still left Retire below the fold). DOM
+   order is sinks, develop, fight, commit, retire — reading order, tab order and column order
+   are one thing (§8): the primary commit above the destructive retire. */
 .screen--hub {
   grid-template-columns: 230px 1fr 300px;
+  grid-template-rows: auto auto auto 1fr;
   grid-template-areas:
     'hud     hud     hud'
     'sinks   develop fight'
-    'retire  retire  commit';
+    'sinks   develop commit'
+    'sinks   develop retire';
 }
 /* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
@@ -84,10 +90,12 @@
 }
 .hub__retire {
   grid-area: retire;
+  justify-self: center;
+  align-self: start;
 }
 .hub__commit {
   grid-area: commit;
-  justify-self: end;
+  justify-self: center;
   display: flex;
   align-items: center;
 }
@@ -99,11 +107,53 @@
   margin-right: var(--space-2);
   background: url('../assets/art/gladiators-fighting.svg') center / contain no-repeat;
 }
-/* Phase 4 (D1): on short desktop viewports the 4/3 portraits are what pushes every screen
-   past the fold, so they give up height first. background-size: contain keeps the art whole. */
+/* Phase 4 (D3, generalised by the no-scroll follow-up): wherever space is tight in EITHER
+   dimension — narrow (tablet/phone) or short (a 720p desktop) — the hub and fight posters
+   are status strips, not pin-ups: portrait beside name/HP. That is what lets the whole hub
+   (posters, Next Fight, Retire) share one viewport with no fixed footer and no scrolling.
+   Tall, wide screens keep the full wanted-poster art. Result and game-over posters are each
+   screen's centrepiece, so they stay full and only cap their portrait height below. */
+@media (max-width: 900px), (min-width: 641px) and (max-height: 780px) {
+  :is(.screen--fight, .screen--hub) .poster {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    column-gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+  }
+  :is(.screen--fight, .screen--hub) .poster__name {
+    grid-column: 2;
+    margin: 0;
+    font-size: var(--text-xl);
+    text-align: left;
+  }
+  :is(.screen--fight, .screen--hub) .poster__portrait {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    aspect-ratio: 1 / 1;
+    margin: 0;
+  }
+  :is(.screen--fight, .screen--hub) .poster .bar {
+    grid-column: 2;
+    margin-top: var(--space-1);
+  }
+  :is(.screen--fight, .screen--hub) .poster__sub,
+  :is(.screen--fight, .screen--hub) .poster .snark {
+    grid-column: 1 / -1;
+  }
+}
+/* The centrepiece posters' short-viewport concession: less portrait, same composition. */
 @media (max-height: 780px) and (min-width: 641px) {
-  .poster__portrait {
-    max-height: 150px;
+  .result__recap .poster__portrait,
+  .ending-card .poster__portrait {
+    max-height: 140px;
+  }
+}
+/* Three-up gear shop where the develop column is wide: one card row instead of two, which
+   buys the middle column the height the one-viewport hub needs. */
+@media (min-width: 901px) {
+  .hub__shop {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 
@@ -388,14 +438,15 @@
 }
 
 @media (max-width: 900px) {
-  /* Area order tracks renderHub's DOM order — sinks, develop, fight, retire, commit — so the
+  /* Area order tracks renderHub's DOM order — sinks, develop, fight, commit, retire — so the
      eye reads the same sequence a keyboard tabs (§8, WCAG 1.3.2/2.4.3). `grid-template-areas`
      changes visual order, not tab order, so a grid that paints fight before develop while the
      renderer emits develop first leaves the two out of step. sinks and develop pair on the top
-     content row; the fight posters take a full-width band below them. */
+     content row; the fight posters and the two run controls take full-width bands below. */
   .screen--hub {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
+    grid-template-rows: none;
+    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'commit commit' 'retire retire';
   }
   /* Same rule here: area order is renderFight's DOM order — stage, actions, you, foe, log,
      press (phase 4 D3: the core verb leads) — so visual, reading and tab order stay one thing
@@ -412,37 +463,6 @@
     grid-template-rows: none;
     grid-template-areas: 'hud hud' 'stage stage' 'actions actions' 'you foe' 'log log' 'press press';
   }
-  /* Phase 4 (D3): in a fight at tablet/phone widths the poster is a status strip, not a
-     pin-up — portrait beside name/HP so the meter and actions own the fold. Hub and result
-     posters keep the full treatment; this variant is fight-screen layout, so it lives here. */
-  .screen--fight .poster {
-    display: grid;
-    grid-template-columns: 56px 1fr;
-    column-gap: var(--space-3);
-    align-items: center;
-    padding: var(--space-2) var(--space-3);
-  }
-  .screen--fight .poster__name {
-    grid-column: 2;
-    margin: 0;
-    font-size: var(--text-xl);
-    text-align: left;
-  }
-  .screen--fight .poster__portrait {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    aspect-ratio: 1 / 1;
-    margin: 0;
-  }
-  .screen--fight .poster .bar {
-    grid-column: 2;
-    margin-top: var(--space-1);
-  }
-  .screen--fight .poster__sub,
-  .screen--fight .poster .snark {
-    grid-column: 1 / -1;
-  }
-
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
      their named areas, and CSS Grid §8.3 collapses all of them into one implicit cell rather
@@ -495,39 +515,8 @@
   }
 }
 
-/* Phase 4 (D1): the primary CTA is a fixed footer at EVERY width, not a ≤640px sticky. Two
-   reasons. Sticky could never do this job on the wider grids: a sticky element cannot leave
-   its containing block, and the commit row's grid area is exactly the below-the-fold strip
-   the phase 4 audit caught (every screen is ~900px tall on a 1280×720 viewport, so Next
-   Fight / Return to Ludus / Fight Again all rendered off-screen). And a footer is one thing:
-   the same wood ground and divider at every width, instead of a floating chip on desktop and
-   a bar on phones. `position: fixed` takes the element out of grid flow entirely (its
-   `grid-area`/`justify-self` become inert), and `.screen`'s bottom padding below is what
-   keeps the last in-flow content clear of it. tests/grid-areas.test.js pins both halves. */
-.commit-bar {
-  position: fixed;
-  /* Flush to the viewport since phase 4 removed the stone frame the offsets used to clear. */
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-hud);
-  /* Not vestigial: the slot classes still declare `justify-self` (end/center), and CSS Align
-     applies self-alignment to absolutely-positioned boxes too — `end` would shrink-wrap the
-     bar against its right inset instead of letting both insets stretch it. Later in the sheet
-     at the same (0,1,0), so it wins on source order. */
-  justify-self: stretch;
-  /* One footer layout for all three bars: the hub's (deco + button, already flex) and the two
-     CTA screens' (one button each) all centre in the full-bleed ground. */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2) var(--space-4);
-  background: var(--grad-wood);
-  border-top: var(--border-w) solid var(--border-ink);
-}
-/* The room the fixed footer occupies: tallest footer content is the commit banner (~44px)
-   plus the bar's own padding and border — 76px covers it with a step of slack. On .screen,
-   not #app, for item 34's reason: the page column belongs to .screen alone. */
-.screen {
-  padding-bottom: calc(76px + var(--space-4));
-}
+/* The commit bar is a semantic hook, not a treatment: it marks each screen's forward-action
+   slot (`.hub__commit`, `.result__cta`, `.gameover__cta`), and the slot classes place it in
+   their own grids. The fixed-footer treatment it briefly carried is gone (phase 4 follow-up):
+   a viewport-pinned bar spent its own height on every screen and still left Retire Rich below
+   the fold — the screens now fit the viewport instead, which is what the bar was for. */

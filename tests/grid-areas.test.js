@@ -498,55 +498,29 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
     expect(wrong).toEqual([]);
   });
 
-  // Phase 4 (D1): "the commit bar is a fixed footer at every width." Checked on the elements
-  // the renderers actually emit rather than on the selector, because a rule matching nothing is
-  // the failure mode that reads as a pass. Note the fight screen emits no `.commit-bar` at all —
-  // deferred backlog item 20, spec §7's line about it is a comment, not a rule — so this walks
-  // whatever is emitted instead of asserting a fixed set of screens.
-  //
-  // Why fixed and not the ≤640px sticky this replaced: a sticky element cannot leave its
-  // containing block, and the commit row's grid area IS the below-the-fold strip the phase 4
-  // audit caught (every screen ran ~900px tall on a 1280×720 viewport, so the primary CTA
-  // rendered off-screen on desktop). `position: fixed` also retires the whole justify-self
-  // reset dance — a fixed element is out of grid flow, so no alignment keyword can
-  // content-size it against the viewport-anchored left/right offsets pinned here.
-  it('anchors every rendered commit bar as a fixed footer at every width', () => {
+  // Phase 4 follow-up: the commit bar is a plain in-flow grid item at every width. It was
+  // briefly a viewport-fixed footer (D1's first cut), but a pinned bar spends its own height
+  // on every screen and still left Retire Rich below the fold — the fix that stuck is fitting
+  // the screens to the viewport (strip posters + the 3-up shop + the hub's right-column
+  // controls), which needs the CTA back in the grid. This pins the retreat: any positioning
+  // scheme that wins on a commit bar again is a regression to one of the two dead designs
+  // (the ≤640 sticky, the fixed footer). Checked on the elements the renderers actually emit
+  // rather than on the selector, because a rule matching nothing is the failure mode that
+  // reads as a pass.
+  it('keeps every rendered commit bar in normal flow at every width', () => {
     const bars = Object.entries(MOUNTED).flatMap(([name, host]) =>
       [...host.querySelectorAll('.commit-bar')].map((el) => [name, el])
     );
-    expect(
-      bars.length,
-      'no .commit-bar is rendered anywhere - the fixed-footer rule is dead'
-    ).toBeGreaterThan(0);
+    expect(bars.length, 'no .commit-bar is rendered anywhere').toBeGreaterThan(0);
     const wrong = [];
     for (const [name, bar] of bars) {
       for (const width of STEP4_WIDTHS) {
         const pos = winner(bar, 'position', width);
-        if (pos !== 'fixed')
-          wrong.push(`${width}px: ${name} commit bar is "${pos}", not a fixed footer`);
-        // Flush to the viewport on all three anchored sides — the stone frame whose inner
-        // edge these offsets used to clear was removed in phase 4.
-        for (const side of ['bottom', 'left', 'right']) {
-          const offset = winner(bar, side, width);
-          if (offset !== '0')
-            wrong.push(`${width}px: ${name} commit bar anchors ${side} at "${offset}"`);
-        }
+        if (pos && pos !== 'static')
+          wrong.push(`${width}px: ${name} commit bar is "${pos}", not in flow`);
       }
     }
     expect(wrong).toEqual([]);
-  });
-
-  // The other half of D1: the footer is out of flow, so the screen must reserve its height or
-  // the last in-flow content (the retire plank, the gameover payload) hides beneath it.
-  it('reserves the fixed footer’s room in the screen’s own bottom padding', () => {
-    const section = MOUNTED['hub (fresh run)'].querySelector('.screen');
-    expect(section).not.toBeNull();
-    for (const width of STEP4_WIDTHS) {
-      const pad = winner(section, 'padding-bottom', width);
-      expect(pad, `${width}px: .screen reserves no room for the fixed footer`).toMatch(
-        /calc\(.*var\(--space-4\)\)/
-      );
-    }
   });
 
   // "The HUD wraps without clipping." Two halves, and the second is the one worth a test: the
