@@ -750,8 +750,13 @@ describe('renderHub layout', () => {
     expect(html).toContain('hub__sinks');
     expect(html).toContain('hub__develop');
     expect(html).toContain('hub__fight');
-    expect(html).toContain('hub__retire');
+    // The unified actions beam (phase 4 follow-up): both run verbs share one band, retire
+    // first in DOM as on screen (left end), the forward action closing the ring.
+    expect(html).toContain('hub__actions');
     expect(html).toContain('commit-bar');
+    expect(html.indexOf('data-action="retire"')).toBeLessThan(
+      html.indexOf('data-action="next-fight"')
+    );
   });
 
   it('names the next opponent exactly once', () => {

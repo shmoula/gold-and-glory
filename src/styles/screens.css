@@ -8,24 +8,20 @@
   padding: var(--space-4);
 }
 
-/* HUB — spend left to right, decide on the right. Next Fight closes the opponent column
-   (bottom-right: the dialog-convention position for the forward action), and the entire
-   screen fits one viewport (phase 4 follow-up: the fixed footer this replaces cost its own
-   height and still left Retire below the fold).
-   Retire Rich deliberately does NOT share that column (game-ui-design follow-up): a
-   run-ending control stacked 16px under the every-loop primary in the same skin is a
-   misclick trap the arm/confirm step should never have to catch. It closes the GOLD column
-   instead — bottom-left, the conventional exit corner, and thematically where cashing out
-   belongs — spatially separated from Next Fight by the whole develop column. DOM order is
-   sinks, develop, fight, commit, retire: the primary is reached first, the destructive
-   control is the screen's last tab stop. */
+/* HUB — spend left to right, size up the bout on the right, act on the beam below. The
+   screen's two run verbs live in the §-actions beam (components.css), the unified bottom
+   band every meta screen ends with: Retire at its left end (the conventional exit corner,
+   quieter face), Next Fight at its right (the forward-action corner) — the game-ui-design
+   separation rules hold inside the band, with the whole beam between the two targets. DOM
+   order is sinks, develop, fight, actions(retire, commit): visual, reading and tab order
+   are one thing, and the destructive control is never the screen's last-focused surprise —
+   the primary is. */
 .screen--hub {
   grid-template-columns: 230px 1fr 300px;
   grid-template-areas:
     'hud     hud     hud'
     'sinks   develop fight'
-    'sinks   develop commit'
-    'retire  develop commit';
+    'actions actions actions';
 }
 /* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
@@ -92,70 +88,103 @@
   flex-direction: column;
   gap: var(--space-4);
 }
-.hub__retire {
-  grid-area: retire;
-  justify-self: start;
-  align-self: start;
+.hub__actions {
+  grid-area: actions;
+  /* The two verbs hold the band's ends; everything between them is separation. */
+  justify-content: space-between;
+  position: relative;
 }
 /* Prominence tracks frequency (game-ui-design): Retire fires at most once a run, so it takes
    a quieter face than the every-loop commit — one display step down, tighter padding. It
    keeps Law 3's blue (it IS an irreversible commitment) and `.btn`'s 44px minimum target. */
-.hub__retire .btn {
+.hub__actions [data-action='retire'] {
   font-size: var(--text-lg);
   padding: var(--space-1) var(--space-4);
 }
-.hub__commit {
-  grid-area: commit;
-  justify-self: center;
-  align-self: start;
-  display: flex;
-  align-items: center;
-}
-.hub__commit::before {
+/* The gladiators emblem, centred on the beam between the two verbs. Decorative and absolute:
+   as a flex item it would sit beside one button and read as its icon. */
+.hub__actions::before {
   content: '';
-  display: inline-block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: 44px;
   height: 28px;
-  margin-right: var(--space-2);
   background: url('../assets/art/gladiators-fighting.svg') center / contain no-repeat;
+  pointer-events: none;
 }
-/* Phase 4 (D3, generalised by the no-scroll follow-up): wherever space is tight in EITHER
-   dimension — narrow (tablet/phone) or short (a 720p desktop) — the hub and fight posters
-   are status strips, not pin-ups: portrait beside name/HP. That is what lets the whole hub
-   (posters, Next Fight, Retire) share one viewport with no fixed footer and no scrolling.
-   Tall, wide screens keep the full wanted-poster art. Result and game-over posters are each
-   screen's centrepiece, so they stay full and only cap their portrait height below. */
+/* On phones the two verbs own the whole beam — no middle left to decorate. */
+@media (max-width: 640px) {
+  .hub__actions::before {
+    display: none;
+  }
+}
+/* Phase 4 (D3, twice generalised): the hub's posters are ALWAYS status strips — the hub is a
+   management dashboard, and the strips are what guarantee its whole decision surface (sinks,
+   shop, posters, the actions beam) shares one viewport at every common window size; the 780px
+   height cutoff this replaces left 781–900px-tall windows scrolling for the beam. The fight
+   keeps the full wanted-poster drama where space allows, stripping only when the viewport is
+   narrow or short. */
+.screen--hub .poster {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+}
+.screen--hub .poster__name {
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--text-xl);
+  text-align: left;
+}
+.screen--hub .poster__portrait {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+}
+.screen--hub .poster .bar {
+  grid-column: 2;
+  margin-top: var(--space-1);
+}
+.screen--hub .poster__sub,
+.screen--hub .poster .snark {
+  grid-column: 1 / -1;
+}
 @media (max-width: 900px), (min-width: 641px) and (max-height: 780px) {
-  :is(.screen--fight, .screen--hub) .poster {
+  .screen--fight .poster {
     display: grid;
     grid-template-columns: 56px 1fr;
     column-gap: var(--space-3);
     align-items: center;
     padding: var(--space-2) var(--space-3);
   }
-  :is(.screen--fight, .screen--hub) .poster__name {
+  .screen--fight .poster__name {
     grid-column: 2;
     margin: 0;
     font-size: var(--text-xl);
     text-align: left;
   }
-  :is(.screen--fight, .screen--hub) .poster__portrait {
+  .screen--fight .poster__portrait {
     grid-column: 1;
     grid-row: 1 / span 2;
     aspect-ratio: 1 / 1;
     margin: 0;
   }
-  :is(.screen--fight, .screen--hub) .poster .bar {
+  .screen--fight .poster .bar {
     grid-column: 2;
     margin-top: var(--space-1);
   }
-  :is(.screen--fight, .screen--hub) .poster__sub,
-  :is(.screen--fight, .screen--hub) .poster .snark {
+  .screen--fight .poster__sub,
+  .screen--fight .poster .snark {
     grid-column: 1 / -1;
   }
 }
-/* The centrepiece posters' short-viewport concession: less portrait, same composition. */
-@media (max-height: 780px) and (min-width: 641px) {
+/* The centrepiece posters' short-viewport concession: less portrait, same composition. Up to
+   900px of height, not 780 — the same 781–900 window band the hub fix above covers. */
+@media (max-height: 900px) and (min-width: 641px) {
   .result__recap .poster__portrait,
   .ending-card .poster__portrait {
     max-height: 140px;
@@ -268,7 +297,8 @@
 }
 .result__cta {
   grid-area: cta;
-  justify-self: center;
+  /* Stretch, not center: the actions beam is one full-width band on every meta screen —
+     the button centres inside it (components.css), the beam itself always spans. */
 }
 /* The X is drawn over the whole recap column rather than over an extra wrapper around the
    poster: §6.0's class index is closed, and the bars land across the portrait at these
@@ -350,7 +380,7 @@
 }
 .gameover__cta {
   grid-area: cta;
-  justify-self: center;
+  /* Stretch like .result__cta: the beam spans, its button centres. */
 }
 
 /* §6.14 Phase 2 amendment: the death screen's dressing layer. Decorative, absolute, inert —
@@ -458,12 +488,7 @@
   .screen--hub {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'commit commit' 'retire retire';
-  }
-  /* Stacked, the corners disappear: the quiet retire centres under the primary instead of
-     hugging a left edge that no longer means anything. */
-  .hub__retire {
-    justify-self: center;
+    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'actions actions';
   }
   /* Same rule here: area order is renderFight's DOM order — stage, actions, you, foe, log,
      press (phase 4 D3: the core verb leads) — so visual, reading and tab order stay one thing

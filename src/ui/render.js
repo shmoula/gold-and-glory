@@ -189,8 +189,10 @@ export function renderHub(state, config) {
         <span class="hub__next-label">Next bout</span>
         ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent), portrait: opponent.id })}
       </div>
-      <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
-      <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
+      <div class="hub__actions screen-actions commit-bar">
+        ${btn('retire', 'Retire Rich', { variant: 'commit' })}
+        ${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}
+      </div>
     </section>`;
 }
 
@@ -341,7 +343,7 @@ export function renderResult(state, config) {
           <span class="wordmark">GOLD &amp; GLORY</span>
         </section>
       </div>
-      <div class="result__cta commit-bar">${btn('to-hub', 'Return to Ludus', {
+      <div class="result__cta screen-actions commit-bar">${btn('to-hub', 'Return to Ludus', {
         variant: 'commit',
         price: state.gold,
       })}</div>
@@ -426,7 +428,7 @@ export function renderGameOver(state, config) {
         <p class="cause-of-death parchment">${payload}
           <span class="wordmark">GOLD &amp; GLORY</span></p>
       </div>
-      <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
+      <div class="gameover__cta screen-actions commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
       <div class="gameover__props" aria-hidden="true">
         <i class="prop prop--vignette"></i>
         <i class="prop prop--sock-left"></i>

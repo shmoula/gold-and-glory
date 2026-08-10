@@ -516,7 +516,9 @@ describe('responsive pass (spec §7, plan Step 4)', () => {
     for (const [name, bar] of bars) {
       for (const width of STEP4_WIDTHS) {
         const pos = winner(bar, 'position', width);
-        if (pos && pos !== 'static')
+        // `relative` stays: it keeps the bar in flow (the hub beam uses it to anchor its
+        // decorative emblem). The regression this guards against is leaving flow.
+        if (pos && pos !== 'static' && pos !== 'relative')
           wrong.push(`${width}px: ${name} commit bar is "${pos}", not in flow`);
       }
     }
