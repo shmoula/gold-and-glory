@@ -8,20 +8,24 @@
   padding: var(--space-4);
 }
 
-/* HUB — spend left to right, decide on the right. The whole decision stack — the two posters,
-   Next Fight, Retire — lives in the right column, so the run's forward action sits beside the
-   opponent it commits you to and the entire screen fits one viewport (phase 4 follow-up: the
-   fixed footer this replaces cost its own height and still left Retire below the fold). DOM
-   order is sinks, develop, fight, commit, retire — reading order, tab order and column order
-   are one thing (§8): the primary commit above the destructive retire. */
+/* HUB — spend left to right, decide on the right. Next Fight closes the opponent column
+   (bottom-right: the dialog-convention position for the forward action), and the entire
+   screen fits one viewport (phase 4 follow-up: the fixed footer this replaces cost its own
+   height and still left Retire below the fold).
+   Retire Rich deliberately does NOT share that column (game-ui-design follow-up): a
+   run-ending control stacked 16px under the every-loop primary in the same skin is a
+   misclick trap the arm/confirm step should never have to catch. It closes the GOLD column
+   instead — bottom-left, the conventional exit corner, and thematically where cashing out
+   belongs — spatially separated from Next Fight by the whole develop column. DOM order is
+   sinks, develop, fight, commit, retire: the primary is reached first, the destructive
+   control is the screen's last tab stop. */
 .screen--hub {
   grid-template-columns: 230px 1fr 300px;
-  grid-template-rows: auto auto auto 1fr;
   grid-template-areas:
     'hud     hud     hud'
     'sinks   develop fight'
     'sinks   develop commit'
-    'sinks   develop retire';
+    'retire  develop commit';
 }
 /* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
@@ -90,12 +94,20 @@
 }
 .hub__retire {
   grid-area: retire;
-  justify-self: center;
+  justify-self: start;
   align-self: start;
+}
+/* Prominence tracks frequency (game-ui-design): Retire fires at most once a run, so it takes
+   a quieter face than the every-loop commit — one display step down, tighter padding. It
+   keeps Law 3's blue (it IS an irreversible commitment) and `.btn`'s 44px minimum target. */
+.hub__retire .btn {
+  font-size: var(--text-lg);
+  padding: var(--space-1) var(--space-4);
 }
 .hub__commit {
   grid-area: commit;
   justify-self: center;
+  align-self: start;
   display: flex;
   align-items: center;
 }
@@ -447,6 +459,11 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: none;
     grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'commit commit' 'retire retire';
+  }
+  /* Stacked, the corners disappear: the quiet retire centres under the primary instead of
+     hugging a left edge that no longer means anything. */
+  .hub__retire {
+    justify-self: center;
   }
   /* Same rule here: area order is renderFight's DOM order — stage, actions, you, foe, log,
      press (phase 4 D3: the core verb leads) — so visual, reading and tab order stay one thing
