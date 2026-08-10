@@ -91,7 +91,6 @@ export function btn(
     disabled = false,
     owned = false,
     icon = '',
-    arrow = false,
     keyHint = '',
   } = {}
 ) {
@@ -104,9 +103,8 @@ export function btn(
   }
   const classes = ['btn'];
   if (variant) classes.push(`btn--${variant}`);
-  // §6.2 amendment: a modifier, not a variant — the arrow end is stacked on `.btn--commit`,
-  // so it is opted into separately rather than replacing the banner it decorates.
-  if (arrow) classes.push('btn--arrow');
+  // (§6.2's `.btn--arrow` modifier lived here until phase 4 retired it: every forward banner
+  // now spells its ▸ inside the label, so the triangular end had no remaining consumer.)
   if (urgent) classes.push('is-urgent');
   if (owned) classes.push('is-owned');
   let attrs = '';

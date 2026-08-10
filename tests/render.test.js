@@ -149,20 +149,11 @@ describe('btn', () => {
     expect(dom(btn('heal', 'Heal')).querySelector('.icon-well')).toBeNull();
   });
 
-  // §6.2 amendment: `.btn--arrow` is a *modifier* stacked on `.btn--commit`, never a variant of
-  // its own — the fight screen's PRESS THE ATTACK keeps the commit banner's blue and gains the
-  // triangular end. Class set, not a literal class string, per this file's rule at the top.
-  it('stacks the arrow modifier on the commit banner when opts.arrow is set (§6.2 amendment)', () => {
-    const button = dom(btn('press', 'Press ▸', { variant: 'commit', arrow: true })).querySelector(
-      'button'
-    );
-    expect([...button.classList]).toEqual(
-      expect.arrayContaining(['btn', 'btn--commit', 'btn--arrow'])
-    );
-  });
-
-  it('omits the arrow modifier unless it is asked for', () => {
-    for (const opts of [{}, { variant: 'commit' }, { variant: 'commit', arrow: false }]) {
+  // Phase 4 retired §6.2's `.btn--arrow` modifier: every forward banner spells its ▸ inside
+  // the label (one spelling, and the whole banner — glyph included — hovers as one surface),
+  // so btn() must never mint the dead class again.
+  it('never emits the retired arrow modifier', () => {
+    for (const opts of [{}, { variant: 'commit' }]) {
       const button = dom(btn('press', 'Press ▸', opts)).querySelector('button');
       expect([...button.classList]).not.toContain('btn--arrow');
     }
@@ -1936,11 +1927,9 @@ describe('renderFight', () => {
     const press = dom(fightHtml({ canPress: true })).querySelector('.fight__press button');
     expect(press.getAttribute('data-action')).toBe('press');
     // Exact, not `arrayContaining`: at this call site the set is fully known, so equality is
-    // free and catches a stray `is-urgent` or a doubled modifier. (The `btn` unit test keeps
-    // `arrayContaining`, where other options legitimately add classes.) `.btn--arrow` never
-    // travels without `.btn--commit` — components.css scopes both arrow rules to the pair, and
-    // tests/a11y.test.js holds the markup half of that invariant across every screen.
-    expect([...press.classList].sort()).toEqual(['btn', 'btn--arrow', 'btn--commit']);
+    // free and catches a stray `is-urgent` or a doubled modifier. A plain commit banner since
+    // phase 4 retired the `.btn--arrow` end — the ▸ lives inside the label.
+    expect([...press.classList].sort()).toEqual(['btn', 'btn--commit']);
 
     // The slot is unconditional — the grid area exists whether or not the offer does, so the
     // layout does not reflow the moment a press becomes available. Only the button is

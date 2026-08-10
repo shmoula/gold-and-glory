@@ -241,43 +241,14 @@
 .btn--commit:focus-visible {
   outline-color: var(--bone-bright);
 }
-
-/* §6.2 amendment: the fight screen's PRESS THE ATTACK — a commit banner with a triangular
-   right end. Both rules are `.btn--commit.btn--arrow`, never `.btn--arrow` alone: the modifier
-   only ever decorates a commit banner (that is what keeps it inside Law 3, and what lets it
-   inherit the display face rather than restate it), so the sheet states the invariant instead
-   of trusting call sites. tests/a11y.test.js checks the markup half.
-   `--arrow-w` is declared here rather than spelled twice: the margin the triangle sits in and
-   the triangle's own width are one number, and a comment asking two literals to stay equal is
-   not a mechanism. Margin, not padding — the end sits *outside* the button, so the slot that
-   content-sizes to it (`.fight__press`) hugs the margin box and the arrow stays in its cell. */
-.btn--commit.btn--arrow {
-  --arrow-w: 22px;
-  position: relative;
-  margin-right: var(--arrow-w);
-  /* Tighter than `.btn--commit`'s 0.05em: the arrow is the one commit banner whose label runs
-     up against a hard diagonal instead of ending in the plank's own padding, and the extra
-     0.01em of trailing space read as a gap between the last letter and the point. */
-  letter-spacing: 0.04em;
-}
-.btn--commit.btn--arrow::after {
-  content: '';
-  position: absolute;
-  /* `left: 100%` is 100% of the *padding* box, so on its own the triangle starts one border
-     inside the button and paints over its right ink edge. Step out to the border box. */
-  left: calc(100% + var(--border-w));
-  /* Ties the end's height to the button's border box at whatever height it actually has —
-     a wrapped two-line label grows the banner and the arrow with it. The border-triangle this
-     replaced hard-coded two 24px half-heights, which matched a 44px button and nothing else. */
-  inset-block: calc(-1 * var(--border-w));
-  width: var(--arrow-w);
-  /* The same ramp as the banner, so the seam is invisible; a border-triangle could not take a
-     gradient. The clip is on the pseudo-element, NOT on `.btn--arrow`: an outline paints
-     outside its own element's border box, so clipping the button would cut §8's focus ring,
-     while clipping a child cannot reach it. (§6.2 amendment: no ink outline on the diagonal
-     yet — a clipped box cannot carry one. Deferred to Phase 2/3.) */
-  background: var(--grad-commit);
-  clip-path: polygon(0 0, 100% 50%, 0 100%);
+/* Phase 4 follow-up: the banner's own hover. `.btn:hover` is (0,2,0) and `.btn--commit` only
+   (0,1,0), so without this the wood hover-gradient won and every commit banner browned on
+   hover — the audit caught it on PRESS THE ATTACK, whose old detached triangle stayed blue
+   while the plank turned. Same specificity as `.btn:hover`, later in the sheet, so it wins
+   on source order. (That triangle — §6.2's `.btn--arrow` end — is retired with this fix:
+   every forward banner now carries its ▸ inside the label, one spelling for all of them.) */
+.btn--commit:hover {
+  background: var(--grad-commit-hover);
 }
 
 .btn--danger {
@@ -1051,7 +1022,7 @@
 }
 /* `.fight__grid`, `.fight__actions` and `.fight__press` are screen layout, not §6 catalog
    entries — they live with the rest of the `.fight__*` placement in screens.css. (What *is* a
-   catalog entry is the button `.fight__press` holds: `.btn--commit.btn--arrow`, §6.2 above.)
+   catalog entry is the button `.fight__press` holds: a plain `.btn--commit`, §6.2 above.)
    Same for `.result__*` below. */
 
 /* ---- 6.6 The ledger ----

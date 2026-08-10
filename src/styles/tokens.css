@@ -120,6 +120,10 @@
   --grad-wood: linear-gradient(var(--wood-3), var(--wood-4));
   --grad-wood-hover: linear-gradient(var(--wood-2), var(--wood-3));
   --grad-commit: linear-gradient(var(--commit-hi), var(--commit-lo));
+  /* The banner's hover: same family, one stop brighter — the wood hover's blue twin. Without
+     it, `.btn:hover`'s wood gradient outweighs `.btn--commit` (class+pseudo beats class) and
+     every commit banner browned on hover. */
+  --grad-commit-hover: linear-gradient(var(--commit-hi), var(--commit));
   --grad-coin: radial-gradient(
     circle at 35% 30%,
     var(--gold-hi),

@@ -788,19 +788,14 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
 
   it('spends the commit palette on four selectors, all of them commit or focus', () => {
     const blue = rules
-      .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
+      .filter((r) => /var\(--(commit[\w-]*|grad-commit[\w-]*|color-focus)\)/.test(r.body))
       .map((r) => r.sel);
-    // `.btn--commit.btn--arrow::after` is the fourth, and it is not a widening of Law 3: the
-    // selector is compound on purpose, so the triangle can only ever be drawn on a commit
-    // banner — it is a piece of one, not a new blue surface. It paints the banner's own
-    // `--grad-commit`, so the seam between plank and point is invisible.
+    // `.btn--commit:hover` is the fourth, and it is not a widening of Law 3: it repaints the
+    // banner's own surface one stop brighter (phase 4 — `.btn:hover`'s wood gradient used to
+    // outweigh the banner and brown it on hover). The `.btn--arrow::after` triangle that held
+    // this slot was retired with that fix: the ▸ lives inside every forward banner's label.
     expect(blue.sort()).toEqual(
-      [
-        ':focus-visible',
-        '.btn--commit',
-        '.btn--commit.btn--arrow::after',
-        '.btn:focus-visible',
-      ].sort()
+      [':focus-visible', '.btn--commit', '.btn--commit:hover', '.btn:focus-visible'].sort()
     );
     // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
     // rather than reaching for more blue. Named here so "four selectors" is not read as a gap.

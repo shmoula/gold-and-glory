@@ -557,6 +557,6 @@ export function renderFight(state, config) {
         portrait: opponent.id,
       })}</div>
       <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
-      <div class="fight__press">${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit', arrow: true }) : ''}</div>
+      <div class="fight__press">${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}</div>
     </section>`;
 }
