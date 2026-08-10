@@ -100,6 +100,9 @@
 .hub__actions [data-action='retire'] {
   font-size: var(--text-lg);
   padding: var(--space-1) var(--space-4);
+  /* `.btn` aligns its items on the baseline, which reads as top-set once this quieter face
+     leaves slack under the 44px minimum height — centre the single label instead. */
+  align-items: center;
 }
 /* The gladiators emblem, centred on the beam between the two verbs. Decorative and absolute:
    as a flex item it would sit beside one button and read as its icon. */
