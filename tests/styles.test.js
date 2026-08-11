@@ -68,6 +68,53 @@ describe('font attribution (OFL)', () => {
   });
 });
 
+// Every face is declared in a stylesheet, which means the browser cannot even *ask* for a woff2
+// until it has downloaded the CSS, run the module that renders the first text, and matched a
+// rule to it. That serialises ~71 KB behind the whole boot, and the swap that follows repaints
+// and re-lays-out the page it just painted — Lighthouse measures Time to Interactive to the end
+// of that trailing style-and-layout pass, and CI's 2000ms budget broke on it (2037ms). A
+// preload hoists the fetch to the first HTML scan, beside the CSS and the module, so the fonts
+// are in hand by the time there is text to shape: TTI 2037 → 1885ms, CLS 0.07 → 0, FCP 1502 →
+// 940ms, performance 0.98 → 1.00. The hrefs are derived from the @font-face rules on purpose —
+// a preload that misses by one character is a *second* download, not a broken one, and nothing
+// else in the build would complain.
+describe('font preloads', () => {
+  const html = readFileSync('index.html', 'utf8');
+  const preloads = [
+    ...html.matchAll(/<link\s+rel="preload"[^>]*href="\/src\/(assets\/[^"]+)"[^>]*>/g),
+  ];
+  // The faces the first screen paints: one per family, at 400. Nunito's 700 is body bold, which
+  // no first paint needs, and this vendor snapshot's 700 file is byte-identical to its 400 — so
+  // Vite's content hashing emits *one* asset and both @font-face rules resolve to it. Preloading
+  // the 400 covers the 700 in the build, and naming the 700 here would only emit a duplicate
+  // link for a URL already claimed. See scripts/fetch-fonts.mjs if that snapshot is ever redone.
+  //
+  // Read from the whole declaration block rather than reusing `faces` above, whose match ends at
+  // the `src:` url and so never sees the `font-weight` this selection turns on.
+  const firstPaint = [
+    ...readFileSync('src/styles/tokens.css', 'utf8').matchAll(/@font-face\s*\{([^}]*)\}/g),
+  ]
+    .map(([, block]) => block)
+    .filter((block) => /font-weight:\s*400/.test(block))
+    .map((block) => block.match(/url\('\.\.\/(assets\/[^']+)'/)[1]);
+
+  it('hoists every first-paint face out of the stylesheet', () => {
+    expect(firstPaint.length).toBe(3);
+    expect(preloads.map((m) => m[1]).sort()).toEqual(firstPaint.sort());
+  });
+
+  it('declares each one as a font, so the fetch matches the one the sheet would make', () => {
+    for (const [tag, asset] of preloads) {
+      // Without as/type the browser cannot prioritise the fetch and warns the preload went
+      // unused; without crossorigin it fetches in the wrong mode and the sheet downloads the
+      // file a second time — a preload that costs bandwidth instead of saving it.
+      expect(tag, `${asset} preload is missing as="font"`).toContain('as="font"');
+      expect(tag, `${asset} preload is missing type="font/woff2"`).toContain('type="font/woff2"');
+      expect(tag, `${asset} preload is missing crossorigin`).toContain('crossorigin');
+    }
+  });
+});
+
 describe('css custom properties', () => {
   it('references only tokens that are defined', () => {
     const defined = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
