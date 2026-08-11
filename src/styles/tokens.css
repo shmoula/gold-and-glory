@@ -4,16 +4,16 @@
   font-weight: 400;
   font-display: swap;
 }
+/* One file, one rule, both weights: Nunito is a variable font, so Google Fonts serves a single
+   woff2 per subset spanning the axis (see scripts/fetch-fonts.mjs). The ranged descriptor is what
+   makes `font-weight: 700` a genuine Nunito Bold instance — the browser pins the file's `wght` axis
+   to the weight asked for — where a lone `font-weight: 400` rule would leave it synthesizing fake
+   bold. Only 400 and 700 are used; anything between them would now render as a true intermediate
+   weight rather than snapping to one end. */
 @font-face {
   font-family: 'Nunito';
-  src: url('../assets/fonts/Nunito-400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Nunito';
-  src: url('../assets/fonts/Nunito-700.woff2') format('woff2');
-  font-weight: 700;
+  src: url('../assets/fonts/Nunito.woff2') format('woff2');
+  font-weight: 400 700;
   font-display: swap;
 }
 @font-face {
@@ -111,7 +111,6 @@
 
   /* Borders & shadows — hard offsets, zero blur = paper-cutout look */
   --border-w: 2.5px;
-  --frame-w: 14px; /* stone frame width; 8px ≤640px (overridden in base.css) */
   --shadow-paper: 4px 6px 0 rgba(31, 22, 12, 0.35);
   --shadow-plank: 0 3.5px 0 rgba(31, 22, 12, 0.5);
   --shadow-plank-pressed: 0 1px 0 rgba(31, 22, 12, 0.5);
@@ -121,6 +120,10 @@
   --grad-wood: linear-gradient(var(--wood-3), var(--wood-4));
   --grad-wood-hover: linear-gradient(var(--wood-2), var(--wood-3));
   --grad-commit: linear-gradient(var(--commit-hi), var(--commit-lo));
+  /* The banner's hover: same family, one stop brighter — the wood hover's blue twin. Without
+     it, `.btn:hover`'s wood gradient outweighs `.btn--commit` (class+pseudo beats class) and
+     every commit banner browned on hover. */
+  --grad-commit-hover: linear-gradient(var(--commit-hi), var(--commit));
   --grad-coin: radial-gradient(
     circle at 35% 30%,
     var(--gold-hi),
@@ -135,12 +138,9 @@
   --dur-shake: 300ms; /* §6.7's 3-frame rejection shake */
   --ease-drop: steps(2, end);
 
-  /* Z-scale (paper layering) — ascending, so the stack reads in paint order */
+  /* Z-scale (paper layering) — ascending, so the stack reads in paint order. (--z-frame sat
+     at 5 until phase 4 removed the stone frame it layered.) */
   --z-backdrop: -1; /* stage backdrop well — behind everything (§6.17) */
-  --z-frame: 5; /* stone frame (§6.17). NOT "below the interactive layers": --z-hud has exactly
-    one consumer in the whole sheet set (.commit-bar, ≤640px), so every other control is
-    non-positioned in-flow content and paints *below* this. What keeps content clear of the frame
-    is the body's padding: var(--frame-w), not this number — see §6.17's Phase 3 constraint */
   --z-hud: 10;
   --z-plaque: 11; /* title plaque (§6.16) — .hud is plain non-positioned flow, so the plaque
     only needs a stacking context of its own to paint over it; the negative top margin

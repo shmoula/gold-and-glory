@@ -40,8 +40,12 @@ describe('font attribution (OFL)', () => {
     ),
   ];
 
+  // One face per family, since Nunito's variable file is declared once with a ranged
+  // `font-weight: 400 700` rather than once per weight. That makes this equal the family count
+  // below, but it still earns its own assertion: a regex that silently stopped matching would fail
+  // here first, and this is the number that changes if a family ever needs a second file.
   it('finds every declared face', () => {
-    expect(faces.length).toBe(4);
+    expect(faces.length).toBe(3);
   });
 
   it('ships each family its own upstream license, naming a real holder', () => {
@@ -65,6 +69,52 @@ describe('font attribution (OFL)', () => {
 
   it('ships every font file the sheet asks the browser to load', () => {
     for (const [, , asset] of faces) expect(existsSync(`src/assets/${asset}`), asset).toBe(true);
+  });
+});
+
+// Every face is declared in a stylesheet, which means the browser cannot even *ask* for a woff2
+// until it has downloaded the CSS, run the module that renders the first text, and matched a
+// rule to it. That serialises ~71 KB behind the whole boot, and the swap that follows repaints
+// and re-lays-out the page it just painted — Lighthouse measures Time to Interactive to the end
+// of that trailing style-and-layout pass, and CI's 2000ms budget broke on it (2037ms). A
+// preload hoists the fetch to the first HTML scan, beside the CSS and the module, so the fonts
+// are in hand by the time there is text to shape: TTI 2037 → 1885ms, CLS 0.07 → 0, FCP 1502 →
+// 940ms, performance 0.98 → 1.00. The hrefs are derived from the @font-face rules on purpose —
+// a preload that misses by one character is a *second* download, not a broken one, and nothing
+// else in the build would complain.
+describe('font preloads', () => {
+  const html = readFileSync('index.html', 'utf8');
+  const preloads = [
+    ...html.matchAll(/<link\s+rel="preload"[^>]*href="\/src\/(assets\/[^"]+)"[^>]*>/g),
+  ];
+  // The faces the first screen paints: one per family, three files, three links. Nunito is a
+  // variable font vendored as a single ranged `font-weight: 400 700` face, so body bold is the same
+  // file as body regular and needs no preload of its own — the 400 in the filter below matches the
+  // low end of that range, not a bold-less snapshot (see scripts/fetch-fonts.mjs).
+  //
+  // Read from the whole declaration block rather than reusing `faces` above, whose match ends at
+  // the `src:` url and so never sees the `font-weight` this selection turns on.
+  const firstPaint = [
+    ...readFileSync('src/styles/tokens.css', 'utf8').matchAll(/@font-face\s*\{([^}]*)\}/g),
+  ]
+    .map(([, block]) => block)
+    .filter((block) => /font-weight:\s*400/.test(block))
+    .map((block) => block.match(/url\('\.\.\/(assets\/[^']+)'/)[1]);
+
+  it('hoists every first-paint face out of the stylesheet', () => {
+    expect(firstPaint.length).toBe(3);
+    expect(preloads.map((m) => m[1]).sort()).toEqual(firstPaint.sort());
+  });
+
+  it('declares each one as a font, so the fetch matches the one the sheet would make', () => {
+    for (const [tag, asset] of preloads) {
+      // Without as/type the browser cannot prioritise the fetch and warns the preload went
+      // unused; without crossorigin it fetches in the wrong mode and the sheet downloads the
+      // file a second time — a preload that costs bandwidth instead of saving it.
+      expect(tag, `${asset} preload is missing as="font"`).toContain('as="font"');
+      expect(tag, `${asset} preload is missing type="font/woff2"`).toContain('type="font/woff2"');
+      expect(tag, `${asset} preload is missing crossorigin`).toContain('crossorigin');
+    }
   });
 });
 
@@ -501,29 +551,34 @@ describe('rules inherited from the deleted legacy sheet', () => {
 
     const disabled = bare.match(/button:disabled\s*\{[^}]*\}/g) ?? [];
     expect(disabled.length, 'exactly one button:disabled rule').toBe(1);
-    expect(disabled[0]).toMatch(/opacity:/);
     expect(disabled[0]).toMatch(/cursor:\s*not-allowed/);
   });
 
   // Two rules dim a dead button, and the game emits both: `btn({ disabled: true })` writes the
   // native attribute for a true no-op (nothing to repair) while `owned` writes `aria-disabled`.
   // They used to fade by different amounts (0.4 in the moved legacy rule, §6.2's 0.45 in the
-  // component), so one Repair plank had two dim states. Derived from each other rather than
-  // restated, so raising §6.2's number carries the native rule with it or fails here.
-  it('dims a natively-disabled button by exactly as much as an aria-disabled one', () => {
-    const opacityOf = (re, what) => {
+  // component), so one Repair plank had two dim states. Phase 4 (D9) replaced the shared
+  // opacity with an opaque ground — solid --wood-4 under --bone-dim text — because a
+  // 45%-transparent plank let the fixed arena backdrop bleed through and read as a rendering
+  // glitch. The invariant survives the change of treatment: one dead-plank state, spelled
+  // identically by both selectors, and never via `opacity` (which is exactly the bleed-through
+  // channel this closed).
+  it('grounds a natively-disabled button exactly as an aria-disabled one, opaquely', () => {
+    const ruleOf = (re, what) => {
       const rule = bare.match(re)?.[0];
       expect(rule, `no ${what} rule`).toBeTruthy();
-      const value = rule.match(/opacity:\s*([\d.]+)/)?.[1];
-      expect(value, `${what} declares no opacity`).toBeTruthy();
-      return Number(value);
+      return rule;
     };
-    const native = opacityOf(/button:disabled\s*\{[^}]*\}/, 'button:disabled');
-    const aria = opacityOf(
-      /\.btn\[aria-disabled=["']true["']\]\s*\{[^}]*\}/,
-      '.btn[aria-disabled]'
-    );
-    expect(native).toBe(aria);
+    const native = ruleOf(/button:disabled\s*\{[^}]*\}/, 'button:disabled');
+    const aria = ruleOf(/\.btn\[aria-disabled=["']true["']\]\s*\{[^}]*\}/, '.btn[aria-disabled]');
+    for (const [what, rule] of [
+      ['button:disabled', native],
+      ['.btn[aria-disabled]', aria],
+    ]) {
+      expect(rule, `${what} grounds on solid wood`).toMatch(/background:\s*var\(--wood-4\)/);
+      expect(rule, `${what} dims via ink, not transparency`).toMatch(/color:\s*var\(--bone-dim\)/);
+      expect(rule, `${what} must not reopen the opacity bleed-through`).not.toMatch(/opacity:/);
+    }
   });
 });
 
@@ -582,6 +637,20 @@ describe('selector coverage — every unaffordable surface is painted', () => {
       seen.some((s) => /\.btn\b/.test(s)),
       'no unaffordable button rendered'
     ).toBe(true);
+  });
+
+  // The snark slot travels between two grounds and its ink must travel with it. §6.2's
+  // `.btn__snark` is `--bone-dim`, an on-wood colour (4.76:1 vs --wood-3) — but shopItem()
+  // mounts the same span on a PARCHMENT card, where bone-dim lands at ~1.3:1 and the aside
+  // ("(A sock?) (need 50 G more)") all but vanished. On paper the slot must take the muted
+  // ink every other parchment aside uses (--ink-soft via --color-text-muted, 5.67:1).
+  it('re-inks the snark slot for the parchment gear card', () => {
+    const rule = bare.match(/\.shop-item \.btn__snark\s*\{[^}]*\}/);
+    expect(
+      rule,
+      'no .shop-item .btn__snark override — bone-dim on paper is invisible'
+    ).not.toBeNull();
+    expect(rule[0]).toMatch(/color:\s*var\(--color-text-muted\)/);
   });
 });
 
@@ -661,7 +730,8 @@ describe('Law 4 — text never sits on stone', () => {
     'div.fight__log > h2', // "Commentary", --ink 4.15:1
     'span.train-row__label', // --ink 4.15:1
     'span.hub__next-label', // --bone 2.99:1
-    'div.meter__labels > span', // --bone 2.99:1
+    'span.legend__item', // --bone 2.99:1 (the meter legend, aria-hidden decoration)
+    'span.legend__item.legend__item--miss', // --bone 2.99:1
     'p.meter__taunt.snark', // --bone 2.99:1
     'p.snark.result__flavor', // --ink-soft 1.89:1
   ];
@@ -739,11 +809,16 @@ describe('Law 2 — gold appears only on money', () => {
     //    contradicts Law 2; the spec's CSS was followed (progress-file territory, not a bug).
     //  - the three `.meter__zone--*` bands are §6.4's monochromatic gold ramp, where brighter
     //    means closer to glory. Not money either, and argued for in components.css.
+    //  - the three `.legend__chip--*` swatches (phase 4 D4) are those same bands' legend keys —
+    //    the ramp restated at 13px, so they inherit §6.4's deviation rather than opening one.
     //  - `urgent-pulse`'s 50% stop rings a nagging button in `--gold-deep`.
     expect(fills.sort()).toEqual(
       [
         '.bar__fill--dur',
         '.coin',
+        '.legend__chip--crit',
+        '.legend__chip--graze',
+        '.legend__chip--hit',
         '.meter__zone--crit',
         '.meter__zone--graze',
         '.meter__zone--hit',
@@ -763,19 +838,14 @@ describe('Law 3 — commit blue only on commit controls and focus rings', () => 
 
   it('spends the commit palette on four selectors, all of them commit or focus', () => {
     const blue = rules
-      .filter((r) => /var\(--(commit[\w-]*|grad-commit|color-focus)\)/.test(r.body))
+      .filter((r) => /var\(--(commit[\w-]*|grad-commit[\w-]*|color-focus)\)/.test(r.body))
       .map((r) => r.sel);
-    // `.btn--commit.btn--arrow::after` is the fourth, and it is not a widening of Law 3: the
-    // selector is compound on purpose, so the triangle can only ever be drawn on a commit
-    // banner — it is a piece of one, not a new blue surface. It paints the banner's own
-    // `--grad-commit`, so the seam between plank and point is invisible.
+    // `.btn--commit:hover` is the fourth, and it is not a widening of Law 3: it repaints the
+    // banner's own surface one stop brighter (phase 4 — `.btn:hover`'s wood gradient used to
+    // outweigh the banner and brown it on hover). The `.btn--arrow::after` triangle that held
+    // this slot was retired with that fix: the ▸ lives inside every forward banner's label.
     expect(blue.sort()).toEqual(
-      [
-        ':focus-visible',
-        '.btn--commit',
-        '.btn--commit.btn--arrow::after',
-        '.btn:focus-visible',
-      ].sort()
+      [':focus-visible', '.btn--commit', '.btn--commit:hover', '.btn:focus-visible'].sort()
     );
     // …and the one remaining focus rule is the commit banner's, which overrides the ring to bone
     // rather than reaching for more blue. Named here so "four selectors" is not read as a gap.

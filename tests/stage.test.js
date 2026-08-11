@@ -1,39 +1,45 @@
-// tests/stage.test.js — stage layers (design-system §6.17). Static markup in index.html, so
-// this is a file-text check like tests/grid-areas.test.js's sheet reads: jsdom never loads
-// index.html, and the layers are deliberately outside #app (mount() must never wipe them).
+// tests/stage.test.js — the stage backdrop (design-system §6.17). Static markup in index.html,
+// so this is a file-text check like tests/grid-areas.test.js's sheet reads: jsdom never loads
+// index.html, and the layer is deliberately outside #app (mount() must never wipe it).
+//
+// The stone frame that used to be the second stage layer was removed in phase 4 — the masonry
+// ring read as clutter and spent 14px of playfield on every side — so this file now also
+// guards against its remains: no `.stage-frame` markup or rules, and no `--frame-w` consumers
+// left dangling after the token went.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
 const css = readFileSync('src/styles/base.css', 'utf8');
-const tokens = readFileSync('src/styles/tokens.css', 'utf8');
 
-describe('stage layers', () => {
-  it('declares both decorative layers before the app mount, aria-hidden', () => {
+describe('stage backdrop', () => {
+  it('declares the decorative layer before the app mount, aria-hidden', () => {
     const backdrop = html.indexOf('<div class="stage-backdrop" aria-hidden="true"></div>');
-    const frame = html.indexOf('<div class="stage-frame" aria-hidden="true"></div>');
     const app = html.indexOf('id="app"');
     expect(backdrop).toBeGreaterThan(-1);
-    expect(frame).toBeGreaterThan(backdrop);
-    expect(app).toBeGreaterThan(frame);
+    expect(app).toBeGreaterThan(backdrop);
   });
 
-  it('keeps the frame out of the input path and below interactive layers', () => {
-    expect(css).toMatch(/\.stage-frame\s*{[^}]*pointer-events:\s*none/);
-    expect(css).toMatch(/\.stage-frame\s*{[^}]*z-index:\s*var\(--z-frame\)/);
-    expect(tokens).toMatch(/--z-frame:\s*5\b/);
-    expect(tokens).toMatch(/--z-backdrop:\s*-1\b/);
-    expect(tokens).toMatch(/--frame-w:\s*14px/);
-  });
-
-  // §6.17: the backdrop sits behind everything (z-backdrop), and the body's own padding — not
-  // z-order — is what keeps regular (non-positioned) content clear of the frame's border, with
-  // #app's min-height compensating so that padding doesn't force a permanent scrollbar. The
-  // cascade correctness of the ≤640px --frame-w override itself (8px vs 14px) is a resolved-value
-  // question, not a text-presence one, and is covered by tests/grid-areas.test.js's winner().
-  it('wires the backdrop z-index and the body/#app frame-clearance padding', () => {
+  it('sits behind everything and fills the viewport it decorates', () => {
     expect(css).toMatch(/\.stage-backdrop\s*{[^}]*z-index:\s*var\(--z-backdrop\)/);
-    expect(css).toMatch(/body\s*{[^}]*padding:\s*var\(--frame-w\)/);
-    expect(css).toMatch(/#app\s*{[^}]*min-height:\s*calc\(100dvh - 2 \* var\(--frame-w\)\)/);
+    expect(css).toMatch(/\.stage-backdrop\s*{[^}]*position:\s*fixed/);
+    // With the frame gone, the body reserves no ring: #app owns the full viewport height.
+    expect(css).toMatch(/#app\s*{[^}]*min-height:\s*100dvh/);
+    expect(css).not.toMatch(/body\s*{[^}]*padding/);
+  });
+
+  it('leaves no remains of the removed stone frame', () => {
+    expect(html).not.toContain('stage-frame');
+    // Filtered like styles.test.js's SHEETS: readdirSync lists directories too, and readFileSync
+    // on one throws EISDIR — failing this test with an error that says nothing about the frame.
+    const sheets = readdirSync('src/styles')
+      .filter((f) => f.endsWith('.css'))
+      .map((f) => readFileSync(`src/styles/${f}`, 'utf8'));
+    for (const sheet of sheets) {
+      expect(sheet).not.toMatch(/\.stage-frame/);
+      // The token is gone, so a consumer would resolve to nothing and silently collapse.
+      expect(sheet).not.toMatch(/var\(--frame-w\)/);
+      expect(sheet).not.toMatch(/var\(--z-frame\)/);
+    }
   });
 });

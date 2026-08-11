@@ -306,20 +306,10 @@ describe('Law 3 — commit blue only on the five named commitments', () => {
     expect([...COMMITMENTS].filter((c) => !seen.has(c))).toEqual([]);
   });
 
-  // The markup half of §6.2's arrow invariant. components.css scopes both arrow rules to
-  // `.btn--commit.btn--arrow`, so an arrow without the banner simply would not paint — but it
-  // would still ship as `class="btn btn--arrow"`, a silent no-op nobody notices. `btn()` takes
-  // `variant` and `arrow` as independent options, so only a check on the rendered markup closes
-  // it: every arrow is a commit banner, and therefore every arrow is already covered by the
-  // label allowlist above.
-  it('draws the arrow end on nothing but a commit banner (§6.2 amendment)', () => {
-    const arrows = all('.btn--arrow');
-    expect(
-      arrows.length,
-      'no .btn--arrow rendered anywhere - the invariant is vacuous'
-    ).toBeGreaterThan(0);
-    expect(
-      arrows.filter(({ el }) => !el.classList.contains('btn--commit')).map(({ name }) => name)
-    ).toEqual([]);
+  // Phase 4 retired §6.2's `.btn--arrow` end: every forward banner spells its ▸ inside the
+  // label, so nothing may render the dead class — a survivor would ship as an unstyled no-op
+  // (the rules are gone) and quietly diverge from the unified banner spelling.
+  it('renders no survivor of the retired arrow modifier', () => {
+    expect(all('.btn--arrow')).toEqual([]);
   });
 });
