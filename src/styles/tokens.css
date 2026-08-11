@@ -4,16 +4,16 @@
   font-weight: 400;
   font-display: swap;
 }
+/* One file, one rule, both weights: Nunito is a variable font, so Google Fonts serves a single
+   woff2 per subset spanning the axis (see scripts/fetch-fonts.mjs). The ranged descriptor is what
+   makes `font-weight: 700` a genuine Nunito Bold instance — the browser pins the file's `wght` axis
+   to the weight asked for — where a lone `font-weight: 400` rule would leave it synthesizing fake
+   bold. Only 400 and 700 are used; anything between them would now render as a true intermediate
+   weight rather than snapping to one end. */
 @font-face {
   font-family: 'Nunito';
-  src: url('../assets/fonts/Nunito-400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Nunito';
-  src: url('../assets/fonts/Nunito-700.woff2') format('woff2');
-  font-weight: 700;
+  src: url('../assets/fonts/Nunito.woff2') format('woff2');
+  font-weight: 400 700;
   font-display: swap;
 }
 @font-face {

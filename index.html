@@ -19,9 +19,9 @@
          to the first HTML scan puts the fonts in hand before there is text to shape: TTI 1885ms,
          CLS 0, FCP 940ms, performance 1.00. `as`/`type` let the scanner prioritise it, and
          `crossorigin` matches the anonymous-CORS mode a sheet's own font fetch uses — without it
-         the sheet downloads each file a second time. Nunito's 700 is absent on purpose: no first
-         paint needs body bold, and it is byte-identical to the 400 in this vendor snapshot, so
-         Vite's content hashing resolves both @font-face rules to the one asset named below. -->
+         the sheet downloads each file a second time. Three links cover every weight the app uses:
+         Nunito is a variable font vendored as one ranged @font-face, so body regular and body bold
+         are the same file and body bold needs no preload of its own. -->
     <link
       rel="preload"
       href="/src/assets/fonts/Bangers-400.woff2"
@@ -31,7 +31,7 @@
     />
     <link
       rel="preload"
-      href="/src/assets/fonts/Nunito-400.woff2"
+      href="/src/assets/fonts/Nunito.woff2"
       as="font"
       type="font/woff2"
       crossorigin

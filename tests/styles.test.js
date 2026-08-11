@@ -40,8 +40,12 @@ describe('font attribution (OFL)', () => {
     ),
   ];
 
+  // One face per family, since Nunito's variable file is declared once with a ranged
+  // `font-weight: 400 700` rather than once per weight. That makes this equal the family count
+  // below, but it still earns its own assertion: a regex that silently stopped matching would fail
+  // here first, and this is the number that changes if a family ever needs a second file.
   it('finds every declared face', () => {
-    expect(faces.length).toBe(4);
+    expect(faces.length).toBe(3);
   });
 
   it('ships each family its own upstream license, naming a real holder', () => {
@@ -83,11 +87,10 @@ describe('font preloads', () => {
   const preloads = [
     ...html.matchAll(/<link\s+rel="preload"[^>]*href="\/src\/(assets\/[^"]+)"[^>]*>/g),
   ];
-  // The faces the first screen paints: one per family, at 400. Nunito's 700 is body bold, which
-  // no first paint needs, and this vendor snapshot's 700 file is byte-identical to its 400 — so
-  // Vite's content hashing emits *one* asset and both @font-face rules resolve to it. Preloading
-  // the 400 covers the 700 in the build, and naming the 700 here would only emit a duplicate
-  // link for a URL already claimed. See scripts/fetch-fonts.mjs if that snapshot is ever redone.
+  // The faces the first screen paints: one per family, three files, three links. Nunito is a
+  // variable font vendored as a single ranged `font-weight: 400 700` face, so body bold is the same
+  // file as body regular and needs no preload of its own — the 400 in the filter below matches the
+  // low end of that range, not a bold-less snapshot (see scripts/fetch-fonts.mjs).
   //
   // Read from the whole declaration block rather than reusing `faces` above, whose match ends at
   // the `src:` url and so never sees the `font-weight` this selection turns on.
