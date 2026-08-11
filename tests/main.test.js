@@ -502,18 +502,22 @@ describe('keyboard parity (spec §8)', () => {
     expect(q('[data-action="next-fight"]')).not.toBeNull();
   });
 
-  // Space is a button's own activation key. Swallowing it during FIGHT leaves a keyboard user
-  // parked on Strike unable to strike; the meter eats the press instead. Spec §8 is a floor.
-  it('leaves Space to a focused action button', () => {
+  // Space works the meter in a fight regardless of focus — including when a real action button
+  // holds it. The older behaviour stood Space down for a focused button "so a keyboard user
+  // parked on Strike can still strike", but Strike answers digit 1, so that user was never
+  // stuck; standing down only broke the follow-up (see the Press-focused regression test below).
+  // Spec §8 stays satisfied: the four actions keep their digits and any focused button still
+  // answers Enter, so no control is unreachable.
+  it('works the meter on Space even while an action button holds focus', () => {
     enterFight();
     const strike = q('[data-action="strike"]');
     strike.focus();
     expect(document.activeElement).toBe(strike);
-    clock = t0 + renderedCenter() * PERIOD; // a press here would otherwise capture a crit
+    clock = t0 + renderedCenter() * PERIOD;
     const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
     strike.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(false); // the browser may still activate the button
-    expect(q('[data-meter]').classList.contains('is-captured')).toBe(false);
+    expect(event.defaultPrevented).toBe(true); // Space is the meter's, so no stray button activation
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
   });
 
   it('still takes Space when nothing interactive holds focus', () => {
@@ -549,6 +553,38 @@ describe('keyboard parity (spec §8)', () => {
     expect(press('3').defaultPrevented).toBe(true);
     expect(press('x').defaultPrevented).toBe(false);
     expect(press('5').defaultPrevented).toBe(false);
+  });
+
+  // Regression (2026-08-11): "Press the Attack" resolved as a 0-damage miss under keyboard use.
+  // Root cause — `press` has no digit shortcut, so the only keyboard path to it is focusing the
+  // Press button and letting the browser natively activate it; but the press-offered turn is the
+  // one combat state where the meter is LIVE while a real <button> holds focus, and Space used to
+  // stand down for a focused button. So Space neither captured the meter nor let the player time
+  // the follow-up: the browser fired the uncaptured press → miss → 0 damage. In a fight the meter
+  // is Space's target no matter what holds focus (the four actions keep their digits; a focused
+  // button still answers Enter), so Space must capture here too.
+  it('works the meter on Space even while the Press button holds focus', () => {
+    enterFight();
+    captureAt(renderedCenter()); // time a crit…
+    act('1'); // …and land it: the press is now offered, the meter re-swept and live (act resyncs t0)
+    const pressBtn = q('[data-action="press"]');
+    expect(pressBtn, 'press was not offered').not.toBeNull();
+    pressBtn.focus();
+    clock = t0 + renderedCenter() * PERIOD; // Space here should freeze a crit, not a miss
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    pressBtn.dispatchEvent(event);
+    // Space drove the meter (and blocked the native button activation that would fire an
+    // uncaptured press), rather than standing aside for the focused button.
+    expect(event.defaultPrevented).toBe(true);
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
+    // The freeze landed on the crit, not a miss — Space actually timed the follow-up.
+    expect(q('.meter__stamp').textContent).toBe('CRIT!');
+    // …so committing lands the press as a crit instead of whiffing for 0. Asserted on the
+    // persistent announcer (not `.log`), since a crit press can end the bout and swap the screen.
+    q('[data-action="press"]').click();
+    const spoken = document.getElementById('log-announcer').textContent;
+    expect(spoken).toMatch(/PRESS the attack \(crit\)/);
+    expect(spoken).not.toMatch(/\(miss\) for 0/);
   });
 });
 

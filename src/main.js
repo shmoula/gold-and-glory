@@ -517,20 +517,22 @@ const KEYS = Object.assign(Object.create(null), {
   3: handlers.block,
   4: handlers.feint,
 });
-// Space is also a focused button's own activation key. Claiming it for the meter regardless of
-// focus leaves a keyboard user parked on Strike unable to strike, which fails spec §8's floor,
-// so when focus is on something that answers to Space, the meter stands down. The digits are
-// not contested by any control the fight screen renders, so they keep their binding.
-const INTERACTIVE = 'button, a[href], input, select, textarea, [contenteditable="true"]';
-const inInteractive = (target) =>
-  typeof target?.closest === 'function' && target.closest(INTERACTIVE) !== null;
-
+// This listener only ever runs during a FIGHT (the phase guard below), and in a fight the meter
+// is Space's target no matter what holds focus: the taunt and the meter's own aria-label both
+// say Space works the meter, and every action button either has a digit (1-4) or answers Enter,
+// so nothing needs Space to activate it.
+//
+// An earlier version stood Space down whenever a real button held focus — meant to keep a
+// keyboard user "parked on Strike" from being unable to strike. But Strike has digit 1, so that
+// user was never stuck; the only control with no shortcut is Press the Attack, and standing down
+// there was the 2026-08-11 regression: on the press-offered turn the meter is live while the
+// Press button holds focus, so Space captured nothing AND let the browser natively fire the
+// uncaptured press — a 0-damage miss. Space owning the meter in every fight state closes that.
 document.addEventListener('keydown', (e) => {
   // The enemy's beat is nobody's turn (phase 4 D5): the same guard the click handlers apply.
   if (state.phase !== PHASE.FIGHT || e.repeat || resolving) return;
   const run = KEYS[e.key];
   if (!run) return;
-  if (e.key === METER_KEY && inInteractive(e.target)) return;
   e.preventDefault();
   run();
 });
