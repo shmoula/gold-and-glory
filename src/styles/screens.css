@@ -8,14 +8,20 @@
   padding: var(--space-4);
 }
 
-/* HUB — spend left to right, commit bottom-right. Areas are spec §7 verbatim; the `hud` row
-   is reserved for the beam, which still renders above the section (Tasks 8/9 move it in). */
+/* HUB — spend left to right, size up the bout on the right, act on the beam below. The
+   screen's two run verbs live in the §-actions beam (components.css), the unified bottom
+   band every meta screen ends with: Retire at its left end (the conventional exit corner,
+   quieter face), Next Fight at its right (the forward-action corner) — the game-ui-design
+   separation rules hold inside the band, with the whole beam between the two targets. DOM
+   order is sinks, develop, fight, actions(retire, commit): visual, reading and tab order
+   are one thing, and the destructive control is never the screen's last-focused surprise —
+   the primary is. */
 .screen--hub {
   grid-template-columns: 230px 1fr 300px;
   grid-template-areas:
     'hud     hud     hud'
     'sinks   develop fight'
-    'retire  retire  commit';
+    'actions actions actions';
 }
 /* sinks: Repair/Heal/Bribe stack · develop: Training rows + Gear Shop grid + Sponsor
    fight: YOU poster + NEXT BOUT poster (once!) · retire: Retire Rich · commit: Next Fight */
@@ -25,6 +31,44 @@
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-2);
+}
+/* A sink plank carries four parts — well, label, price, snark — and the column is narrow at
+   every width, so the single-line `.btn` row overflowed: the snark ran past the plank's own
+   border. Let the row wrap and give the aside its own full-width line, left-set like the
+   gear cards' — a plank this tall reads as a card, and centred fragments read as an accident. */
+.hub__sinks .btn {
+  position: relative; /* the anchor for the mini-figure badges below */
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+  text-align: left;
+}
+.hub__sinks .btn .btn__snark {
+  flex-basis: 100%;
+}
+/* The phase 3 mini figures, re-hung. As pseudo *flex items* they sat in the content row —
+   26px of art plus a margin ahead of the icon well (the "weird left padding"), riding high on
+   the baseline, and pushing the row into overflow. They are decoration, so they perch on the
+   plank's top-right edge exactly the way the training mascots perch on their rows — absolute,
+   inert, out of the input path and the layout. */
+.hub__sinks .btn::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  right: 12px;
+  width: 30px;
+  height: 28px;
+  background: center / contain no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.hub__sinks .btn[data-action='repair']::before {
+  background-image: url('../assets/art/sink-blacksmith.svg');
+}
+.hub__sinks .btn[data-action='heal']::before {
+  background-image: url('../assets/art/sink-doctor.svg');
+}
+.hub__sinks .btn[data-action='bribe']::before {
+  background-image: url('../assets/art/sink-official.svg');
 }
 .hub__develop {
   grid-area: develop;
@@ -44,13 +88,127 @@
   flex-direction: column;
   gap: var(--space-4);
 }
-.hub__retire {
-  grid-area: retire;
+.hub__actions {
+  grid-area: actions;
+  /* The two verbs hold the band's ends; everything between them is separation. */
+  justify-content: space-between;
+  position: relative;
 }
-.hub__commit {
-  grid-area: commit;
-  justify-self: end;
+/* Prominence tracks frequency (game-ui-design): Retire fires at most once a run, so it takes
+   a quieter face than the every-loop commit — one display step down, tighter padding. It
+   keeps Law 3's blue (it IS an irreversible commitment) and `.btn`'s 44px minimum target. */
+.hub__actions [data-action='retire'] {
+  font-size: var(--text-lg);
+  padding: var(--space-1) var(--space-4);
+  /* `.btn` aligns its items on the baseline, which reads as top-set once this quieter face
+     leaves slack under the 44px minimum height — centre the single label instead. */
+  align-items: center;
 }
+/* The gladiators emblem, centred on the beam between the two verbs. Decorative and absolute:
+   as a flex item it would sit beside one button and read as its icon. */
+.hub__actions::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 28px;
+  background: url('../assets/art/gladiators-fighting.svg') center / contain no-repeat;
+  pointer-events: none;
+}
+/* On phones the two verbs own the whole beam — no middle left to decorate. */
+@media (max-width: 640px) {
+  /* And no ends left to hold, once they wrap: `space-between` distributes *between* items, so a
+     line carrying one button parks it at the start edge and the beam reads as left-ragged. The
+     wrap is not hypothetical at 375px — arming Retire swaps its label for "Sure? Retiring ends
+     the run", which is wider than the two verbs' shared line. Fall back to `.screen-actions`'
+     own centring, which is what every other screen's beam already does. */
+  .hub__actions {
+    justify-content: center;
+  }
+  .hub__actions::before {
+    display: none;
+  }
+}
+/* Phase 4 (D3, twice generalised): the hub's posters are ALWAYS status strips — the hub is a
+   management dashboard, and the strips are what guarantee its whole decision surface (sinks,
+   shop, posters, the actions beam) shares one viewport at every common window size; the 780px
+   height cutoff this replaces left 781–900px-tall windows scrolling for the beam. The fight
+   keeps the full wanted-poster drama where space allows, stripping only when the viewport is
+   narrow or short. */
+.screen--hub .poster {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+}
+.screen--hub .poster__name {
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--text-xl);
+  text-align: left;
+}
+.screen--hub .poster__portrait {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+}
+.screen--hub .poster .bar {
+  grid-column: 2;
+  margin-top: var(--space-1);
+}
+.screen--hub .poster__sub,
+.screen--hub .poster .snark {
+  grid-column: 1 / -1;
+}
+@media (max-width: 900px), (min-width: 641px) and (max-height: 780px) {
+  .screen--fight .poster {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    column-gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+  }
+  .screen--fight .poster__name {
+    grid-column: 2;
+    margin: 0;
+    font-size: var(--text-xl);
+    text-align: left;
+  }
+  .screen--fight .poster__portrait {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    aspect-ratio: 1 / 1;
+    margin: 0;
+  }
+  .screen--fight .poster .bar {
+    grid-column: 2;
+    margin-top: var(--space-1);
+  }
+  .screen--fight .poster__sub,
+  .screen--fight .poster .snark {
+    grid-column: 1 / -1;
+  }
+}
+/* The centrepiece posters' short-viewport concession: less portrait, same composition. Up to
+   900px of height, not 780 — the same 781–900 window band the hub fix above covers. */
+@media (max-height: 900px) and (min-width: 641px) {
+  .result__recap .poster__portrait,
+  .ending-card .poster__portrait {
+    max-height: 140px;
+  }
+}
+/* Three-up gear shop where the develop column is wide: one card row instead of two, which
+   buys the middle column the height the one-viewport hub needs. */
+@media (min-width: 901px) {
+  .hub__shop {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
 /* Hub layout label, not a §6 component: the eyebrow over the NEXT BOUT poster. */
 .hub__next-label {
   font-family: var(--font-display);
@@ -103,15 +261,12 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
 }
-/* §7 amendment (decision 2): the commit arrow closes the screen's reading order, seated in the
-   corner of its own area rather than stretched across it — `justify-self`/`align-self` are what
-   make a bottom-right button out of a full-width cell. Content-sizing the slot is also what
-   keeps `.btn--commit.btn--arrow`'s triangle inside the grid: the triangle lives in the button's
-   `margin-right`, so the cell has to hug the button's margin box, not the track.
-   `justify-self` deliberately survives the ≤640px reset below — that block neutralises
-   `justify-self` for `.commit-bar` only, and this is a commit *arrow*, not a commit bar. The
-   stacked arrow stays right-aligned in flow (§7 amendment's slot legend), which is the intent,
-   not an oversight: verified at 375px, content-sized and no overflow. */
+/* §7 amendment (decision 2): the press banner closes the screen's reading order, seated in
+   the corner of its own area rather than stretched across it — `justify-self`/`align-self`
+   are what make a bottom-right button out of a full-width cell. (Until phase 4 the banner
+   carried §6.2's `.btn--arrow` triangular end; the ▸ now lives inside the label like every
+   other forward banner, so the slot hugs a plain border box.) The stacked banner stays
+   right-aligned in flow at ≤640px, which is the intent, not an oversight. */
 .fight__press {
   grid-area: press;
   justify-self: end;
@@ -133,20 +288,38 @@
 .result__recap {
   grid-area: recap;
   position: relative;
+  /* Phase 4 (D9): verdict first, corpse second — the stamp is the screen's headline and the
+     beaten poster its supporting cut, so the poster is capped and centred and the stamp takes
+     the death-size display step. */
+  text-align: center;
+}
+.result__recap .banner-stamp {
+  font-size: var(--text-4xl);
+}
+.result__recap .poster {
+  max-width: 340px;
+  margin: 0 auto;
 }
 .result__ledger {
   grid-area: ledger;
 }
 .result__cta {
   grid-area: cta;
-  justify-self: center;
+  /* Stretch, not center: the actions beam is one full-width band on every meta screen —
+     the button centres inside it (components.css), the beam itself always spans. */
 }
 /* The X is drawn over the whole recap column rather than over an extra wrapper around the
    poster: §6.0's class index is closed, and the bars land across the portrait at these
    offsets. `pointer-events: none` so it cannot eat the click that skips the ledger theater. */
 .result__cross {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  /* The X tracks the capped, centred poster (phase 4 D9) rather than the whole recap column,
+     or its bars would overshoot the portrait into the empty flanks. */
+  left: 50%;
+  width: min(340px, 100%);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 .result__cross::before,
@@ -215,7 +388,7 @@
 }
 .gameover__cta {
   grid-area: cta;
-  justify-self: center;
+  /* Stretch like .result__cta: the beam spans, its button centres. */
 }
 
 /* §6.14 Phase 2 amendment: the death screen's dressing layer. Decorative, absolute, inert —
@@ -315,29 +488,30 @@
 }
 
 @media (max-width: 900px) {
-  /* Area order tracks renderHub's DOM order — sinks, develop, fight, retire, commit — so the
+  /* Area order tracks renderHub's DOM order — sinks, develop, fight, commit, retire — so the
      eye reads the same sequence a keyboard tabs (§8, WCAG 1.3.2/2.4.3). `grid-template-areas`
      changes visual order, not tab order, so a grid that paints fight before develop while the
      renderer emits develop first leaves the two out of step. sinks and develop pair on the top
-     content row; the fight posters take a full-width band below them. */
+     content row; the fight posters and the two run controls take full-width bands below. */
   .screen--hub {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'retire commit';
+    grid-template-rows: none;
+    grid-template-areas: 'hud hud' 'sinks develop' 'fight fight' 'actions actions';
   }
-  /* Same rule here: area order is renderFight's DOM order — you, stage, foe, actions, log,
-     press — so visual, reading and tab order stay one thing (§8). The posters stack down the
-     left column with the meter spanning beside them; actions, commentary and the commit arrow
-     take full-width bands below, in the order the markup emits them. */
+  /* Same rule here: area order is renderFight's DOM order — stage, actions, you, foe, log,
+     press (phase 4 D3: the core verb leads) — so visual, reading and tab order stay one thing
+     (§8). Meter and actions take the top full-width bands, the two fighter strips pair below
+     them, commentary and the commit arrow close the screen, in the order the markup emits. */
   /* Rows must be reset with the areas. The base rule's `auto auto 1fr auto` is written for the
      four-row desktop grid where the free space belongs to the actions row; this grid has more
-     rows and a spanning stage, so the leftover `1fr` would land on whatever row 3 happens to
-     be. Inert while `.screen` is auto-height (free space is 0), but it is a trap the moment
-     Tasks 8/9 give a screen a definite height. `none` rather than a hand-counted track list: at
-     this width every row should size to its content. */
+     rows, so the leftover `1fr` would land on whatever row 3 happens to be. Inert while
+     `.screen` is auto-height (free space is 0), but it is a trap the moment a screen gets a
+     definite height. `none` rather than a hand-counted track list: at this width every row
+     should size to its content. */
   .screen--fight {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: none;
-    grid-template-areas: 'hud hud' 'you stage' 'foe stage' 'actions actions' 'log log' 'press press';
+    grid-template-areas: 'hud hud' 'stage stage' 'actions actions' 'you foe' 'log log' 'press press';
   }
   /* Spec §7 drops this screen's areas entirely here ("natural stacking order via source
      order") — which is the ≤640px overlap bug, one breakpoint early: the three children keep
@@ -357,6 +531,12 @@
   }
 }
 @media (max-width: 640px) {
+  /* Phase 4 (D3): at phone widths the strip sheds its editorial extras — the HP bar and name
+     carry the fight; tier/purse and the aside are hub reading. */
+  .screen--fight .poster__sub,
+  .screen--fight .poster .snark {
+    display: none;
+  }
   /* One stack reset for every screen, present and future. Both halves are required:
      `grid-template-columns: 1fr` alone does not stack, because a multi-column
      grid-template-areas keeps its extra columns as *implicit* auto tracks. Dropping the areas
@@ -383,32 +563,10 @@
   .screen > * {
     grid-area: auto;
   }
-  /* `justify-self` is the fourth half of the reset, and spec §7 omits it exactly as it omits the
-     `grid-area` one above. Every element that carries `.commit-bar` also carries its screen's own
-     slot class — `.hub__commit` (`end`), `.result__cta` / `.gameover__cta` (`center`) — and an
-     `end`/`center` grid item is *content-sized*, so the bar was a 173px chip floating over
-     whatever it stuck above (measured at 375px: 173px wide at left: 170, its `border-top`
-     spanning a third of the screen). A sticky-bottom bar with a wood ground and a top border is a
-     footer, and a footer is full-bleed: `stretch` is what makes that border read as a divider
-     rather than a stub. Same (0,1,0) as the three slot classes and later in the sheet, so it wins
-     on source order alone - no `!important`. `text-align` keeps the button centred in the new
-     full-width ground: the two CTA screens already centred theirs, and left-hard against a
-     full-bleed plank is nobody's intent. tests/grid-areas.test.js fails if a rendered commit bar
-     is left content-sized at either mobile width. */
-  .commit-bar {
-    position: sticky;
-    bottom: var(--frame-w);
-    z-index: var(--z-hud);
-    justify-self: stretch;
-    text-align: center;
-    /* `stretch` fills the grid column, but the column is not the viewport: since item 34 the
-       page gutter lives on `.screen` alone (one `var(--space-4)`), so the bar stops 16px short of
-       both edges and its `border-top` — the divider the footer is for — spanned only the middle.
-       Cancel that single gutter with a matching negative margin, then pad the content back in, so
-       the wood ground and its divider reach the viewport edges the sticky footer is meant to span. */
-    margin: 0 calc(-1 * var(--space-4));
-    padding: var(--space-2) var(--space-4);
-    background: var(--grad-wood);
-    border-top: var(--border-w) solid var(--border-ink);
-  }
 }
+
+/* The commit bar is a semantic hook, not a treatment: it marks each screen's forward-action
+   slot (`.hub__commit`, `.result__cta`, `.gameover__cta`), and the slot classes place it in
+   their own grids. The fixed-footer treatment it briefly carried is gone (phase 4 follow-up):
+   a viewport-pinned bar spent its own height on every screen and still left Retire Rich below
+   the fold — the screens now fit the viewport instead, which is what the bar was for. */

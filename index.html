@@ -9,11 +9,44 @@
     />
     <title>Gold &amp; Glory</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- The three faces the first screen paints (tokens.css declares them; tests/styles.test.js
+         derives this list from those @font-face rules). Declared here rather than left to the
+         sheet because a stylesheet font is discovered late by construction: the browser must
+         fetch the CSS, run the module that renders the first text, and match a rule to it before
+         it may so much as ask for a woff2 — and the swap that follows re-lays-out the page it has
+         already painted. Lighthouse measures Time to Interactive to the end of that trailing
+         style-and-layout pass, which is how a 2000ms budget broke on 2037ms. Hoisting the fetch
+         to the first HTML scan puts the fonts in hand before there is text to shape: TTI 1885ms,
+         CLS 0, FCP 940ms, performance 1.00. `as`/`type` let the scanner prioritise it, and
+         `crossorigin` matches the anonymous-CORS mode a sheet's own font fetch uses — without it
+         the sheet downloads each file a second time. Three links cover every weight the app uses:
+         Nunito is a variable font vendored as one ranged @font-face, so body regular and body bold
+         are the same file and body bold needs no preload of its own. -->
+    <link
+      rel="preload"
+      href="/src/assets/fonts/Bangers-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/src/assets/fonts/Nunito.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/src/assets/fonts/PatrickHand-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <div class="stage-backdrop" aria-hidden="true"></div>
-    <div class="stage-frame" aria-hidden="true"></div>
     <main id="app"></main>
     <script type="module" src="/src/main.js"></script>
   </body>

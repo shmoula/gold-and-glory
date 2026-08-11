@@ -149,20 +149,11 @@ describe('btn', () => {
     expect(dom(btn('heal', 'Heal')).querySelector('.icon-well')).toBeNull();
   });
 
-  // §6.2 amendment: `.btn--arrow` is a *modifier* stacked on `.btn--commit`, never a variant of
-  // its own — the fight screen's PRESS THE ATTACK keeps the commit banner's blue and gains the
-  // triangular end. Class set, not a literal class string, per this file's rule at the top.
-  it('stacks the arrow modifier on the commit banner when opts.arrow is set (§6.2 amendment)', () => {
-    const button = dom(btn('press', 'Press ▸', { variant: 'commit', arrow: true })).querySelector(
-      'button'
-    );
-    expect([...button.classList]).toEqual(
-      expect.arrayContaining(['btn', 'btn--commit', 'btn--arrow'])
-    );
-  });
-
-  it('omits the arrow modifier unless it is asked for', () => {
-    for (const opts of [{}, { variant: 'commit' }, { variant: 'commit', arrow: false }]) {
+  // Phase 4 retired §6.2's `.btn--arrow` modifier: every forward banner spells its ▸ inside
+  // the label (one spelling, and the whole banner — glyph included — hovers as one surface),
+  // so btn() must never mint the dead class again.
+  it('never emits the retired arrow modifier', () => {
+    for (const opts of [{}, { variant: 'commit' }]) {
       const button = dom(btn('press', 'Press ▸', opts)).querySelector('button');
       expect([...button.classList]).not.toContain('btn--arrow');
     }
@@ -750,8 +741,13 @@ describe('renderHub layout', () => {
     expect(html).toContain('hub__sinks');
     expect(html).toContain('hub__develop');
     expect(html).toContain('hub__fight');
-    expect(html).toContain('hub__retire');
+    // The unified actions beam (phase 4 follow-up): both run verbs share one band, retire
+    // first in DOM as on screen (left end), the forward action closing the ring.
+    expect(html).toContain('hub__actions');
     expect(html).toContain('commit-bar');
+    expect(html.indexOf('data-action="retire"')).toBeLessThan(
+      html.indexOf('data-action="next-fight"')
+    );
   });
 
   it('names the next opponent exactly once', () => {
@@ -1636,7 +1632,9 @@ describe('logEntry (spec §6.9)', () => {
     const html = logEntry(
       entry({ text: '{who} strikes (hit) for {taken}.', who: 'The Brute', taken: 9 })
     );
-    const glyph = html.match(/<span aria-hidden="true">(.)<\/span>/)[1];
+    // `.log__glyph` (phase 4 D5): the bare glyph at text size scanned as "× 9", so the class
+    // is what inks and sizes it apart — its presence is part of the channel, not decoration.
+    const glyph = html.match(/<span class="log__glyph" aria-hidden="true">(.)<\/span>/)[1];
     expect(glyph.codePointAt(0)).toBe(SWORD);
     expect(html).toContain('The Brute strikes (hit) for ');
     expect(html).toContain('9.');
@@ -1885,19 +1883,22 @@ describe('renderFight', () => {
     expect(foe).not.toContain('-6');
   });
 
-  // §7 amendment (decision 2). Source order *is* reading order and tab order — the grid areas
-  // move these blocks around the screen, they never reorder them — so the order of the
-  // section's own children is the behaviour worth pinning, not the pixels.
-  it('composes the fight centre column meter → actions → log → press (decision 2)', () => {
+  // Phase 4 (D3), superseding §7-amendment decision 2's child order. Source order *is* reading
+  // order and tab order — the grid areas move these blocks around the screen, they never
+  // reorder them — so the order of the section's own children is the behaviour worth pinning,
+  // not the pixels. The stage leads because the meter is the turn's first required act, and on
+  // the stacked mobile grids source order is also visual order: the old you-first order put a
+  // full-height poster above the fold and the core verb below it.
+  it('composes the fight screen stage → actions → posters → log → press (phase 4 D3)', () => {
     const section = dom(fightHtml({ canPress: true })).querySelector('.screen--fight');
     const areas = [...section.children].map((el) =>
       [...el.classList].find((c) => c.startsWith('fight__'))
     );
     expect(areas).toEqual([
-      'fight__you',
       'fight__stage',
-      'fight__foe',
       'fight__actions',
+      'fight__you',
+      'fight__foe',
       'fight__log',
       'fight__press',
     ]);
@@ -1926,11 +1927,9 @@ describe('renderFight', () => {
     const press = dom(fightHtml({ canPress: true })).querySelector('.fight__press button');
     expect(press.getAttribute('data-action')).toBe('press');
     // Exact, not `arrayContaining`: at this call site the set is fully known, so equality is
-    // free and catches a stray `is-urgent` or a doubled modifier. (The `btn` unit test keeps
-    // `arrayContaining`, where other options legitimately add classes.) `.btn--arrow` never
-    // travels without `.btn--commit` — components.css scopes both arrow rules to the pair, and
-    // tests/a11y.test.js holds the markup half of that invariant across every screen.
-    expect([...press.classList].sort()).toEqual(['btn', 'btn--arrow', 'btn--commit']);
+    // free and catches a stray `is-urgent` or a doubled modifier. A plain commit banner since
+    // phase 4 retired the `.btn--arrow` end — the ▸ lives inside the label.
+    expect([...press.classList].sort()).toEqual(['btn', 'btn--commit']);
 
     // The slot is unconditional — the grid area exists whether or not the offer does, so the
     // layout does not reflow the moment a press becomes available. Only the button is
@@ -1958,6 +1957,8 @@ describe('renderFight', () => {
     // The meter is the stage, not a stray sibling of it.
     expect(html.indexOf('fight__stage')).toBeLessThan(html.indexOf('data-meter'));
     expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('fight__foe'));
+    // Phase 4 (D3): the actions follow the stage directly; the posters come after both.
+    expect(html.indexOf('fight__actions')).toBeLessThan(html.indexOf('fight__you'));
   });
 });
 
@@ -2079,6 +2080,71 @@ describe('renderFight timing meter (spec §6.4)', () => {
     const html = renderFight(fightState({ wins: 0 }), CONFIG);
     expect(html.indexOf('meter__taunt')).toBeGreaterThan(-1);
     expect(html.indexOf('meter__taunt')).toBeLessThan(html.indexOf('data-meter'));
+  });
+
+  // Phase 4 (D8): the digits 1–4 have been keyboard bindings since spec §8, but nothing on
+  // screen ever said so. Each action button carries its digit as an aria-hidden chip — the
+  // document handler is the mechanism and the label already names the action, so the chip is
+  // sighted-only; CSS drops it for coarse pointers.
+  it('hints each fight action with its aria-hidden digit', () => {
+    const host = dom(renderFight(fightState(), CONFIG));
+    for (const [action, digit] of [
+      ['strike', '1'],
+      ['heavy', '2'],
+      ['block', '3'],
+      ['feint', '4'],
+    ]) {
+      const kbd = host.querySelector(`[data-action="${action}"] kbd.key-hint`);
+      expect(kbd, `no hint on ${action}`).not.toBeNull();
+      expect(kbd.textContent).toBe(digit);
+      expect(kbd.getAttribute('aria-hidden')).toBe('true');
+    }
+    // Hint-less buttons emit no <kbd> — the chip is opt-in per call site. Asserted on the press
+    // banner, the fight's one button that passes no keyHint: this used to read `[data-meter]`,
+    // which is the meter track, not a button, and whose Space chip lives in the sibling
+    // `.meter__legend` anyway — so it passed for a reason unrelated to what it claims to check.
+    const pressed = dom(renderFight(fightState({ combat: { canPress: true } }), CONFIG));
+    expect(
+      pressed.querySelector('[data-action="press"]'),
+      'no press banner to check'
+    ).not.toBeNull();
+    expect(pressed.querySelector('[data-action="press"] kbd')).toBeNull();
+  });
+
+  // Phase 4 (D9): a blank parchment scroller reads as a rendering failure, so the strip's
+  // pre-fight state is one status-register line. Real entries retire it — the placeholder is
+  // the empty state, never a header.
+  it('renders one placeholder line in an empty log, and none once the bout begins', () => {
+    const fresh = fightState();
+    expect(fresh.combat.log).toHaveLength(0);
+    const empties = (s) => dom(renderFight(s, CONFIG)).querySelectorAll('.log__entry--empty');
+    expect(empties(fresh)).toHaveLength(1);
+    const fought = fightState({
+      combat: { log: [{ turn: 1, kind: 'attack', text: 'You strike (hit) for {dmg}.', dmg: 7 }] },
+    });
+    expect(empties(fought)).toHaveLength(0);
+    expect(dom(renderFight(fought, CONFIG)).querySelectorAll('.log__entry')).toHaveLength(1);
+  });
+
+  // Phase 4 (D4): the legend replaced the old fixed six-label row, which was evenly spaced
+  // under zones that are seeded per turn — the words never sat over the bands they named. A
+  // legend states the mapping (one chip per band, plus the miss catch-all), which is true at
+  // every seeded position. aria-hidden: the meter's aria-label and the spoken log carry the
+  // same facts for AT, so the legend is the sighted user's colour key, not a second channel.
+  it('draws an honest zone legend instead of positional labels', () => {
+    const html = renderFight(fightState(), CONFIG);
+    expect(html).not.toContain('meter__labels');
+    const legend = dom(html).querySelector('.meter__legend');
+    expect(legend).not.toBeNull();
+    expect(legend.getAttribute('aria-hidden')).toBe('true');
+    for (const name of ['graze', 'hit', 'crit']) {
+      expect(legend.querySelector(`.legend__chip--${name}`), `chip for ${name}`).not.toBeNull();
+    }
+    expect(legend.querySelector('.legend__item--miss').textContent).toMatch(/miss/i);
+    // The Space hint is a sighted affordance; the aria-label already names the key.
+    expect(legend.querySelector('kbd.key-hint').textContent).toBe('Space');
+    // Below the track, where the row it replaced sat.
+    expect(html.indexOf('data-meter')).toBeLessThan(html.indexOf('meter__legend'));
   });
 });
 

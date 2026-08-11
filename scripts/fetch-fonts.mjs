@@ -7,6 +7,17 @@ const UA =
 // `ofl` is the family's directory in github.com/google/fonts, whose OFL.txt carries the real
 // copyright line. `license` is what it is vendored as. One per family, never shared: the three
 // families have three different copyright holders, and a single file can only name one of them.
+//
+// `out` maps a face's font-weight descriptor — verbatim as css2 declares it — to the filename it is
+// vendored as. Bangers and Patrick Hand are static single-weight fonts, hence the `-400` suffix and
+// the single-value key. Nunito is a *variable* font: css2 serves one woff2 per subset spanning the
+// whole weight axis, so `wght@400..700` returns a single face declared `font-weight: 400 700`, and
+// asking for `wght@400;700` instead would return two blocks whose `src` is that same one file.
+// So there is one unsuffixed Nunito.woff2 and one ranged @font-face in tokens.css, whose descriptor
+// pins the file's `wght` axis per use site — that range is what makes body bold a real Nunito Bold
+// instance rather than browser-synthesized fake bold. Keying on the literal descriptor rather than
+// on a parsed number is what lets the "never written" guard below notice a shape change upstream
+// instead of silently mapping around it.
 const FAMILIES = [
   {
     spec: 'Bangers',
@@ -15,10 +26,10 @@ const FAMILIES = [
     out: { 400: 'Bangers-400.woff2' },
   },
   {
-    spec: 'Nunito:wght@400;700',
+    spec: 'Nunito:wght@400..700',
     ofl: 'nunito',
     license: 'OFL-Nunito.txt',
-    out: { 400: 'Nunito-400.woff2', 700: 'Nunito-700.woff2' },
+    out: { '400 700': 'Nunito.woff2' },
   },
   {
     spec: 'Patrick+Hand',
@@ -49,7 +60,7 @@ for (const { spec, out } of FAMILIES) {
   ).text();
   for (const m of css.matchAll(/\/\* (\w[\w-]*) \*\/\s*@font-face\s*\{([^}]*)\}/g)) {
     if (m[1] !== 'latin') continue;
-    const weight = m[2].match(/font-weight:\s*(\d+)/)?.[1];
+    const weight = m[2].match(/font-weight:\s*([^;]+);/)?.[1].trim();
     const url = m[2].match(/url\((https:\/\/[^)]+\.woff2)\)/)?.[1];
     if (!weight || !url || !out[weight]) continue;
     const buf = Buffer.from(await (await get(url)).arrayBuffer());
@@ -59,8 +70,9 @@ for (const { spec, out } of FAMILIES) {
   }
 }
 
-// Every declared file must land — a silent miss means Google changed the css2 response
-// shape (e.g. collapsed 400+700 into one ranged block) and the regex needs updating.
+// Every declared file must land — a silent miss means Google changed the css2 response shape (e.g.
+// split Nunito's ranged block back into one block per weight, so no face declares `400 700` any
+// more) and the `out` keys or the regex need updating.
 const expected = FAMILIES.flatMap(({ out }) => Object.values(out));
 const missing = expected.filter((f) => !written.includes(f));
 if (missing.length) throw new Error(`never written: ${missing.join(', ')}`);

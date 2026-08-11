@@ -11,7 +11,12 @@ import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/rng.js';
 import { sweetCenter } from '../src/ui/timing.js';
 import { formatGold } from '../src/ui/format.js';
-import { CHIP_LIFE_MS, REDUCED_CHIP_LIFE_MS } from '../src/ui/effects.js';
+import {
+  CHIP_LIFE_MS,
+  REDUCED_CHIP_LIFE_MS,
+  ENEMY_BEAT_MS,
+  HIT_FLASH_MS,
+} from '../src/ui/effects.js';
 import { dtLabel } from './support/ledger.js';
 
 const SEED_ROLL = 0.4242; // what Math.random is pinned to below
@@ -41,15 +46,29 @@ function press(key, init = {}) {
   return event;
 }
 
+// Phase 4 (D5): a fight action schedules the enemy's reply one ENEMY_BEAT_MS later. Most of
+// this file asserts whole-exchange outcomes — the beat is presentation pacing, not the
+// behaviour under test — so the helpers flush it before handing back, and the dedicated
+// sequencing describe below drives the beat by hand instead of using them. The guard is the
+// beat's own DOM signal (scheduleEnemy disables the four action planks), so a capture, a hub
+// click or a fight-ending blow flushes nothing.
+function flushBeat() {
+  if (vi.isFakeTimers() && q('.fight__grid .btn[disabled]')) {
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+  }
+}
+
 // A key that resolves the turn: the re-render restarts the sweep at "now".
 function act(key, init = {}) {
   const event = press(key, init);
+  flushBeat();
   t0 = clock;
   return event;
 }
 
 function click(sel) {
   q(sel).click();
+  flushBeat();
   t0 = clock;
 }
 
@@ -132,8 +151,21 @@ beforeEach(async () => {
   vi.stubGlobal('requestAnimationFrame', raf);
   vi.stubGlobal('cancelAnimationFrame', caf);
 
+  // Fake timers file-wide (phase 4 D5): the enemy's reply now rides a setTimeout, and a real
+  // 550ms timer never fires inside a synchronous test. Same toFake list as the withTimers
+  // helpers below — `performance` stays real so the `performance.now` spy keeps its clock.
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+  });
+
   await loadMain();
+  // Phase 4 (D6): boot shows the one-time intro dialog. Everything in this file tests the
+  // game behind it, so the shared setup dismisses it; the intro describe below loads its own
+  // fresh instances to test the dialog itself.
+  document.querySelector('[data-intro-start]')?.click();
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe('sweet-spot seeding', () => {
   it('seeds a centre inside the configured band for the first player turn', () => {
@@ -470,18 +502,22 @@ describe('keyboard parity (spec §8)', () => {
     expect(q('[data-action="next-fight"]')).not.toBeNull();
   });
 
-  // Space is a button's own activation key. Swallowing it during FIGHT leaves a keyboard user
-  // parked on Strike unable to strike; the meter eats the press instead. Spec §8 is a floor.
-  it('leaves Space to a focused action button', () => {
+  // Space works the meter in a fight regardless of focus — including when a real action button
+  // holds it. The older behaviour stood Space down for a focused button "so a keyboard user
+  // parked on Strike can still strike", but Strike answers digit 1, so that user was never
+  // stuck; standing down only broke the follow-up (see the Press-focused regression test below).
+  // Spec §8 stays satisfied: the four actions keep their digits and any focused button still
+  // answers Enter, so no control is unreachable.
+  it('works the meter on Space even while an action button holds focus', () => {
     enterFight();
     const strike = q('[data-action="strike"]');
     strike.focus();
     expect(document.activeElement).toBe(strike);
-    clock = t0 + renderedCenter() * PERIOD; // a press here would otherwise capture a crit
+    clock = t0 + renderedCenter() * PERIOD;
     const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
     strike.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(false); // the browser may still activate the button
-    expect(q('[data-meter]').classList.contains('is-captured')).toBe(false);
+    expect(event.defaultPrevented).toBe(true); // Space is the meter's, so no stray button activation
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
   });
 
   it('still takes Space when nothing interactive holds focus', () => {
@@ -517,6 +553,38 @@ describe('keyboard parity (spec §8)', () => {
     expect(press('3').defaultPrevented).toBe(true);
     expect(press('x').defaultPrevented).toBe(false);
     expect(press('5').defaultPrevented).toBe(false);
+  });
+
+  // Regression (2026-08-11): "Press the Attack" resolved as a 0-damage miss under keyboard use.
+  // Root cause — `press` has no digit shortcut, so the only keyboard path to it is focusing the
+  // Press button and letting the browser natively activate it; but the press-offered turn is the
+  // one combat state where the meter is LIVE while a real <button> holds focus, and Space used to
+  // stand down for a focused button. So Space neither captured the meter nor let the player time
+  // the follow-up: the browser fired the uncaptured press → miss → 0 damage. In a fight the meter
+  // is Space's target no matter what holds focus (the four actions keep their digits; a focused
+  // button still answers Enter), so Space must capture here too.
+  it('works the meter on Space even while the Press button holds focus', () => {
+    enterFight();
+    captureAt(renderedCenter()); // time a crit…
+    act('1'); // …and land it: the press is now offered, the meter re-swept and live (act resyncs t0)
+    const pressBtn = q('[data-action="press"]');
+    expect(pressBtn, 'press was not offered').not.toBeNull();
+    pressBtn.focus();
+    clock = t0 + renderedCenter() * PERIOD; // Space here should freeze a crit, not a miss
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    pressBtn.dispatchEvent(event);
+    // Space drove the meter (and blocked the native button activation that would fire an
+    // uncaptured press), rather than standing aside for the focused button.
+    expect(event.defaultPrevented).toBe(true);
+    expect(q('[data-meter]').classList.contains('is-captured')).toBe(true);
+    // The freeze landed on the crit, not a miss — Space actually timed the follow-up.
+    expect(q('.meter__stamp').textContent).toBe('CRIT!');
+    // …so committing lands the press as a crit instead of whiffing for 0. Asserted on the
+    // persistent announcer (not `.log`), since a crit press can end the bout and swap the screen.
+    q('[data-action="press"]').click();
+    const spoken = document.getElementById('log-announcer').textContent;
+    expect(spoken).toMatch(/PRESS the attack \(crit\)/);
+    expect(spoken).not.toMatch(/\(miss\) for 0/);
   });
 });
 
@@ -556,18 +624,29 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     expect(live()).toBe(region); // same node, so the announcement is a real content change
   });
 
-  it('announces the turn that just happened, not the whole strip', () => {
+  // Phase 4 (D5): the exchange lands in two renders, so it is spoken in two utterances — the
+  // player's verdict with the stamp, the enemy's reply one beat later with its own render.
+  // Better than the single utterance it replaced: the verdict is spoken the moment the sighted
+  // player sees it, and the 550ms gap keeps the second write from clobbering the first
+  // mid-speech (two same-tick writes to one atomic region speak only the last).
+  it('announces each half of the exchange as its own utterance', () => {
     enterFight();
     expect(live().textContent).toBe('');
-    act('1'); // a miss, then the enemy's answer: one exchange, one utterance
+    press('1'); // the player's half renders and speaks immediately…
+    expect(live().textContent).toContain('You strike (miss) for 0 damage.');
+    expect(live().textContent).not.toContain('strikes ('); // …without the reply
+    flushBeat(); // the enemy's answer arrives one beat later, as its own utterance
+    t0 = clock;
     const spoken = live().textContent;
-    expect(spoken).toContain('You strike (miss) for 0 damage.');
-    expect(spoken).toContain('strikes ('); // the enemy's reply is in the same announcement
+    expect(spoken).toContain('strikes (');
+    expect(spoken).not.toContain('You strike'); // the previous utterance is not repeated
     expect(spoken).not.toContain('<'); // plain speech, never markup
     expect(spoken).not.toMatch(/T\d/); // and no turn stamps read out loud
-    act('2');
+    press('2');
     expect(live().textContent).toContain('You heavy (miss)');
-    expect(live().textContent).not.toContain('You strike'); // the last turn is not repeated
+    expect(live().textContent).not.toContain('strikes ('); // the last reply is not repeated
+    flushBeat();
+    t0 = clock;
   });
 
   // The Brute has 40 hp and a crit strike takes 28, so two crits end the bout — deterministic,
@@ -600,9 +679,233 @@ describe('the combat log strip (spec §6.9 / §8)', () => {
     // The region is not wiped on the way out — a stale string is never re-announced — but the
     // next turn must still overwrite it. Without the reset, `slice(announced)` on a log that
     // has restarted at zero is empty forever and the whole next bout goes unspoken.
-    act('1');
+    press('1'); // sampled before the beat: the reply's utterance would replace this one
     expect(live().textContent).not.toBe(lastFight);
     expect(live().textContent).toContain('You strike (miss) for 0 damage.');
+    flushBeat(); // finish the exchange so its timer cannot leak into the next test
+  });
+});
+
+// Phase 4 (D5): the exchange lands in two renders — the player's immediately, the enemy's one
+// ENEMY_BEAT_MS later — so the reply reads as an event. Outcomes are untouched: the same pure
+// calls run in the same order off the same rng; only when the second half is *drawn* moves.
+describe('the exchange beat (phase 4 D5)', () => {
+  it('renders the player’s half immediately and the enemy’s only after the beat', () => {
+    enterFight();
+    press('1');
+    expect(logText()).toContain('You strike');
+    expect(logText()).not.toContain('The Brute strikes');
+    // The beat reads as a wind-up, not a dead screen: the four actions are dead planks…
+    expect(q('.fight__grid .btn[disabled]')).not.toBeNull();
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    expect(logText()).toContain('The Brute strikes');
+    // …and the reply's render re-arms everything.
+    expect(q('.fight__grid .btn[disabled]')).toBeNull();
+  });
+
+  it('ignores the fight keys during the beat', () => {
+    enterFight();
+    press('1');
+    press('2'); // smuggled into the beat: the guard must drop it
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    expect(logText()).not.toContain('You heavy');
+    expect(logText()).toContain('The Brute strikes');
+  });
+
+  it('flashes the struck poster and floats the damage it took', () => {
+    enterFight();
+    press('1'); // a miss, so the enemy's answer lands real damage on the player
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    const you = q('.fight__you .poster');
+    expect(you.classList.contains('is-hit')).toBe(true);
+    const chip = you.querySelector('.damage-chip');
+    expect(chip).not.toBeNull();
+    expect(chip.textContent).toMatch(/^−\d+$/); // −N, the real figure, minus by codepoint
+    vi.advanceTimersByTime(HIT_FLASH_MS);
+    expect(you.classList.contains('is-hit')).toBe(false);
+  });
+
+  it('offers the press with no beat pending — the enemy is not owed a turn yet', () => {
+    enterFight();
+    captureAt(renderedCenter());
+    act('1'); // crit → press offered; the enemy does not answer until the press resolves
+    expect(q('[data-action="press"]')).not.toBeNull();
+    expect(q('.fight__grid .btn[disabled]')).toBeNull();
+  });
+
+  it('collapses the beat to the next tick under reduced motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((media) => ({ media, matches: true }))
+    );
+    enterFight();
+    press('1');
+    vi.advanceTimersByTime(0);
+    expect(logText()).toContain('The Brute strikes');
+  });
+});
+
+// Phase 4 (D6): the one-time intro. Built outside #app like the live regions — mount() can
+// never destroy it — and once per page load: Fight Again starts a new run, not a new visit.
+// It exists because the audit found nothing anywhere teaching the two-step combat
+// interaction, and a player who clicks Strike cold resolves a silent miss.
+describe('the intro dialog (phase 4 D6)', () => {
+  const intro = () => document.querySelector('.intro-scrim');
+  const start = () => document.querySelector('[data-intro-start]');
+
+  it('opens on boot as a labelled modal dialog with focus on Start', async () => {
+    await loadMain(); // a fresh visit, intro not yet dismissed
+    const dialog = intro().querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    const labelId = dialog.getAttribute('aria-labelledby');
+    expect(dialog.querySelector(`#${labelId}`).textContent).toContain('Gold & Glory');
+    expect(app().contains(intro())).toBe(false); // outside #app, like the live regions
+    expect(document.activeElement).toBe(start());
+  });
+
+  it('dismisses to the hub with focus on the commit CTA', async () => {
+    await loadMain();
+    start().click();
+    expect(intro()).toBeNull();
+    expect(document.activeElement).toBe(q('[data-action="next-fight"]'));
+  });
+
+  it('dismisses on Escape too', async () => {
+    await loadMain();
+    press('Escape');
+    expect(intro()).toBeNull();
+  });
+
+  it('does not come back for the next run', async () => {
+    await loadMain();
+    start().click();
+    click('[data-action="retire"]'); // arms…
+    click('[data-action="retire"]'); // …and retires
+    expect(q('.screen--gameover')).not.toBeNull();
+    click('[data-action="restart"]');
+    expect(q('.screen--hub, .screen--fight, section.screen')).not.toBeNull();
+    expect(intro()).toBeNull();
+  });
+});
+
+// Phase 4 (D7): the audit ended a run with one stray click on Retire Rich — the most
+// destructive control in the game confirmed nothing. It now arms in place and retires only
+// on the second activation inside the window; the disarm is an ordinary render(), so any
+// other action is itself a "no".
+describe('retire confirmation (phase 4 D7)', () => {
+  const retireBtn = () => q('[data-action="retire"]');
+
+  it('arms on the first activation instead of ending the run', () => {
+    retireBtn().click();
+    expect(q('.screen--gameover')).toBeNull(); // still on the hub
+    expect(retireBtn().classList.contains('is-armed')).toBe(true);
+    expect(retireBtn().classList.contains('btn--danger')).toBe(true);
+    expect(retireBtn().textContent).toContain('Sure?');
+    // Spoken politely, so a screen-reader user hears what the plank now asks.
+    expect(document.getElementById('log-announcer').textContent).toContain('Press again');
+  });
+
+  it('retires on the second activation inside the window', () => {
+    retireBtn().click();
+    retireBtn().click();
+    expect(q('.screen--gameover')).not.toBeNull();
+    expect(q('.screen--gameover').getAttribute('data-achieved')).toBe('retired');
+  });
+
+  it('disarms by itself after the window passes', () => {
+    retireBtn().click();
+    vi.advanceTimersByTime(2500);
+    expect(retireBtn().classList.contains('is-armed')).toBe(false);
+    expect(retireBtn().textContent).toContain('Retire Rich');
+    retireBtn().click(); // the next activation arms again rather than retiring
+    expect(q('.screen--gameover')).toBeNull();
+  });
+
+  it('treats any other action as a "no"', () => {
+    retireBtn().click();
+    click('[data-action="train-power"]'); // re-renders the hub…
+    expect(retireBtn().classList.contains('is-armed')).toBe(false); // …which disarms
+    retireBtn().click();
+    expect(q('.screen--gameover')).toBeNull();
+  });
+
+  // The disarm is a render, so a render is also the disarm — but the *timer* used to outlive
+  // the screen it was scheduled on. Arm, walk away, and up to RETIRE_DISARM_MS later it fired a
+  // render on whatever screen the player had reached; in a fight that re-mounts the meter and
+  // restarts the sweep, throwing away a timing read the player was halfway through taking.
+  it('does not re-render a later screen when the disarm it no longer owns comes due', () => {
+    retireBtn().click(); // armed on the hub…
+    enterFight(); // …and left there, disarmed by that very render
+    pinWidth();
+    const base = t0;
+    clock = base + 0.25 * PERIOD; // the player is a quarter into the sweep…
+    vi.advanceTimersByTime(2500); // …when the stale disarm would have come due
+    expect(q('[data-meter]'), 'the fight screen was torn down').not.toBeNull();
+    clock = base + 0.6 * PERIOD;
+    press(' ');
+    // A stray render() here re-mounts the fight and startMeter() re-seeds sweep.t0 to the moment
+    // it fired, so this press would read 0.35 of the track instead of the 0.6 the player saw.
+    expect(cursorX()).toBeCloseTo(0.6 * WIDTH, 6);
+  });
+});
+
+// Phase 4 (D8): mount() replaces #app wholesale, which used to drop focus to <body> on every
+// action — a keyboard user had to re-tab to the meter each exchange. render() now remembers
+// the focused element by its stable hook (data-action / the meter) and restores it in the new
+// tree; a fight falls back to the meter when the old control is gone.
+describe('focus continuity across renders (phase 4 D8)', () => {
+  it('keeps a keyboard user on the meter across an exchange', () => {
+    enterFight();
+    q('[data-meter]').focus();
+    act('1'); // resolves the exchange: two renders, two new meters
+    expect(document.activeElement).toBe(q('[data-meter]'));
+  });
+
+  it('keeps focus on the same hub control across a purchase', () => {
+    const btn = q('[data-action="train-power"]');
+    btn.focus();
+    btn.click();
+    expect(document.activeElement).toBe(q('[data-action="train-power"]'));
+    expect(document.activeElement).not.toBe(btn); // the old node is gone; the hook survived
+  });
+
+  it('falls back to the meter when the focused fight control disappeared', () => {
+    enterFight();
+    captureAt(renderedCenter());
+    q('[data-action="strike"]').focus();
+    act('1'); // crit → press offered; the action grid re-rendered mid-offer
+    // strike still exists here, so focus stays with it — now finish the press:
+    q('[data-action="press"]').focus();
+    click('[data-action="press"]'); // the press button does not survive its own resolution
+    t0 = clock;
+    expect(document.activeElement).toBe(q('[data-meter]'));
+  });
+
+  // The one path D8's restoration could not survive on its own. render() puts focus back on the
+  // action plank the player used, and scheduleEnemy then disables that very plank for the beat —
+  // a browser blurs a disabled element, so the reply's render() would read <body>, find no hook
+  // and restore nothing. scheduleEnemy hands focus to the meter first. (jsdom does not implement
+  // the blur-on-disable, which is why the assertion is that focus has *already moved* to the
+  // meter by the time the planks go dead, not that it survived the reply.)
+  it('parks focus on the meter when the plank it sits on goes dead for the beat', () => {
+    enterFight();
+    q('[data-action="strike"]').focus();
+    press('1');
+    expect(q('.fight__grid .btn[disabled]'), 'the beat never started').not.toBeNull();
+    expect(document.activeElement).toBe(q('[data-meter]'));
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    expect(document.activeElement).toBe(q('[data-meter]'));
+    t0 = clock;
+  });
+
+  it('never steals focus that was not in the app', () => {
+    // blur(), not body.focus(): jsdom refuses focus() on a non-focusable body, which would
+    // leave the intro-dismissal focus in place and turn this into a fallback test.
+    document.activeElement.blur();
+    expect(document.activeElement).toBe(document.body);
+    enterFight();
+    expect(document.activeElement).toBe(document.body);
   });
 });
 
@@ -695,7 +998,8 @@ describe('the ledger announcement (spec §6.6 / §8)', () => {
   // game-over-reaching helper already in this file; forcing a death would need to fight the
   // run's own rng deterministically, which nothing here does.
   it('announces the ending once, stamp first, and not again on re-render (design §4d)', () => {
-    click('[data-action="retire"]');
+    click('[data-action="retire"]'); // arms (phase 4 D7)…
+    click('[data-action="retire"]'); // …and confirms
     expect(q('.screen--gameover'), 'retire did not reach GAMEOVER').not.toBeNull();
     const region = live();
     // Same lead-ins as the drawn screen (src/ui/render.js's CAUSE_LABEL/PURSE_LABEL and
@@ -791,7 +1095,8 @@ describe('money theater (spec §6.6 / §6.7)', () => {
   // renderer's own test cannot see the wiring that mounts it.
   it('keeps the HUD on screen once the run has ended (§6.1)', () => {
     withTimers(() => {
-      click('[data-action="retire"]');
+      click('[data-action="retire"]'); // arms (phase 4 D7)…
+      click('[data-action="retire"]'); // …and confirms
       expect(q('.screen--gameover')).not.toBeNull();
       expect(purse(), 'the beam persists into GAMEOVER').not.toBeNull();
       expect(ticker().textContent).toBe(formatGold(START));

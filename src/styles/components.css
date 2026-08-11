@@ -134,6 +134,29 @@
 .hud__purse .ticker {
   font-variant-numeric: tabular-nums;
 }
+/* Phase 4 (D2): ≤640px the beam was a ~470px column of one stat per row — half the viewport
+   spent before the screen began. Two-up grid, each stat's bar under its own label row, tight
+   gaps: the same four stats in ≲130px. Nothing leaves the accessibility tree. */
+@media (max-width: 640px) {
+  .hud {
+    display: grid;
+    /* Spelled as two plain tracks: tests/grid-areas.test.js sizes fixed tracks and refuses
+       repeat()/minmax() as opaque, and 1fr 1fr is the same two columns. */
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-3);
+  }
+  .hud__stat {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--space-2);
+    align-items: center;
+  }
+  .hud__stat .bar {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
 .bar.is-urgent .bar__fill {
   animation: bar-urgent 900ms var(--ease-drop) infinite;
 }
@@ -195,6 +218,13 @@
   font-size: var(--text-sm);
   color: var(--bone-dim);
 }
+/* `--bone-dim` is an on-wood colour (4.76:1 vs --wood-3) — the shop card is PARCHMENT, where
+   it lands at ~1.3:1 and the aside all but vanishes. On paper the snark takes the muted ink
+   the base `.snark` uses everywhere else on parchment (--ink-soft, 5.67:1 vs --paper-2).
+   tests/styles.test.js pins each ground to its ink. */
+.shop-item .btn__snark {
+  color: var(--color-text-muted);
+}
 
 /* The display face's size is `--text-commit`, not the 21px literal spec §6.2's block carries:
    Law 5 gives a component tokens only, and 21px is a real step of the scale (§6.2 is the only
@@ -211,43 +241,14 @@
 .btn--commit:focus-visible {
   outline-color: var(--bone-bright);
 }
-
-/* §6.2 amendment: the fight screen's PRESS THE ATTACK — a commit banner with a triangular
-   right end. Both rules are `.btn--commit.btn--arrow`, never `.btn--arrow` alone: the modifier
-   only ever decorates a commit banner (that is what keeps it inside Law 3, and what lets it
-   inherit the display face rather than restate it), so the sheet states the invariant instead
-   of trusting call sites. tests/a11y.test.js checks the markup half.
-   `--arrow-w` is declared here rather than spelled twice: the margin the triangle sits in and
-   the triangle's own width are one number, and a comment asking two literals to stay equal is
-   not a mechanism. Margin, not padding — the end sits *outside* the button, so the slot that
-   content-sizes to it (`.fight__press`) hugs the margin box and the arrow stays in its cell. */
-.btn--commit.btn--arrow {
-  --arrow-w: 22px;
-  position: relative;
-  margin-right: var(--arrow-w);
-  /* Tighter than `.btn--commit`'s 0.05em: the arrow is the one commit banner whose label runs
-     up against a hard diagonal instead of ending in the plank's own padding, and the extra
-     0.01em of trailing space read as a gap between the last letter and the point. */
-  letter-spacing: 0.04em;
-}
-.btn--commit.btn--arrow::after {
-  content: '';
-  position: absolute;
-  /* `left: 100%` is 100% of the *padding* box, so on its own the triangle starts one border
-     inside the button and paints over its right ink edge. Step out to the border box. */
-  left: calc(100% + var(--border-w));
-  /* Ties the end's height to the button's border box at whatever height it actually has —
-     a wrapped two-line label grows the banner and the arrow with it. The border-triangle this
-     replaced hard-coded two 24px half-heights, which matched a 44px button and nothing else. */
-  inset-block: calc(-1 * var(--border-w));
-  width: var(--arrow-w);
-  /* The same ramp as the banner, so the seam is invisible; a border-triangle could not take a
-     gradient. The clip is on the pseudo-element, NOT on `.btn--arrow`: an outline paints
-     outside its own element's border box, so clipping the button would cut §8's focus ring,
-     while clipping a child cannot reach it. (§6.2 amendment: no ink outline on the diagonal
-     yet — a clipped box cannot carry one. Deferred to Phase 2/3.) */
-  background: var(--grad-commit);
-  clip-path: polygon(0 0, 100% 50%, 0 100%);
+/* Phase 4 follow-up: the banner's own hover. `.btn:hover` is (0,2,0) and `.btn--commit` only
+   (0,1,0), so without this the wood hover-gradient won and every commit banner browned on
+   hover — the audit caught it on PRESS THE ATTACK, whose old detached triangle stayed blue
+   while the plank turned. Same specificity as `.btn:hover`, later in the sheet, so it wins
+   on source order. (That triangle — §6.2's `.btn--arrow` end — is retired with this fix:
+   every forward banner now carries its ▸ inside the label, one spelling for all of them.) */
+.btn--commit:hover {
+  background: var(--grad-commit-hover);
 }
 
 .btn--danger {
@@ -255,8 +256,12 @@
 }
 
 .btn[aria-disabled='true'] {
-  opacity: 0.45;
+  /* Same dead-plank treatment as base.css's `button:disabled` — one state, two selectors,
+     held together by tests/styles.test.js (phase 4 D9 replaced the shared 0.45 opacity:
+     transparency let the fixed backdrop bleed through). */
   cursor: not-allowed;
+  background: var(--wood-4);
+  color: var(--bone-dim);
   box-shadow: none;
 }
 /* `.is-unaffordable` stays full-strength EXCEPT the price: §6.2 spells that as an empty rule,
@@ -286,24 +291,33 @@
 }
 
 .btn.is-owned {
-  opacity: 0.6;
+  /* The taken-option plank ("Bribed ✓") joins the dead-plank ground treatment (phase 4 D9):
+     opaque wood, dim bone — its 0.6 opacity had the same backdrop-bleed failure. */
   cursor: default;
+  background: var(--wood-4);
+  color: var(--bone-dim);
   box-shadow: none;
 }
 
 /* ---- 6.5 Wanted poster ---- */
+/* The tilt travels through a custom property rather than each modifier owning `transform`
+   outright (phase 4 D5): `poster-hit` below animates `transform`, and a keyframe's transform
+   replaces the element's own — so the shake would un-tilt whichever poster it ran on unless
+   the keyframes can restate the tilt via the variable. Same mechanism as the chicken's
+   `--flip`, for the same reason. */
 .poster {
   border-radius: var(--wobble-1);
   padding: var(--space-4);
+  transform: rotate(var(--poster-tilt, 0deg));
 }
 .poster--tilt-1 {
-  transform: rotate(var(--tilt-1));
+  --poster-tilt: var(--tilt-1);
 }
 .poster--tilt-2 {
-  transform: rotate(var(--tilt-2));
+  --poster-tilt: var(--tilt-2);
 }
 .poster--tilt-3 {
-  transform: rotate(var(--tilt-3));
+  --poster-tilt: var(--tilt-3);
 }
 .poster__name {
   font-size: var(--text-2xl);
@@ -417,6 +431,61 @@
   display: block;
   text-align: center;
 }
+/* Phase 4 (D5): the struck fighter's card jolts and its portrait flashes blood for one
+   --dur-shake. The state class is applied and removed by ui/effects.js on its own timer
+   (hitFlash), exactly the purse-shake contract. The tint lives on the portrait's own overlay:
+   `.poster`'s ::before/::after are the tape strips, so the card itself has no free pseudo. */
+.poster.is-hit {
+  animation: poster-hit var(--dur-shake) steps(3, end);
+}
+@keyframes poster-hit {
+  33% {
+    transform: translateX(-4px) rotate(var(--poster-tilt, 0deg));
+  }
+  66% {
+    transform: translateX(4px) rotate(var(--poster-tilt, 0deg));
+  }
+}
+.poster__portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--blood);
+  opacity: 0;
+  pointer-events: none;
+}
+.poster.is-hit .poster__portrait::after {
+  animation: hit-tint var(--dur-shake) var(--ease-drop);
+}
+@keyframes hit-tint {
+  0%,
+  66% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The floating damage figure (phase 4 D5) — the §6.7 delta chip's pattern, seated on the hurt
+   poster. Mounted and retired by ui/effects.js (spawnDamageChip); reduced motion cancels the
+   fall in base.css exactly as it does for `.delta-chip`, and for the same reason. */
+.damage-chip {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: var(--z-chip);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
+  color: var(--blood-ink);
+  padding: 1px 8px;
+  background: var(--grad-paper);
+  border: 2px solid var(--border-ink);
+  border-radius: var(--wobble-bar);
+  white-space: nowrap;
+  animation: chip-fall var(--dur-chip) steps(4, end) forwards;
+}
 
 /* ---- 6.11 Training row ---- */
 /* §6.11 amendment: a 34px leading column for the row's icon well, ahead of the label/meter/btn
@@ -445,6 +514,37 @@
 }
 .train-row__meter {
   width: 100%;
+}
+.train-row {
+  position: relative;
+}
+.train-row::before {
+  content: '';
+  position: absolute;
+  right: 140px;
+  top: -16px;
+  width: 32px;
+  height: 32px;
+  background: center / contain no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.train-row:nth-child(2)::before {
+  background-image: url('../assets/art/train-power.svg');
+}
+.train-row:nth-child(3)::before {
+  background-image: url('../assets/art/train-guard.svg');
+}
+.train-row:nth-child(4)::before {
+  background-image: url('../assets/art/train-speed.svg');
+}
+/* Phase 4 (D3): the mascots hang at a fixed 140px from the row's right edge, which lands them
+   on the Train buttons once the row narrows. They are decoration — the icon wells carry the
+   row's identity — so at phone widths they step off rather than collide. */
+@media (max-width: 640px) {
+  .train-row::before {
+    display: none;
+  }
 }
 
 /* ---- 6.12 Shop item card (state triad) ---- */
@@ -598,12 +698,29 @@
 }
 
 /* ---- 6.10 Sponsor notice ---- */
+/* No `.tape` on this card, deliberately (phase 4 follow-up): the card names its pseudos for
+   its own dressing, and tape's strip declarations used to merge into them — the stall
+   rendered as a rotated, ink-bordered band floating off the card's top edge. The right
+   padding is the stall's reserved column, so copy never runs under the art. */
 .sponsor-card {
   position: relative;
   border-radius: var(--wobble-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) calc(96px + var(--space-4)) var(--space-3) var(--space-4);
   transform: rotate(var(--tilt-3));
   margin-top: var(--space-4);
+}
+/* The stall is the sponsor's emblem: seated at the card's right edge, vertically centred,
+   at its own fixed size — not a full-width banner with a card's worth of air around it. */
+.sponsor-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  transform: translateY(-50%);
+  width: 88px;
+  height: 64px;
+  background: url('../assets/art/sponsor-stall.svg') center / contain no-repeat;
+  pointer-events: none;
 }
 .sponsor-card__eyebrow {
   font-size: var(--text-xs);
@@ -616,24 +733,9 @@
   font-size: var(--text-xl);
 }
 
-/* §6.10's dog-eared corner — the recurring comedy vehicle's recognition mark. One pseudo,
-   three gradient stops: the page-tone corner "behind" the fold, the ink fold line, the
-   darker flap. Decorative; pseudo-content is invisible to AT. */
-.sponsor-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 26px;
-  height: 26px;
-  background: linear-gradient(
-    to bottom left,
-    var(--paper-3) 46%,
-    var(--border-ink) 46% 54%,
-    var(--paper-5) 54%
-  );
-  border-bottom-left-radius: 9px;
-}
+/* (§6.10's dog-eared corner lived here until phase 4: a square fold pasted onto a card whose
+   wobble radius rounds that very corner never sat right, and the tape strips it inherited
+   rotated it off the edge besides. The stall emblem above is the card's recognition mark.) */
 
 /* ---- 6.4 Timing meter (the core verb) ----
    Track, zones and cursor are spec §6.4's block verbatim. The zone hierarchy is a
@@ -767,22 +869,78 @@
     opacity: 1;
   }
 }
-.meter__labels {
+/* Phase 4 (D4): the legend that replaced `.meter__labels`. The old six-label row was evenly
+   spaced while the zones are seeded per turn, so the words never sat over the bands they
+   named — a legend states the *mapping* (brighter gold = better), which is true at every
+   position. aria-hidden markup: the meter's aria-label and the spoken log carry the verdicts. */
+.meter__legend {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding-top: var(--space-1);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--bone);
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
-  padding: 2px var(--space-1) 0;
+}
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.legend__chip {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--border-ink);
+  border-radius: 4px 6px 5px 6px;
+}
+.legend__chip--graze {
+  background: var(--gold-mid);
+}
+.legend__chip--hit {
+  background: var(--gold);
+}
+.legend__chip--crit {
+  background: var(--gold-hi);
+  border-inline: 2px solid var(--border-ink);
+}
+
+/* Phase 4 (D8): visible keyboard affordances. aria-hidden at every call site — labels and
+   aria-labels already name the mechanisms; the chip is the sighted user's shortcut key.
+   Hidden where there is no keyboard to hint at. */
+.key-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  border: 1.5px solid var(--border-ink);
+  border-radius: 4px 6px 5px 6px;
+  background: var(--paper-2);
+  color: var(--ink);
+  box-shadow: 0 1.5px 0 rgba(31, 22, 12, 0.5);
+}
+@media (pointer: coarse) {
+  .key-hint {
+    display: none;
+  }
 }
 .meter__taunt {
   text-align: center;
   font-size: var(--text-md);
   color: var(--bone);
   text-shadow: 0 1px 0 rgba(31, 22, 12, 0.8);
+  margin-bottom: 0;
+}
+/* Phase 4 (D3): the chicken rides 48px above the track (`.meter-chicken` is `bottom: 100%`),
+   so the track reserves that lane. Without it the sweep runs straight through the taunt copy
+   at narrow widths, and through whatever sits above the stage when the taunt is spent. */
+.fight__stage .meter {
+  margin-top: 52px;
 }
 /* §6.4 amendment: the first-fight taunt is spent the moment the player captures, so it goes as
    the verdict lands. Not a dodge of a collision but the same tutorial decay §6.4 already asks
@@ -843,6 +1001,13 @@
 .log__entry em {
   font-style: italic;
 }
+/* Phase 4 (D5): the damage-taken marker, inked apart from its number so it cannot scan as a
+   multiplication sign. Blood like the dealt-damage channel — both are wounds — but regular
+   weight: taken damage stays the quieter of the two, per §6.9's hierarchy. */
+.log__entry .log__glyph {
+  color: var(--blood-ink);
+  font-size: 0.9em;
+}
 .log .amount {
   color: var(--color-money);
 }
@@ -851,7 +1016,7 @@
 }
 /* `.fight__grid`, `.fight__actions` and `.fight__press` are screen layout, not §6 catalog
    entries — they live with the rest of the `.fight__*` placement in screens.css. (What *is* a
-   catalog entry is the button `.fight__press` holds: `.btn--commit.btn--arrow`, §6.2 above.)
+   catalog entry is the button `.fight__press` holds: a plain `.btn--commit`, §6.2 above.)
    Same for `.result__*` below. */
 
 /* ---- 6.6 The ledger ----
@@ -1116,6 +1281,66 @@
   66% {
     transform: translateX(3px);
   }
+}
+
+/* ---- Phase 4 (D6): the one-time intro ---- */
+/* Scrim at --z-modal; the card is ordinary parchment with the stamp entrance. Ink-tone
+   rgba for the dim, like every shadow in these sheets. */
+.intro-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(31, 22, 12, 0.55);
+}
+.intro {
+  max-width: 34rem;
+  padding: var(--space-5);
+  border-radius: var(--wobble-1);
+  transform: rotate(var(--tilt-3));
+  animation: stamp-in var(--dur-stamp) var(--ease-drop);
+}
+.intro h1 {
+  font-size: var(--text-3xl);
+  text-align: center;
+}
+.intro__premise {
+  text-align: center;
+}
+.intro__steps {
+  margin: var(--space-4) 0;
+  padding-left: 1.5em;
+  display: grid;
+  gap: var(--space-2);
+}
+.intro .btn--commit {
+  display: block;
+  margin: var(--space-4) auto 0;
+}
+
+/* ---- Phase 4 follow-up: the screen actions beam ---- */
+/* One place to look on every screen: the wood beam at the top reads the run's status, and
+   this — its twin at the bottom of the content — takes the screen's meta actions (hub:
+   Retire / Next Fight; result: Return to Ludus; game over: Fight Again). In flow, never
+   viewport-pinned: the screens fit their viewport, so pinning would only spend height. The
+   fight screen deliberately has no beam — its verbs are the combat actions themselves, and
+   Press the Attack is a contextual offer, not standing furniture. */
+.screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background:
+    url('../assets/textures/wood-planks.webp') center / 288px auto repeat,
+    var(--grad-wood);
+  background-blend-mode: multiply, normal;
+  border: var(--border-w) solid var(--border-ink);
+  border-radius: 14px 10px 15px 9px;
+  box-shadow: var(--shadow-plank);
 }
 
 /* ---- 6.16 Title plaque ---- */

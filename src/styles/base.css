@@ -6,7 +6,6 @@
 }
 body {
   margin: 0;
-  padding: var(--frame-w);
   background:
     radial-gradient(140% 120% at 50% 100%, rgba(31, 22, 12, 0.38), transparent 60%),
     var(--surface-page);
@@ -19,20 +18,13 @@ body {
    32px and `.screen`'s cap was unreachable (item 34, decided 2026-08-01). Anything mounted
    that is not a .screen (an error state) now spans the viewport — acceptable, and honest. */
 #app {
-  min-height: calc(100dvh - 2 * var(--frame-w));
+  min-height: 100dvh;
 }
 
-/* Stage layers (§6.17): fixed decorative wells around every screen. The backdrop is empty in
-   Phase 1 — the body's stone (M1) IS its zero-asset fallback (§10). The frame is a placeholder
-   stone border until Phase 3's cartoon masonry border-image; pointer-events: none keeps it out
-   of the input path, and the body's padding: var(--frame-w) below — not z-order — is what holds
-   content clear of the border. --z-frame guards nothing interactive: --z-hud has one consumer in
-   the whole sheet set (.commit-bar, ≤640px), so every other control is non-positioned in-flow
-   content and paints *below* the frame. That is safe only while the frame is a plain `border`,
-   which paints strictly inside the border box — i.e. inside the ring the padding already vacated,
-   with nothing to cover. Phase 3's border-image can reach inward, and would paint over live
-   controls while pointer-events: none left them clickable. See §6.17's Phase 3 constraint before
-   swapping the border out. */
+/* The stage backdrop (§6.17): a fixed decorative well behind every screen. Phase 4 removed
+   its sibling, the stone frame — the masonry ring read as clutter and spent 14px of playfield
+   on every side — so the backdrop is the one stage layer left, and content runs to the
+   viewport edge (the fixed .commit-bar included; .screen's own gutter is the page margin). */
 .stage-backdrop {
   position: fixed;
   inset: 0;
@@ -41,24 +33,6 @@ body {
      Absent file ⇒ transparent layer ⇒ the body's stone shows, as Phase 1 shipped it. */
   background: url('../assets/art/arena-backdrop.svg') center bottom / cover no-repeat;
   opacity: 0.55;
-}
-.stage-frame {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-frame);
-  pointer-events: none;
-  border: var(--frame-w) solid var(--stone-2);
-  /* §6.17 Phase 3 amendment: cartoon masonry over the placeholder. Slice matches the SVG's
-     96px corner geometry; `round` keeps edge blocks whole. If the file is absent at runtime
-     the solid border above simply shows — §10 costs nothing here. */
-  border-image-source: url('../assets/art/stone-frame.svg');
-  border-image-slice: 96;
-  border-image-repeat: round;
-}
-@media (max-width: 640px) {
-  :root {
-    --frame-w: 8px;
-  }
 }
 h1,
 h2,
@@ -82,8 +56,14 @@ button {
    option was already taken (`aria-disabled`). tests/styles.test.js now derives one number from
    the other rather than restating it. */
 button:disabled {
-  opacity: 0.45;
+  /* Phase 4 (D9): a dead plank stays a plank — fully opaque, dimmed by ink rather than by
+     transparency. The 0.45 opacity this replaces let the fixed arena backdrop bleed through
+     and the control read as a rendering glitch. --bone-dim on --wood-4 is 6.43:1 (tokens.css).
+     tests/styles.test.js holds this rule and `.btn[aria-disabled="true"]` to one treatment. */
   cursor: not-allowed;
+  background: var(--wood-4);
+  color: var(--bone-dim);
+  box-shadow: none;
 }
 
 /* Two-tone focus ring: the blue reads on paper, the bone halo reads on stone and
@@ -179,6 +159,12 @@ button:disabled {
      tests/styles.test.js generalises this: any forwards animation ending hidden must be
      cancelled here rather than shortened. */
   .delta-chip {
+    animation: none !important;
+  }
+  /* The poster damage figure (phase 4 D5) is the delta chip's twin and needs the same
+     carve-out for the same reason. Its own rule rather than a comma-mate: styles.test.js
+     verifies each vanishing-forwards selector cancels itself, selector by selector. */
+  .damage-chip {
     animation: none !important;
   }
 }

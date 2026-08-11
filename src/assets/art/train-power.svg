@@ -1,0 +1,17 @@
+<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Power training: gladiator lifting boulder (hub.png reference) -->
+  <!-- boulder overhead -->
+  <ellipse cx="40" cy="20" rx="22" ry="14" fill="#93836d"/>
+  <!-- strain lines -->
+  <path d="M14 18 10 14 M66 18 70 14" stroke="#2f2318" stroke-width="3" fill="none"/>
+  <!-- raised arms -->
+  <path d="M22 45 28 32 34 28 M58 45 52 32 46 28" fill="none"/>
+  <!-- head -->
+  <circle cx="40" cy="38" r="8"/>
+  <!-- open strained mouth -->
+  <circle cx="40" cy="40" r="3" fill="#b5402f" stroke="none"/>
+  <!-- body & loincloth -->
+  <path d="M30 46 50 46 46 64 34 64Z" fill="#6b4a2a"/>
+  <!-- bent legs -->
+  <path d="M34 64 26 78 M46 64 54 78" fill="none"/>
+</svg>

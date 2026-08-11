@@ -1,0 +1,19 @@
+<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg" fill="#d9c69a" stroke="#2f2318" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Cartoon gladiators clashing swords for Next Fight button (hub.png reference) -->
+  <!-- Left gladiator -->
+  <circle cx="25" cy="20" r="8"/>
+  <path d="M18 16 32 16" stroke="#b5402f" stroke-width="4"/> <!-- plume -->
+  <path d="M18 28 32 28 28 48 20 48Z" fill="#6b4a2a"/> <!-- body -->
+  <path d="M28 32 42 28" fill="none"/> <!-- sword arm -->
+  <path d="M42 28 55 20" stroke="#93836d" stroke-width="4"/> <!-- sword -->
+
+  <!-- Right gladiator -->
+  <circle cx="75" cy="20" r="8"/>
+  <path d="M68 14 75 8 82 14" fill="#93836d"/> <!-- horned helm -->
+  <path d="M68 28 82 28 78 48 70 48Z" fill="#6b4a2a"/> <!-- body -->
+  <path d="M72 32 58 28" fill="none"/> <!-- sword arm -->
+  <path d="M58 28 45 22" stroke="#93836d" stroke-width="4"/> <!-- sword -->
+
+  <!-- clash spark -->
+  <path d="M47 18 53 24 M53 18 47 24" stroke="#f4cf7a" stroke-width="3"/>
+</svg>

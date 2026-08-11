@@ -243,6 +243,45 @@ export function spawnShortfallChip(
   });
 }
 
+// --- Hit feedback (phase 4 D5) ---
+// The presentation beat between the player's render and the enemy's reply. Pacing only: the
+// pure core still runs the same calls in the same order, so nothing about the outcome moves.
+export const ENEMY_BEAT_MS = 550;
+// --dur-shake's consumer for the struck poster, same contract as purseShake below.
+export const HIT_FLASH_MS = 300;
+
+const hitTimers = new WeakMap();
+// Jolt + blood tint on the struck fighter's card. Class on, class off, restart-safe —
+// purseShake's exact shape, for the same reasons (a flash already in flight restarts
+// instead of ending early).
+export function hitFlash(poster) {
+  if (!poster || reducedMotion()) return;
+  clearTimeout(hitTimers.get(poster));
+  poster.classList.remove('is-hit');
+  void poster.offsetWidth;
+  poster.classList.add('is-hit');
+  hitTimers.set(
+    poster,
+    setTimeout(() => poster.classList.remove('is-hit'), HIT_FLASH_MS)
+  );
+}
+
+// The floating damage figure on whichever fighter lost health between two renders. `amount`
+// is the health lost (positive). Zero or absent damage spawns nothing — a no-damage exchange
+// is silence, not a minus-zero. No merge window, unlike the purse chips: one exchange, one figure.
+export function spawnDamageChip(poster, amount, { lifeMs = CHIP_LIFE_MS } = {}) {
+  if (!poster || !(amount > 0)) return null;
+  const chip = document.createElement('span');
+  chip.className = 'damage-chip';
+  chip.textContent = `${MINUS}${amount}`;
+  poster.appendChild(chip);
+  chipTimers.set(
+    chip,
+    setTimeout(() => dropChip(chip), reducedMotion() ? REDUCED_CHIP_LIFE_MS : lifeMs)
+  );
+  return chip;
+}
+
 // The 3-frame rejection shake (§6.7). No modal, no beep: the purse itself says no.
 const shakeTimers = new WeakMap();
 export function purseShake(hudPurse) {

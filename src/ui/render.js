@@ -50,6 +50,11 @@ const PIP_MIN_SLOTS = 5;
 // maximum (the training meter is presentational; the row label carries the true number).
 const TRAIN_METER_CAP = 50;
 
+// Phase 4 (D9): the log strip before the first exchange. A blank parchment scroller reads as
+// a rendering failure, and §6.9's strip is the player's record of the bout — an empty record
+// still deserves a line. Status register (italic), no turn stamp: nothing has happened yet.
+const EMPTY_LOG = '<li class="log__entry log__entry--empty"><em>The crowd gathers…</em></li>';
+
 // Spec §6.5's poster sub line: "tier · fight purse", the amount in gold ink. It is markup, so
 // it is written once here rather than at each call site — the hub and the fight screen bill
 // the same bout and must not drift. The separator is escaped (· MIDDLE DOT) rather than
@@ -124,7 +129,7 @@ export function renderHub(state, config) {
     .join('');
 
   const sponsorCard = state.sponsorUnlocked
-    ? `<aside class="sponsor-card parchment tape">
+    ? `<aside class="sponsor-card parchment">
       <span class="sponsor-card__eyebrow">Sponsor</span>
       <h3 class="sponsor-card__name">Lord Biggus</h3>
       <p>Objective: ${escapeHtml(config.sponsor.objective)}</p>
@@ -184,8 +189,10 @@ export function renderHub(state, config) {
         <span class="hub__next-label">Next bout</span>
         ${poster({ name: opponent.name, tilt: 2, sub: opponentSub(opponent), portrait: opponent.id })}
       </div>
-      <div class="hub__retire">${btn('retire', 'Retire Rich', { variant: 'commit' })}</div>
-      <div class="hub__commit commit-bar">${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}</div>
+      <div class="hub__actions screen-actions commit-bar">
+        ${btn('retire', 'Retire Rich', { variant: 'commit' })}
+        ${btn('next-fight', 'Next Fight ▸', { variant: 'commit' })}
+      </div>
     </section>`;
 }
 
@@ -336,7 +343,7 @@ export function renderResult(state, config) {
           <span class="wordmark">GOLD &amp; GLORY</span>
         </section>
       </div>
-      <div class="result__cta commit-bar">${btn('to-hub', 'Return to Ludus', {
+      <div class="result__cta screen-actions commit-bar">${btn('to-hub', 'Return to Ludus', {
         variant: 'commit',
         price: state.gold,
       })}</div>
@@ -421,7 +428,7 @@ export function renderGameOver(state, config) {
         <p class="cause-of-death parchment">${payload}
           <span class="wordmark">GOLD &amp; GLORY</span></p>
       </div>
-      <div class="gameover__cta commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
+      <div class="gameover__cta screen-actions commit-bar">${btn('restart', 'Fight Again ▸', { variant: 'commit' })}</div>
       <div class="gameover__props" aria-hidden="true">
         <i class="prop prop--vignette"></i>
         <i class="prop prop--sock-left"></i>
@@ -475,7 +482,13 @@ function renderMeter(state, config) {
         ${zone('crit')}
         <div class="meter-cursor"><img class="meter-chicken" src="${chickenUrl}" alt="" /></div>
       </div>
-      <div class="meter__labels"><span>Miss</span><span>Graze</span><span>Hit</span><span>Crit</span><span>Graze</span><span>Miss</span></div>`;
+      <div class="meter__legend" aria-hidden="true">
+        <span class="legend__item"><i class="legend__chip legend__chip--graze"></i>Graze</span>
+        <span class="legend__item"><i class="legend__chip legend__chip--hit"></i>Hit</span>
+        <span class="legend__item"><i class="legend__chip legend__chip--crit"></i>Crit</span>
+        <span class="legend__item legend__item--miss">elsewhere: miss</span>
+        <kbd class="key-hint">Space</kbd>
+      </div>`;
 }
 
 // Spec §6.9: the strip is a fixed-height parchment scroller — `max-height: ~160px` plus
@@ -498,24 +511,35 @@ export function renderFight(state, config) {
   // The bout being fought is still the current one: resolveFightOutcome advances the index
   // only after the fight is over, so the poster bills the right tier, purse and aside.
   const opponent = config.opponents[state.currentOpponentIndex];
-  const logHtml = c.log.map(logEntry).join('');
+  const logHtml = c.log.length ? c.log.map(logEntry).join('') : EMPTY_LOG;
   // Both plates come from poster(), so each fighter's health is clamped, ARIA-valid and flashes
   // at the shared urgency threshold — the fight screen states no number by hand.
   //
-  // Child order is the §7-amendment reading order — you, stage, foe, actions, log, press — and
-  // therefore the tab order: meter → the four actions → log (it is `tabindex="0"`) → press. The
-  // grid areas in screens.css move these blocks around the screen at each breakpoint; they never
-  // reorder them. `.fight__press` is emitted whether or not the offer stands, so the grid always
-  // has the child its `press` area is written for — but the empty div reserves no *space* (it is
-  // 0×0). Nothing jumps when the offer appears because of where the area sits, not because the
-  // slot holds the room: on desktop `log log press` is sized by the much taller `.fight__log`
-  // beside it, and at ≤900px the press band is the last row, with nothing below it to push down.
-  // Shorten the log past the button's height and the desktop row *will* grow when a press is
-  // offered.
+  // Child order is phase 4 (D3)'s reading order — stage, actions, you, foe, log, press — and
+  // therefore the tab order: meter → the four actions → log (it is `tabindex="0"`) → press.
+  // The meter leads because it is the turn's first required act: on the stacked mobile grids
+  // source order IS visual order, and the §7-amendment order this replaced put a full-height
+  // poster above the fold and the core verb below it. The grid areas in screens.css still move
+  // these blocks around the screen at each breakpoint; they never reorder them. `.fight__press`
+  // is emitted whether or not the offer stands, so the grid always has the child its `press`
+  // area is written for — but the empty div reserves no *space* (it is 0×0). Nothing jumps when
+  // the offer appears because of where the area sits, not because the slot holds the room: on
+  // desktop `log log press` is sized by the much taller `.fight__log` beside it, and at ≤900px
+  // the press band is the last row, with nothing below it to push down. Shorten the log past
+  // the button's height and the desktop row *will* grow when a press is offered.
   return `
     ${renderHud(state, config)}
     ${titlePlaque('Fight')}
     <section class="screen screen--fight">
+      <div class="fight__stage">${renderMeter(state, config)}</div>
+      <div class="fight__actions">
+        <div class="fight__grid">
+          ${btn('strike', 'Strike', { keyHint: '1' })}
+          ${btn('heavy', 'Heavy', { keyHint: '2' })}
+          ${btn('block', 'Block', { keyHint: '3' })}
+          ${btn('feint', 'Feint', { keyHint: '4' })}
+        </div>
+      </div>
       <div class="fight__you">${poster({
         name: 'You',
         tilt: 1,
@@ -524,7 +548,6 @@ export function renderFight(state, config) {
         snark: config.snark.player,
         portrait: 'player',
       })}</div>
-      <div class="fight__stage">${renderMeter(state, config)}</div>
       <div class="fight__foe">${poster({
         name: c.enemy.name,
         tilt: 2,
@@ -533,15 +556,7 @@ export function renderFight(state, config) {
         snark: config.snark[opponent.id] ?? '',
         portrait: opponent.id,
       })}</div>
-      <div class="fight__actions">
-        <div class="fight__grid">
-          ${btn('strike', 'Strike')}
-          ${btn('heavy', 'Heavy')}
-          ${btn('block', 'Block')}
-          ${btn('feint', 'Feint')}
-        </div>
-      </div>
       <div class="fight__log"><h2>Commentary</h2><ul class="log parchment" tabindex="0" aria-label="Combat log">${logHtml}</ul></div>
-      <div class="fight__press">${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit', arrow: true }) : ''}</div>
+      <div class="fight__press">${c.canPress ? btn('press', 'Press the Attack ▸', { variant: 'commit' }) : ''}</div>
     </section>`;
 }
