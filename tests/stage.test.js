@@ -30,7 +30,11 @@ describe('stage backdrop', () => {
 
   it('leaves no remains of the removed stone frame', () => {
     expect(html).not.toContain('stage-frame');
-    const sheets = readdirSync('src/styles').map((f) => readFileSync(`src/styles/${f}`, 'utf8'));
+    // Filtered like styles.test.js's SHEETS: readdirSync lists directories too, and readFileSync
+    // on one throws EISDIR — failing this test with an error that says nothing about the frame.
+    const sheets = readdirSync('src/styles')
+      .filter((f) => f.endsWith('.css'))
+      .map((f) => readFileSync(`src/styles/${f}`, 'utf8'));
     for (const sheet of sheets) {
       expect(sheet).not.toMatch(/\.stage-frame/);
       // The token is gone, so a consumer would resolve to nothing and silently collapse.

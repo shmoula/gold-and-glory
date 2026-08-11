@@ -829,6 +829,25 @@ describe('retire confirmation (phase 4 D7)', () => {
     retireBtn().click();
     expect(q('.screen--gameover')).toBeNull();
   });
+
+  // The disarm is a render, so a render is also the disarm — but the *timer* used to outlive
+  // the screen it was scheduled on. Arm, walk away, and up to RETIRE_DISARM_MS later it fired a
+  // render on whatever screen the player had reached; in a fight that re-mounts the meter and
+  // restarts the sweep, throwing away a timing read the player was halfway through taking.
+  it('does not re-render a later screen when the disarm it no longer owns comes due', () => {
+    retireBtn().click(); // armed on the hub…
+    enterFight(); // …and left there, disarmed by that very render
+    pinWidth();
+    const base = t0;
+    clock = base + 0.25 * PERIOD; // the player is a quarter into the sweep…
+    vi.advanceTimersByTime(2500); // …when the stale disarm would have come due
+    expect(q('[data-meter]'), 'the fight screen was torn down').not.toBeNull();
+    clock = base + 0.6 * PERIOD;
+    press(' ');
+    // A stray render() here re-mounts the fight and startMeter() re-seeds sweep.t0 to the moment
+    // it fired, so this press would read 0.35 of the track instead of the 0.6 the player saw.
+    expect(cursorX()).toBeCloseTo(0.6 * WIDTH, 6);
+  });
 });
 
 // Phase 4 (D8): mount() replaces #app wholesale, which used to drop focus to <body> on every
@@ -861,6 +880,23 @@ describe('focus continuity across renders (phase 4 D8)', () => {
     click('[data-action="press"]'); // the press button does not survive its own resolution
     t0 = clock;
     expect(document.activeElement).toBe(q('[data-meter]'));
+  });
+
+  // The one path D8's restoration could not survive on its own. render() puts focus back on the
+  // action plank the player used, and scheduleEnemy then disables that very plank for the beat —
+  // a browser blurs a disabled element, so the reply's render() would read <body>, find no hook
+  // and restore nothing. scheduleEnemy hands focus to the meter first. (jsdom does not implement
+  // the blur-on-disable, which is why the assertion is that focus has *already moved* to the
+  // meter by the time the planks go dead, not that it survived the reply.)
+  it('parks focus on the meter when the plank it sits on goes dead for the beat', () => {
+    enterFight();
+    q('[data-action="strike"]').focus();
+    press('1');
+    expect(q('.fight__grid .btn[disabled]'), 'the beat never started').not.toBeNull();
+    expect(document.activeElement).toBe(q('[data-meter]'));
+    vi.advanceTimersByTime(ENEMY_BEAT_MS);
+    expect(document.activeElement).toBe(q('[data-meter]'));
+    t0 = clock;
   });
 
   it('never steals focus that was not in the app', () => {

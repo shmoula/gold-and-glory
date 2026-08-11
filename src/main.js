@@ -134,6 +134,13 @@ function newRun() {
 
 function render() {
   const previousGold = lastGold;
+  // The armed retire plank is disarmed by any render (D7 below: the renderer redraws it from a
+  // state that knows nothing of the arm), so the pending disarm has no work left the moment we
+  // get here — and leaving it scheduled means it re-renders whatever screen the player has
+  // moved on to, up to RETIRE_DISARM_MS later. Arm, then take a fight, and that stray render
+  // re-mounts the fight and restarts the sweep with the sweep half-run: the timing read the
+  // player was in the middle of taking is discarded mid-stroke.
+  clearTimeout(retireTimer);
   // Phase 4 (D8): mount() replaces #app wholesale, which dropped focus to <body> on every
   // action — a keyboard user had to re-tab to the meter each exchange. Remember what was
   // focused by its stable hook (data-action / the meter) and restore it in the new tree.
@@ -367,7 +374,17 @@ function strikeFeedback(lost, posterSel) {
 // an unresponsive screen. Reduced motion collapses the beat to the next tick — one render
 // per state like every other reduced animation, but through the same code path.
 function scheduleEnemy() {
-  for (const b of app.querySelectorAll('.fight__grid .btn')) b.disabled = true;
+  const planks = [...app.querySelectorAll('.fight__grid .btn')];
+  // Park focus on the meter before the planks go dead, or D8's restoration is defeated on the
+  // exact turn it matters: render() has just put focus back on (say) Strike, a browser blurs a
+  // focused element the moment it is disabled, and so the reply's render() reads <body> off
+  // document.activeElement, computes no focus key, and drops the keyboard player where D8 found
+  // them. The meter is where the fallback would have sent them anyway — it is the next required
+  // act — so this is that fallback, taken one beat early while the hook still exists.
+  if (planks.includes(document.activeElement)) {
+    app.querySelector('[data-meter]')?.focus({ preventScroll: true });
+  }
+  for (const b of planks) b.disabled = true;
   enemyTimer = setTimeout(
     () => {
       resolving = false;
@@ -483,11 +500,11 @@ const handlers = {
       el.classList.add('is-armed', 'btn--danger');
       el.textContent = 'Sure? Retiring ends the run';
       announcer.textContent = 'Press again to retire and end the run.';
-      clearTimeout(retireTimer);
+      // No clearTimeout in either branch: render() owns the pending disarm now, and every path
+      // that leaves the armed state — this one included, via the disarm it schedules — renders.
       retireTimer = setTimeout(() => render(), RETIRE_DISARM_MS);
       return;
     }
-    clearTimeout(retireTimer);
     state = retireRun(state);
     render();
   },

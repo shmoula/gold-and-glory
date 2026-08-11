@@ -2099,8 +2099,16 @@ describe('renderFight timing meter (spec §6.4)', () => {
       expect(kbd.textContent).toBe(digit);
       expect(kbd.getAttribute('aria-hidden')).toBe('true');
     }
-    // Hint-less buttons emit no <kbd> — the chip is opt-in per call site.
-    expect(host.querySelector('[data-meter]').innerHTML).not.toContain('<kbd');
+    // Hint-less buttons emit no <kbd> — the chip is opt-in per call site. Asserted on the press
+    // banner, the fight's one button that passes no keyHint: this used to read `[data-meter]`,
+    // which is the meter track, not a button, and whose Space chip lives in the sibling
+    // `.meter__legend` anyway — so it passed for a reason unrelated to what it claims to check.
+    const pressed = dom(renderFight(fightState({ combat: { canPress: true } }), CONFIG));
+    expect(
+      pressed.querySelector('[data-action="press"]'),
+      'no press banner to check'
+    ).not.toBeNull();
+    expect(pressed.querySelector('[data-action="press"] kbd')).toBeNull();
   });
 
   // Phase 4 (D9): a blank parchment scroller reads as a rendering failure, so the strip's

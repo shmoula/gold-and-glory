@@ -119,6 +119,14 @@
 }
 /* On phones the two verbs own the whole beam — no middle left to decorate. */
 @media (max-width: 640px) {
+  /* And no ends left to hold, once they wrap: `space-between` distributes *between* items, so a
+     line carrying one button parks it at the start edge and the beam reads as left-ragged. The
+     wrap is not hypothetical at 375px — arming Retire swaps its label for "Sure? Retiring ends
+     the run", which is wider than the two verbs' shared line. Fall back to `.screen-actions`'
+     own centring, which is what every other screen's beam already does. */
+  .hub__actions {
+    justify-content: center;
+  }
   .hub__actions::before {
     display: none;
   }
